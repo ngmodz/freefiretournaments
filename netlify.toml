@@ -8,10 +8,16 @@
   functions = "netlify/functions"
   publish = "dist"
   port = 3000
+  targetPort = 8083
 
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/webhooks/cashfree"
+  to = "/.netlify/functions/payment-webhook"
   status = 200
 
 [functions]

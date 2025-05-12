@@ -16,10 +16,12 @@ import { Label } from "@/components/ui/label";
 import { Loader2, CreditCard, Wallet } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Wallet as WalletType, updateWalletBalance, addTransaction } from "@/lib/walletService";
+import { Wallet as WalletType } from "@/lib/walletService";
 import { motion, AnimatePresence } from "framer-motion";
 import React from "react";
 import TransactionSuccessDialog from "./TransactionSuccessDialog";
+import { CashfreeCheckout } from "@/components/payment/CashfreeCheckout";
+import { CashfreeService, PaymentOrderResponse } from "@/lib/cashfree-service";
 
 // Minimum amount that can be added
 const MIN_AMOUNT = 100;
@@ -87,52 +89,47 @@ const AddFundsDialog = ({
       setIsLoading(true);
       setError(null);
 
-      console.log(`Adding funds: ₹${numAmount} via ${paymentMethod} for user ${currentUser.uid}`);
+      console.log(`Initiating Cashfree payment: ₹${numAmount} for user ${currentUser.uid}`);
       
-      // First record the transaction in history
-      const transactionData = {
-        userId: currentUser.uid,
-        amount: numAmount,
-        type: 'deposit' as const,
-        date: new Date(),
-        status: 'completed' as const,
-        details: {
-          paymentMethod: paymentMethod
-        }
+      // Get user display name or email as a fallback
+      const customerName = currentUser.displayName || currentUser.email?.split('@')[0] || 'User';
+      const customerEmail = currentUser.email || '';
+      const customerPhone = currentUser.phoneNumber || '';
+      
+      // Create payment order parameters
+      const paymentParams = {
+        orderAmount: numAmount,
+        customerName: customerName,
+        customerEmail: customerEmail || 'user@example.com', // Cashfree requires an email
+        customerPhone: customerPhone || '9999999999', // Cashfree requires a phone number
+        orderNote: `Wallet funds - ${new Date().toISOString()}`,
       };
       
-      console.log("Creating transaction record:", transactionData);
+      console.log("Creating Cashfree payment order:", paymentParams);
       
-      try {
-        // Create the transaction first
-        const newTransactionId = await addTransaction(transactionData);
-        console.log("Transaction created with ID:", newTransactionId);
-        
-        if (!newTransactionId) {
-          throw new Error("Failed to create transaction record");
-        }
-        
-        // Then update the wallet balance
-        await updateWalletBalance(currentUser.uid, numAmount);
-        console.log("Wallet balance updated successfully");
-        
-        // Success - close dialog and show success dialog
-        setIsLoading(false);
-        onOpenChange(false);
-        
-        // Save transaction details and show success dialog
-        setTransactionId(newTransactionId);
-        setConfirmedAmount(numAmount);
-        setShowSuccessDialog(true);
-        
-      } catch (transactionError) {
-        console.error("Transaction creation failed:", transactionError);
-        setError("Failed to record transaction. Please try again.");
-        setIsLoading(false);
+      // Get Cashfree service instance
+      const cashfreeService = CashfreeService.getInstance();
+      
+      // Create payment order
+      const response = await cashfreeService.createPaymentOrder(paymentParams);
+      
+      if (!response.success || !response.payment_link) {
+        throw new Error(response.error || 'Failed to create payment order');
       }
-    } catch (err) {
-      console.error("Payment error:", err);
-      setError("Failed to process payment. Please try again.");
+      
+      // Success - close dialog
+      setIsLoading(false);
+      onOpenChange(false);
+      
+      console.log("Payment order created successfully:", response);
+      console.log("Redirecting to payment link:", response.payment_link);
+      
+      // Redirect to Cashfree payment page
+      cashfreeService.redirectToPaymentPage(response.payment_link);
+      
+    } catch (error) {
+      console.error("Payment initiation error:", error);
+      setError(error.message || "An error occurred while initiating payment. Please try again.");
       setIsLoading(false);
     }
   };

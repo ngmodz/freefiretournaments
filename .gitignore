@@ -45,3 +45,6 @@ firebase-service-account*.json
 *.pfx
 *.cert
 *.crt
+
+# Local Netlify folder
+.netlify
