@@ -1,0 +1,68 @@
+#root {
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+}
+
+/* Removed max-width and margin constraints that could be limiting the content width */
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+
+/* Safe area utilities for PWA on mobile devices */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .safe-top {
+    padding-top: env(safe-area-inset-top) !important;
+  }
+  
+  .mt-safe {
+    margin-top: env(safe-area-inset-top) !important;
+  }
+  
+  .pt-safe {
+    padding-top: env(safe-area-inset-top) !important;
+  }
+  
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom) !important;
+  }
+  
+  .mb-safe {
+    margin-bottom: env(safe-area-inset-bottom) !important;
+  }
+}

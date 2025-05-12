@@ -1,0 +1,316 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 225 20% 14.5%;
+    --foreground: 0 0% 98%;
+    --card: 225 20% 11.5%;
+    --card-foreground: 0 0% 98%;
+    --popover: 225 20% 11.5%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 270 64% 75%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 270 40% 55%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 24 95% 53%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 270 64% 75%;
+    --radius: 0.75rem;
+    --sidebar-background: 225 20% 14.5%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 270 64% 75%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 240 4.9% 83.9%;
+  }
+
+  * {
+    @apply border-border selection:bg-gaming-primary/20 selection:text-gaming-text box-border;
+  }
+  
+  body {
+    @apply bg-gaming-bg text-gaming-text antialiased overflow-x-hidden;
+  }
+
+  html {
+    @apply scroll-smooth overflow-x-hidden;
+  }
+  
+  /* Fix for browser autofill styling */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px #1B1F2D inset !important;
+    -webkit-text-fill-color: #FFFFFF !important;
+    transition: background-color 5000s ease-in-out 0s;
+    caret-color: #FFFFFF;
+  }
+
+  /* Firefox autofill */
+  input:autofill {
+    background-color: #1B1F2D !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 0 0 30px #1B1F2D inset !important;
+  }
+}
+
+@layer utilities {
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Toast styling for mobile */
+  .mobile-toast-success {
+    margin-top: 56px !important; /* Adjust based on navbar height */
+    background-color: rgba(34, 197, 94, 0.9) !important;
+    color: white !important;
+    font-weight: 500 !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3) !important;
+    z-index: 1000 !important;
+  }
+  
+  .mobile-toast-error {
+    margin-top: 56px !important; /* Adjust based on navbar height */
+    background-color: rgba(239, 68, 68, 0.9) !important;
+    color: white !important;
+    font-weight: 500 !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3) !important;
+    z-index: 1000 !important;
+  }
+  
+  /* Ensure toasts display properly on mobile devices */
+  @media (max-width: 640px) {
+    [data-sonner-toaster][data-position^="top"] {
+      top: env(safe-area-inset-top, 0px) !important;
+      padding-top: 0 !important;
+    }
+  }
+
+  .glass-card {
+    @apply backdrop-blur-lg bg-white/5 border border-white/10 shadow-lg;
+  }
+  
+  .gaming-gradient {
+    @apply bg-gradient-to-br from-gaming-primary/20 via-gaming-primary/10 to-transparent;
+  }
+  
+  .text-glow {
+    text-shadow: 0 0 8px rgba(155, 135, 245, 0.6);
+  }
+
+  .shadow-glow {
+    box-shadow: 0 0 12px 2px rgba(155, 135, 245, 0.4);
+  }
+
+  .shadow-glow-accent {
+    box-shadow: 0 0 12px 2px rgba(249, 115, 22, 0.4);
+  }
+  
+  .btn-gaming-primary {
+    @apply bg-gaming-primary hover:bg-gaming-primary/90 text-white font-medium py-2 px-4 rounded-md transition-all duration-300 text-sm shadow-glow hover:shadow-glow transform hover:translate-y-[-1px];
+  }
+
+  .btn-gaming-accent {
+    @apply bg-gaming-accent hover:bg-gaming-accent/90 text-white font-medium py-2 px-4 rounded-md transition-all duration-300 text-sm shadow-glow-accent hover:shadow-glow-accent transform hover:translate-y-[-1px];
+  }
+  
+  /* Animation utilities */
+  .animate-in {
+    animation: animateIn 0.5s cubic-bezier(0.25, 0.1, 0.25, 1.0) forwards;
+  }
+
+  .animate-out {
+    animation: animateOut 0.5s cubic-bezier(0.25, 0.1, 0.25, 1.0) forwards;
+  }
+
+  .animate-pulse-glow {
+    animation: pulseGlow 2s infinite;
+  }
+
+  @keyframes animateIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes animateOut {
+    from {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+  }
+
+  @keyframes pulseGlow {
+    0% {
+      box-shadow: 0 0 5px 0px rgba(249, 115, 22, 0.5);
+    }
+    50% {
+      box-shadow: 0 0 15px 5px rgba(249, 115, 22, 0.7);
+    }
+    100% {
+      box-shadow: 0 0 5px 0px rgba(249, 115, 22, 0.5);
+    }
+  }
+
+  /* Responsive container utilities */
+  .container-padding {
+    @apply px-2 sm:px-3 md:px-4 lg:px-6;
+  }
+  
+  .section-padding {
+    @apply py-3 sm:py-4 md:py-6 lg:py-8;
+  }
+  
+  .mobile-only {
+    @apply block md:hidden;
+  }
+  
+  .desktop-only {
+    @apply hidden md:block;
+  }
+  
+  .responsive-text {
+    @apply text-xs sm:text-sm md:text-base;
+  }
+  
+  .responsive-heading {
+    @apply text-base sm:text-lg md:text-xl lg:text-2xl;
+  }
+  
+  .responsive-padding {
+    @apply p-1.5 sm:p-2 md:p-3 lg:p-4;
+  }
+  
+  .responsive-margin {
+    @apply my-1.5 sm:my-2 md:my-3 lg:my-4;
+  }
+
+  /* Safe area utilities for mobile devices */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  
+  .mb-safe {
+    margin-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* New utilities for Auth page */
+  .animate-in {
+    animation: fadeIn 0.5s ease-out forwards;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-pulse-glow {
+    animation: pulseGlow 4s ease-in-out infinite alternate;
+  }
+
+  @keyframes pulseGlow {
+    0% {
+      opacity: 0.2;
+      transform: scale(0.95);
+    }
+    100% {
+      opacity: 0.4;
+      transform: scale(1.05);
+    }
+  }
+  
+  /* Additional utilities for horizontal scrolling tabs */
+  .tabs-scrollable {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    scrollbar-width: none; /* Firefox */
+  }
+  
+  .tabs-scrollable::-webkit-scrollbar {
+    display: none; /* Chrome, Safari and Opera */
+  }
+  
+  .horizontal-scroll-container {
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+  }
+  
+  .horizontal-scroll-container::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Mobile PWA fixes for iOS devices */
+  @supports (-webkit-touch-callout: none) {
+    /* Fix for input zooming on iOS */
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="tel"],
+    input[type="number"],
+    input[type="date"],
+    input[type="search"],
+    select,
+    textarea {
+      font-size: 16px !important; /* Prevent zoom on focus */
+    }
+
+    /* Fix for bottom sheet issues on iOS PWA */
+    .bottom-sheet-ios-fix {
+      padding-bottom: env(safe-area-inset-bottom, 20px);
+      margin-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    /* Fix for iOS notch area */
+    .top-inset-padding {
+      padding-top: env(safe-area-inset-top, 0px);
+    }
+
+    /* Fix for form elements in PWA */
+    .pwa-input-fix {
+      -webkit-appearance: none;
+      appearance: none;
+      border-radius: 0.5rem;
+    }
+  }
+}

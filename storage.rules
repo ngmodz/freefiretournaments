@@ -1,0 +1,30 @@
+rules_version = '2';
+
+// Craft rules based on data in your Firestore database
+// allow write: if firestore.get(
+//    /databases/(default)/documents/users/$(request.auth.uid)).data.isAdmin;
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Allow read access to all files
+    match /{allPaths=**} {
+      allow read: if true;
+    }
+    
+    // Simple avatar upload rule
+    match /avatars/{fileName} {
+      allow write: if request.auth != null;
+      allow delete: if request.auth != null;
+    }
+    
+    // General uploads - restrict to authenticated users
+    match /uploads/{userId}/{fileName} {
+      allow write: if request.auth != null && request.auth.uid == userId;
+      allow delete: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Tournament images - restrict uploads to authenticated users
+    match /tournaments/{fileName} {
+      allow write: if request.auth != null;
+    }
+  }
+}

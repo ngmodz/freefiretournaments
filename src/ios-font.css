@@ -1,0 +1,24 @@
+
+/* iOS Font Styles */
+html, body {
+  font-family: "SF Pro Display", "SF Pro", -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-synthesis: none;
+}
+
+.font-ios {
+  font-family: "SF Pro Display", "SF Pro", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+}
+
+.ios-rounded {
+  border-radius: 10px;
+}
+
+.ios-card {
+  border-radius: 10px;
+  background-color: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
