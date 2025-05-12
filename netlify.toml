@@ -20,6 +20,11 @@
   to = "/.netlify/functions/payment-webhook"
   status = 200
 
+[[redirects]]
+  from = "/webhooks/test"
+  to = "/.netlify/functions/test-webhook"
+  status = 200
+
 [functions]
   node_bundler = "esbuild"
   external_node_modules = ["firebase-admin"]
