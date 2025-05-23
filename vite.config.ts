@@ -8,6 +8,9 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8083,
+    headers: {
+      'Cache-Control': 'no-store',
+    },
   },
   plugins: [
     react(),
