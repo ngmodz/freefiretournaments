@@ -9,6 +9,7 @@ export interface PaymentOrderParams {
   customerName: string;
   customerEmail: string;
   customerPhone: string;
+  userId: string;
   orderCurrency?: string;
   orderNote?: string;
   orderId?: string; // Optional, will generate if not provided

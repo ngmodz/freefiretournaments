@@ -23,15 +23,16 @@ exports.handler = async (event, context) => {
       customerName,
       customerEmail,
       customerPhone,
-      orderNote = 'Tournament Registration'
+      orderNote = 'Wallet Top-up',
+      userId
     } = requestData;
     
     // Validate required fields - orderId can be generated if not provided
-    if (!orderAmount || !customerName || !customerEmail || !customerPhone) {
+    if (!orderAmount || !customerName || !customerEmail || !customerPhone || !userId) {
       return {
         statusCode: 400,
         body: JSON.stringify({ 
-          error: 'Missing required fields. Required: orderAmount, customerName, customerEmail, customerPhone' 
+          error: 'Missing required fields. Required: userId, orderAmount, customerName, customerEmail, customerPhone' 
         })
       };
     }
@@ -68,14 +69,17 @@ exports.handler = async (event, context) => {
       order_currency: orderCurrency,
       order_note: orderNote,
       customer_details: {
-        customer_id: customerEmail, // Using email as customer ID
+        customer_id: userId,
         customer_name: customerName,
         customer_email: customerEmail,
         customer_phone: customerPhone
       },
       order_meta: {
         return_url: returnUrl,
-        notify_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:8080'}/.netlify/functions/payment-webhook`
+        notify_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:8080'}/.netlify/functions/cashfree-webhook`,
+        userId: userId,
+        amount: orderAmount,
+        purchaseType: 'walletTopUp'
       }
     };
     
@@ -120,11 +124,12 @@ exports.handler = async (event, context) => {
     });
     // Also log request data (with sensitive information redacted)
     console.error('Request data:', {
-      order_id: orderId,
+      order_id: finalOrderId,
+      userId: userId,
       order_amount: orderAmount,
       order_currency: orderCurrency,
       customer_details: {
-        customer_id: customerEmail,
+        customer_id: userId,
         customer_name: customerName,
         // Redact full email and phone
         customer_email: customerEmail ? `${customerEmail.substring(0, 3)}...` : null,

@@ -25,17 +25,23 @@ const db = app ? admin.firestore() : null;
  * Verify webhook signature from Cashfree
  * @param {string} payload - Request body as string
  * @param {string} signature - X-Webhook-Signature header from Cashfree
+ * @param {string} webhookSecret - Your Cashfree webhook secret key
  * @returns {boolean} - Whether the signature is valid
  */
-function verifyWebhookSignature(payload, signature) {
-  // In a real implementation, compute HMAC using the Cashfree secret key
-  // const hmac = crypto.createHmac('sha256', process.env.CASHFREE_SECRET_KEY);
-  // hmac.update(payload);
-  // const computedSignature = hmac.digest('hex');
-  // return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(computedSignature));
-  
-  // For demonstration, always return true
-  return true;
+function verifyWebhookSignature(payload, signature, webhookSecret) {
+  if (!payload || !signature || !webhookSecret) {
+    console.error('Missing payload, signature, or webhookSecret for verification');
+    return false;
+  }
+  try {
+    const hmac = crypto.createHmac('sha256', webhookSecret);
+    hmac.update(payload);
+    const computedSignature = hmac.digest('hex');
+    return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(computedSignature));
+  } catch (error) {
+    console.error('Error during webhook signature verification:', error);
+    return false;
+  }
 }
 
 /**
@@ -102,10 +108,18 @@ exports.handler = async (event, context) => {
   try {
     // Get webhook signature from headers
     const signature = event.headers['x-webhook-signature'] || 
-                      event.headers['X-Webhook-Signature'];
+                      event.headers['X-Webhook-Signature'] || 
+                      event.headers['x-cf-signature']; // Added x-cf-signature as per recent Cashfree docs
 
     // Verify signature
-    if (!signature || !verifyWebhookSignature(event.body, signature)) {
+    const webhookSecret = process.env.CASHFREE_SECRET_KEY;
+    if (!webhookSecret) {
+      console.error('CASHFREE_SECRET_KEY is not set.');
+      return { statusCode: 500, body: JSON.stringify({ error: 'API secret key (CASHFREE_SECRET_KEY) not configured for webhook verification' }) };
+    }
+
+    if (!signature || !verifyWebhookSignature(event.body, signature, webhookSecret)) {
+      console.warn('Invalid webhook signature attempt.', { signature, bodyLength: event.body.length });
       return {
         statusCode: 401,
         body: JSON.stringify({ error: 'Invalid signature' })
@@ -113,35 +127,67 @@ exports.handler = async (event, context) => {
     }
 
     // Parse webhook payload
-    const data = JSON.parse(event.body);
-    const { event: eventType, data: paymentData } = data;
+    const payload = JSON.parse(event.body);
+    // const { event: eventType, data: paymentData } = data; // Old structure
 
-    // Check payment status
-    if (eventType === 'PAYMENT_SUCCESS') {
-      const orderId = paymentData.order.orderId;
-      const amount = parseFloat(paymentData.order.orderAmount);
-      
-      // Extract user ID from order ID (format: deposit_userId_timestamp)
-      const userId = orderId.split('_')[1];
-      
-      if (!userId) {
-        throw new Error('Invalid order ID format');
+    // According to Cashfree docs for orders API, webhook structure is different
+    // Key fields: data.order.order_status, data.order.order_id, data.payment.payment_status, data.order.order_meta
+    console.log('Received Cashfree webhook payload:', JSON.stringify(payload, null, 2));
+
+    const orderData = payload.data?.order;
+    const paymentData = payload.data?.payment;
+    const transactionData = payload.data?.transaction; // Cashfree may send this as well
+
+    if (!orderData || !transactionData) {
+      console.error('Webhook payload missing order or transaction data.', payload);
+      return { statusCode: 400, body: JSON.stringify({ error: 'Malformed webhook payload' }) };
+    }
+
+    // Check payment status (using PAID and SUCCESS as per guide)
+    if (orderData.order_status === 'PAID' && transactionData.tx_status === 'SUCCESS') { // tx_status can also be used
+      const orderMeta = orderData.order_meta;
+      const orderId = orderData.order_id;
+
+      if (!orderMeta) {
+        console.error('Webhook payload missing order_meta.', payload);
+        return { statusCode: 400, body: JSON.stringify({ error: 'Missing order_meta in webhook' }) };
       }
 
-      // Update user's wallet balance
-      await updateWalletBalance(userId, amount);
+      const { userId, amount, purchaseType } = orderMeta;
+      const paymentAmount = parseFloat(orderData.order_amount); // Use order_amount from the main order data
 
-      // Record the transaction
-      await addTransaction({
-        userId,
-        amount,
-        type: 'deposit',
-        status: 'completed',
-        details: {
-          transactionId: paymentData.transaction.transactionId,
-          paymentMethod: paymentData.payment.paymentMethod
-        }
-      });
+      if (!userId || amount === undefined || !purchaseType) {
+         console.error('Missing userId, amount, or purchaseType in order_meta.', orderMeta);
+         return { statusCode: 400, body: JSON.stringify({ error: 'Invalid order_meta content' }) };
+      }
+      
+      // Ensure the amount from order_meta matches the actual paid amount for security, if necessary
+      if (parseFloat(amount) !== paymentAmount) {
+        console.warn(`Amount mismatch in order_meta (${amount}) vs order_data (${paymentAmount}) for order ${orderId}. Proceeding with order_amount.`);
+        // Potentially flag this or handle as an error depending on security requirements
+      }
+
+      if (purchaseType === 'walletTopUp') {
+        console.log(`Processing walletTopUp for userId: ${userId}, amount: ${paymentAmount}`);
+        // Update user's wallet balance
+        await updateWalletBalance(userId, paymentAmount);
+
+        // Record the transaction
+        await addTransaction({
+          userId,
+          amount: paymentAmount,
+          type: 'deposit', // Keeping as 'deposit' for now for the generic wallet
+          status: 'completed',
+          details: {
+            orderId: orderId,
+            transactionId: transactionData.cf_payment_id || transactionData.cf_tx_id || transactionData.tx_id, // Use cf_payment_id or tx_id
+            paymentMethod: paymentData?.payment_method || transactionData.payment_mode || 'N/A' // payment_method might be in paymentData if available
+          }
+        });
+        console.log(`Wallet updated and transaction logged for userId: ${userId}`);
+      } else {
+        console.log(`Received webhook for unhandled purchaseType: ${purchaseType} for order ${orderId}`);
+      }
 
       return {
         statusCode: 200,

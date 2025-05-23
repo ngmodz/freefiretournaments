@@ -103,6 +103,7 @@ const AddFundsDialog = ({
         customerEmail: customerEmail || 'user@example.com', // Cashfree requires an email
         customerPhone: customerPhone || '9999999999', // Cashfree requires a phone number
         orderNote: `Wallet funds - ${new Date().toISOString()}`,
+        userId: currentUser.uid
       };
       
       console.log("Creating Cashfree payment order:", paymentParams);
@@ -113,19 +114,22 @@ const AddFundsDialog = ({
       // Create payment order
       const response = await cashfreeService.createPaymentOrder(paymentParams);
       
-      if (!response.success || !response.payment_link) {
-        throw new Error(response.error || 'Failed to create payment order');
+      if (!response.success || !response.order_token) {
+        throw new Error(response.error || 'Failed to create payment order or missing order_token');
       }
       
-      // Success - close dialog
+      // Success - close dialog before launching Cashfree
       setIsLoading(false);
       onOpenChange(false);
       
       console.log("Payment order created successfully:", response);
-      console.log("Redirecting to payment link:", response.payment_link);
+      console.log("Initializing Cashfree Drop-in with order_token:", response.order_token);
       
-      // Redirect to Cashfree payment page
-      cashfreeService.redirectToPaymentPage(response.payment_link);
+      // Initialize Cashfree Drop-in checkout
+      await cashfreeService.initializeDropIn(response.order_token, {
+        // You can add more options here if needed, e.g., for styling or specific payment modes
+        // Example: components: ["upi", "card"]
+      });
       
     } catch (error) {
       console.error("Payment initiation error:", error);
