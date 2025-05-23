@@ -5,12 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "prebuild": "node scripts/update-cache-version.js",
+    "prebuild": "node scripts/update-cache-version.js || true",
     "build": "vite build",
-    "build:dev": "node scripts/update-cache-version.js && vite build --mode development",
+    "postbuild": "node --no-warnings netlify.js",
+    "build:dev": "node scripts/update-cache-version.js || true && vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "cleanup:tournaments": "node --experimental-json-modules scripts/delete-mock-tournaments.js"
+    "cleanup:tournaments": "node --experimental-json-modules scripts/delete-mock-tournaments.js",
+    "netlify": "node --no-warnings netlify.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",

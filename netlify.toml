@@ -16,6 +16,11 @@
   status = 200
 
 [[redirects]]
+  from = "/health"
+  to = "/.netlify/functions/health-check"
+  status = 200
+
+[[redirects]]
   from = "/webhooks/cashfree"
   to = "/.netlify/functions/payment-webhook"
   status = 200
@@ -23,6 +28,12 @@
 [[redirects]]
   from = "/webhooks/test"
   to = "/.netlify/functions/test-webhook"
+  status = 200
+
+# Fallback redirect for SPA
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
   status = 200
 
 [functions]

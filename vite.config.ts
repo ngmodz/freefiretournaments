@@ -25,10 +25,10 @@ export default defineConfig(({ mode }) => ({
   build: {
     rollupOptions: {
       output: {
-        // Add timestamp to chunk filenames to prevent caching issues
-        chunkFileNames: 'assets/js/[name]-[hash]-[timestamp].js',
-        entryFileNames: 'assets/js/[name]-[hash]-[timestamp].js',
-        assetFileNames: 'assets/[ext]/[name]-[hash]-[timestamp].[ext]',
+        // Use hash for cache busting instead of timestamp
+        chunkFileNames: 'assets/js/[name]-[hash].js',
+        entryFileNames: 'assets/js/[name]-[hash].js',
+        assetFileNames: 'assets/[ext]/[name]-[hash].[ext]',
       },
     },
   },
