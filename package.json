@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "node scripts/update-cache-version.js",
     "build": "vite build",
-    "build:dev": "vite build --mode development",
+    "build:dev": "node scripts/update-cache-version.js && vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
     "cleanup:tournaments": "node --experimental-json-modules scripts/delete-mock-tournaments.js"

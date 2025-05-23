@@ -22,4 +22,14 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // Add timestamp to chunk filenames to prevent caching issues
+        chunkFileNames: 'assets/js/[name]-[hash]-[timestamp].js',
+        entryFileNames: 'assets/js/[name]-[hash]-[timestamp].js',
+        assetFileNames: 'assets/[ext]/[name]-[hash]-[timestamp].[ext]',
+      },
+    },
+  },
 }));
