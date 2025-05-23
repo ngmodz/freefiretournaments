@@ -81,15 +81,34 @@ export class CashfreeService {
       // Generate a unique order ID if not provided
       const orderId = params.orderId || `order_${Date.now()}_${uuidv4().substring(0, 8)}`;
       
+      // Add debugging for params
+      console.log('Creating payment order with params:', {
+        ...params,
+        orderId,
+        customerEmail: params.customerEmail ? `${params.customerEmail.substring(0, 3)}...` : null,
+        customerPhone: params.customerPhone ? `${params.customerPhone.substring(0, 3)}...` : null
+      });
+      
       // Call the Netlify function to create an order
       const response = await axios.post('/.netlify/functions/create-payment-order', {
         ...params,
         orderId,
       });
       
+      console.log('Payment order API response:', response.data);
+      
       return response.data;
     } catch (error) {
       console.error('Error creating payment order:', error);
+      
+      // More detailed error logging
+      if (error.response) {
+        console.error('API error response:', {
+          status: error.response.status,
+          data: error.response.data
+        });
+      }
+      
       return {
         success: false,
         error: 'Failed to create payment order',
@@ -112,6 +131,7 @@ export class CashfreeService {
     try {
       // Ensure Cashfree.js is loaded
       if (!this.cashfreeJs) {
+        console.log('Loading Cashfree.js script...');
         await this.loadCashfreeScript();
       }
 
@@ -120,13 +140,22 @@ export class CashfreeService {
         throw new Error('Cashfree.js not loaded');
       }
 
+      console.log('Initializing Cashfree checkout with token:', orderToken);
+      
+      // Get environment from import.meta if available
+      const appId = import.meta.env?.VITE_CASHFREE_APP_ID || '';
+      const isSandbox = appId.startsWith('TEST');
+      
+      console.log('Cashfree mode:', isSandbox ? 'sandbox' : 'production');
+      
       // Initialize Cashfree Drop-in checkout
       const cashfree = new this.cashfreeJs({
-        mode: process.env.CASHFREE_APP_ID?.startsWith('TEST') ? 'sandbox' : 'production'
+        mode: isSandbox ? 'sandbox' : 'production'
       });
 
       // Function to render the drop-in checkout UI
       const renderDropIn = () => {
+        console.log('Rendering Cashfree drop-in checkout...');
         cashfree.checkout({
           paymentSessionId: orderToken,
           redirectTarget: '_self',

@@ -114,8 +114,34 @@ const AddFundsDialog = ({
       // Create payment order
       const response = await cashfreeService.createPaymentOrder(paymentParams);
       
+      // DEVELOPMENT FALLBACK: If we don't have order_token due to missing API keys, use a mock token
       if (!response.success || !response.order_token) {
-        throw new Error(response.error || 'Failed to create payment order or missing order_token');
+        console.warn("Payment order creation failed or missing token:", response);
+        
+        // For development/testing only - create a mock transaction record
+        if (import.meta.env.DEV || import.meta.env.MODE === 'development') {
+          console.log("DEV MODE: Using mock payment flow");
+          
+          // Close dialog
+          setIsLoading(false);
+          onOpenChange(false);
+          
+          // Show success dialog with mock transaction
+          setTransactionId(`mock_${Date.now()}`);
+          setConfirmedAmount(numAmount);
+          setShowSuccessDialog(true);
+          
+          return;
+        }
+        
+        // Show specific error from API if available
+        if (response.details?.error) {
+          throw new Error(`Payment error: ${response.details.error}`);
+        } else if (response.error) {
+          throw new Error(response.error);
+        } else {
+          throw new Error('Failed to create payment order or missing order_token');
+        }
       }
       
       // Success - close dialog before launching Cashfree
@@ -133,7 +159,21 @@ const AddFundsDialog = ({
       
     } catch (error) {
       console.error("Payment initiation error:", error);
-      setError(error.message || "An error occurred while initiating payment. Please try again.");
+      
+      // Format error message for display
+      let errorMessage = "An error occurred while initiating payment. Please try again.";
+      
+      if (error.message) {
+        if (error.message.includes('Network Error')) {
+          errorMessage = "Network error. Please check your internet connection and try again.";
+        } else if (error.message.includes('timeout')) {
+          errorMessage = "Request timed out. Please try again.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      setError(errorMessage);
       setIsLoading(false);
     }
   };
@@ -142,197 +182,141 @@ const AddFundsDialog = ({
     <>
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
         <DialogPortal>
-          <DialogOverlay className="bg-black/50 backdrop-blur-sm" />
+          <DialogOverlay className="bg-black/60 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
           <DialogPrimitive.Content
-            className="fixed left-[50%] top-[50%] z-50 w-full max-w-md translate-x-[-50%] translate-y-[-50%]"
+            className={cn(
+              "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border border-gaming-border/30 bg-gradient-to-b from-gaming-card to-gaming-bg p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg md:w-full",
+              "overflow-y-auto max-h-[90vh]"
+            )}
           >
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.2 }}
-              className="w-full bg-gradient-to-b from-gaming-card to-gaming-bg text-gaming-text rounded-lg shadow-lg border border-gaming-primary/20 overflow-hidden backdrop-blur-sm max-w-md max-h-[90vh]"
-            >
-              <div className="absolute top-0 right-0 w-32 h-32 -mr-10 -mt-10 rounded-full bg-gaming-primary/5 blur-xl"></div>
-              <div className="absolute bottom-0 left-0 w-24 h-24 -ml-8 -mb-8 rounded-full bg-gaming-accent/5 blur-lg"></div>
-              
-              <div className="relative p-6">
-                <DialogHeader className="mb-2">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Wallet className="h-5 w-5 text-gaming-primary" />
-                    <DialogTitle className="text-gaming-text text-xl font-bold">Add Funds</DialogTitle>
-                  </div>
-                  <DialogDescription className="text-gaming-muted">
-                    Add funds to your wallet to participate in contests.
-                  </DialogDescription>
-                </DialogHeader>
-
-                <div className="space-y-5 py-4">
-                  <motion.div 
-                    initial={{ y: 10, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.1 }}
-                    className="bg-gaming-bg/50 p-4 rounded-lg border border-gaming-border/30 shadow-sm"
-                  >
-                    <div className="flex justify-between">
-                      <span className="text-gaming-muted">Current Balance:</span>
-                      <span className="text-gaming-accent font-semibold">
-                        ₹{wallet?.balance.toFixed(2) || "0.00"}
-                      </span>
-                    </div>
-                  </motion.div>
-
-                  <motion.div 
-                    initial={{ y: 10, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.15 }}
-                    className="space-y-2"
-                  >
-                    <Label className="text-gaming-text text-sm">Payment Method</Label>
-                    <RadioGroup
-                      value={paymentMethod}
-                      onValueChange={(value) => setPaymentMethod(value as "upi" | "card")}
-                      className="flex space-x-4"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem 
-                          value="upi" 
-                          id="upi" 
-                          className="border-gaming-primary text-gaming-primary focus:ring-offset-gaming-bg"
-                        />
-                        <Label htmlFor="upi" className="text-gaming-text cursor-pointer">UPI</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem 
-                          value="card" 
-                          id="card" 
-                          className="border-gaming-primary text-gaming-primary focus:ring-offset-gaming-bg" 
-                        />
-                        <Label htmlFor="card" className="text-gaming-text cursor-pointer">Credit/Debit Card</Label>
-                      </div>
-                    </RadioGroup>
-                  </motion.div>
-
-                  {paymentMethod === "card" && (
-                    <motion.div 
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.3 }}
-                      className="bg-gaming-bg/80 p-4 rounded-lg border border-gaming-primary/10 text-center"
-                    >
-                      <p className="text-gaming-muted">Credit/Debit card payment is currently under development.</p>
-                      <p className="text-gaming-muted text-sm">Please use UPI for now.</p>
-                    </motion.div>
-                  )}
-
-                  <motion.div 
-                    initial={{ y: 10, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.2 }}
-                    className="space-y-2"
-                  >
-                    <Label htmlFor="amount" className="text-gaming-text text-sm">Amount (₹)</Label>
-                    <Input
-                      id="amount"
-                      type="text"
-                      placeholder="Enter amount to add"
-                      value={amount}
-                      onChange={handleAmountChange}
-                      className="bg-gaming-bg/70 text-gaming-text border-gaming-border/50 focus:border-gaming-primary focus:ring-gaming-primary/20"
-                    />
-                    <AnimatePresence>
-                      {error && (
-                        <motion.p 
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          exit={{ opacity: 0, height: 0 }}
-                          className="text-destructive text-sm mt-1"
-                        >
-                          {error}
-                        </motion.p>
-                      )}
-                    </AnimatePresence>
-                  </motion.div>
-
-                  <motion.div 
-                    initial={{ y: 10, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.25 }}
-                    className="bg-gaming-bg/50 p-4 rounded-lg border border-gaming-border/30 mt-2"
-                  >
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gaming-muted">Amount:</span>
-                      <span className="text-gaming-text">₹{amount || "0"}</span>
-                    </div>
-                    <div className="border-t border-gaming-border/30 my-2"></div>
-                    <div className="flex justify-between text-sm font-semibold">
-                      <span className="text-gaming-muted">Total:</span>
-                      <span className="text-gaming-accent">₹{amount || "0"}</span>
-                    </div>
-                  </motion.div>
-
-                  <motion.div 
-                    initial={{ y: 10, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.3 }}
-                    className="space-y-2"
-                  >
-                    <div className="flex flex-wrap gap-2">
-                      {[100, 200, 500, 1000].map((quickAmount, i) => (
-                        <motion.div
-                          key={quickAmount}
-                          className="flex-1" 
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          initial={{ opacity: 0, y: 5 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.3 + (i * 0.05) }}
-                        >
-                          <Button
-                            variant="outline"
-                            className={`flex-1 w-full bg-gaming-bg/50 border ${amount === quickAmount.toString() ? 'border-gaming-primary text-gaming-primary' : 'border-gaming-border/50 text-gaming-text'} hover:bg-gaming-primary/10 hover:text-gaming-primary transition-all duration-200`}
-                            onClick={() => setAmount(quickAmount.toString())}
-                          >
-                            ₹{quickAmount}
-                          </Button>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </motion.div>
+            <div className="absolute top-0 right-0 w-32 h-32 -mr-10 -mt-10 rounded-full bg-gaming-primary/5 blur-xl"></div>
+            <div className="absolute bottom-0 left-0 w-24 h-24 -ml-8 -mb-8 rounded-full bg-gaming-accent/5 blur-lg"></div>
+            
+            <div className="relative">
+              <DialogHeader className="mb-2">
+                <div className="flex items-center gap-2 mb-1">
+                  <Wallet className="h-5 w-5 text-gaming-primary" />
+                  <DialogTitle className="text-gaming-text text-xl font-bold">Add Funds</DialogTitle>
                 </div>
+                <DialogDescription className="text-gaming-muted">
+                  Add funds to your wallet using UPI or card payment.
+                </DialogDescription>
+              </DialogHeader>
 
-                <DialogFooter className="mt-6 flex flex-col sm:flex-row gap-3">
+              <div className="space-y-5 py-4">
+                <motion.div 
+                  initial={{ y: 10, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.1 }}
+                  className="bg-gaming-bg/50 p-4 rounded-lg border border-gaming-border/30 shadow-sm"
+                >
+                  <div className="flex justify-between">
+                    <span className="text-gaming-muted">Current Balance:</span>
+                    <span className="text-gaming-accent font-semibold">
+                      ₹{wallet?.balance.toFixed(2) || "0.00"}
+                    </span>
+                  </div>
+                </motion.div>
+
+                <motion.div 
+                  initial={{ y: 10, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.15 }}
+                  className="space-y-2"
+                >
+                  <Label className="text-gaming-text text-sm">Payment Method</Label>
+                  <RadioGroup
+                    value={paymentMethod}
+                    onValueChange={(value) => setPaymentMethod(value as "upi" | "card")}
+                    className="flex space-x-4"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem 
+                        value="upi" 
+                        id="upi" 
+                        className="border-gaming-primary text-gaming-primary focus:ring-offset-gaming-bg"
+                      />
+                      <Label htmlFor="upi" className="text-gaming-text cursor-pointer">UPI</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem 
+                        value="card" 
+                        id="card" 
+                        className="border-gaming-primary text-gaming-primary focus:ring-offset-gaming-bg" 
+                      />
+                      <Label htmlFor="card" className="text-gaming-text cursor-pointer">Credit/Debit Card</Label>
+                    </div>
+                  </RadioGroup>
+                </motion.div>
+
+                {paymentMethod === "card" && (
                   <motion.div 
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.97 }}
-                    className="w-full sm:w-auto order-1 sm:order-1"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.3 }}
+                    className="bg-gaming-bg/80 p-4 rounded-lg border border-gaming-primary/10 text-center"
                   >
-                    <Button
-                      onClick={handleSubmit}
-                      className="bg-gradient-to-r from-gaming-accent to-[#ff7e33] hover:from-gaming-accent/90 hover:to-[#ff7e33]/90 hover:shadow-[0_0_15px_rgba(249,115,22,0.3)] text-white font-medium transition-all duration-300 w-full"
-                      disabled={isLoading}
-                    >
-                      {isLoading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Processing...
-                        </>
-                      ) : (
-                        "Add Funds"
-                      )}
-                    </Button>
+                    <p className="text-gaming-muted">Credit/Debit card payment is currently under development.</p>
+                    <p className="text-gaming-muted text-sm">Please use UPI for now.</p>
                   </motion.div>
-                  
-                  <Button
-                    variant="outline"
-                    onClick={() => onOpenChange(false)}
-                    className="bg-transparent border-gaming-border/50 text-gaming-text hover:bg-gaming-bg/80 hover:text-gaming-text/80 transition-all duration-200 w-full sm:w-auto order-2 sm:order-2"
-                  >
-                    Cancel
-                  </Button>
-                </DialogFooter>
+                )}
+
+                <motion.div 
+                  initial={{ y: 10, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.2 }}
+                  className="space-y-2"
+                >
+                  <Label htmlFor="amount" className="text-gaming-text text-sm">Amount (₹)</Label>
+                  <Input
+                    id="amount"
+                    type="text"
+                    placeholder="Enter amount to add"
+                    value={amount}
+                    onChange={handleAmountChange}
+                    className="bg-gaming-bg/70 text-gaming-text border-gaming-border/50 focus:border-gaming-primary focus:ring-gaming-primary/20"
+                  />
+                  <AnimatePresence>
+                    {error && (
+                      <motion.p 
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="text-destructive text-sm mt-1"
+                      >
+                        {error}
+                      </motion.p>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
               </div>
-            </motion.div>
+
+              <DialogFooter className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-between">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => onOpenChange(false)}
+                  className="border-gaming-border text-gaming-text hover:bg-gaming-bg/50 hover:text-gaming-text"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="button" 
+                  onClick={handleSubmit}
+                  disabled={isLoading}
+                  className="bg-gaming-primary hover:bg-gaming-primary/90 text-white"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    'Add Funds'
+                  )}
+                </Button>
+              </DialogFooter>
+            </div>
           </DialogPrimitive.Content>
         </DialogPortal>
       </Dialog>
