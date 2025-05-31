@@ -11,7 +11,6 @@ import {
   debugMonitorTransactions 
 } from "@/lib/walletService";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import AddFundsDialog from "@/components/wallet/AddFundsDialog";
 import WithdrawDialog from "@/components/wallet/WithdrawDialog";
 import TransactionHistory from "@/components/wallet/TransactionHistory";
 import { collection, getDocs, query, where, limit, Timestamp, doc, setDoc, getDoc } from "firebase/firestore";
@@ -182,7 +181,7 @@ const Wallet = () => {
                   <AlertDescription className="flex items-center justify-between">
                     <span>Low Balance: Add funds to join tournaments</span>
                     <Button 
-                      onClick={() => setIsAddFundsOpen(true)}
+                      onClick={() => console.log('Add funds clicked')}
                       className="bg-gaming-accent hover:bg-gaming-accent/90 text-white text-xs py-1 px-3 font-medium transition-all duration-200"
                       size="sm"
                     >
@@ -202,7 +201,7 @@ const Wallet = () => {
               >
                 <Button 
                   className="bg-[#9b87f5] hover:bg-[#8975e6] hover:shadow-[0_0_15px_rgba(155,135,245,0.4)] text-white px-8 py-7 text-lg w-full rounded-xl transition-all duration-300"
-                  onClick={() => setIsAddFundsOpen(true)}
+                  onClick={() => console.log('Add funds clicked')}
                 >
                   Add Funds
                 </Button>
@@ -243,12 +242,6 @@ const Wallet = () => {
       </div>
 
       {/* Dialogs */}
-      <AddFundsDialog 
-        isOpen={isAddFundsOpen} 
-        onOpenChange={setIsAddFundsOpen} 
-        wallet={wallet}
-      />
-      
       <WithdrawDialog 
         isOpen={isWithdrawOpen} 
         onOpenChange={setIsWithdrawOpen}

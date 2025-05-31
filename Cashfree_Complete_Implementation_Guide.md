@@ -20,51 +20,1310 @@
    - [Credit Balance Hook](#credit-balance-hook)
    - [Credit Transaction Management](#credit-transaction-management)
    - [Credit Validation Logic](#credit-validation-logic)
-4. [UI Components and Credit Display](#ui-components-and-credit-display)
+4. [Prize Distribution System](#prize-distribution-system)
+   - [Prize Distribution Flow](#prize-distribution-flow)
+   - [Database Schema Updates](#database-schema-updates-1)
+   - [Prize Distribution Service](#prize-distribution-service)
+   - [Tournament Creation with Prize Pool](#tournament-creation-with-prize-pool)
+   - [Prize Distribution Interface](#prize-distribution-interface)
+   - [Prize Display Components](#prize-display-components)
+5. [UI Components and Credit Display](#ui-components-and-credit-display)
    - [Navigation and Credit Display Integration](#navigation-and-credit-display-integration)
    - [Credit Display Components](#credit-display-components)
    - [User Experience Enhancements](#user-experience-enhancements)
    - [Low Credit Alerts and Notifications](#low-credit-alerts-and-notifications)
-5. [Subscription/Packages Page Implementation](#subscriptionpackages-page-implementation)
+6. [Subscription/Packages Page Implementation](#subscriptionpackages-page-implementation)
    - [Credits Page Implementation](#credits-page-implementation)
    - [Credit Package Components](#credit-package-components)
    - [Package Selection and Display](#package-selection-and-display)
    - [Responsive Design Implementation](#responsive-design-implementation)
-6. [Converting Existing Rupees System to Credits](#converting-existing-rupees-system-to-credits)
+7. [Converting Existing Rupees System to Credits](#converting-existing-rupees-system-to-credits)
    - [Database Migration Strategy](#database-migration-strategy)
    - [Wallet Page Updates](#wallet-page-updates)
    - [Add Funds Dialog Modifications](#add-funds-dialog-modifications)
    - [Tournament Logic Updates](#tournament-logic-updates)
    - [Migration Implementation Steps](#migration-implementation-steps)
-7. [Human Developer Setup Guide](#human-developer-setup-guide)
+8. [Human Developer Setup Guide](#human-developer-setup-guide)
    - [Account Creation and Verification](#cashfree-account-creation-and-verification)
    - [API Keys Configuration](#api-keys-configuration)
    - [Dashboard Configuration](#dashboard-configuration)
    - [Webhook Setup Guide](#webhook-setup-guide)
    - [Security Best Practices](#security-best-practices)
    - [Testing Environment Setup](#testing-environment-setup)
-8. [Payment Flow Integration](#payment-flow-integration)
+9. [Payment Flow Integration](#payment-flow-integration)
    - [Enhanced Cashfree Service Updates](#enhanced-cashfree-service-updates)
    - [Payment Component Implementation](#payment-component-implementation)
    - [Payment Status Handler](#payment-status-handler)
    - [Success/Failure Flow Management](#successfailure-flow-management)
-9. [Backend Integration and Webhooks](#backend-integration-and-webhooks)
-   - [Netlify Functions Implementation](#netlify-functions-implementation)
-   - [Webhook Processing Deep Dive](#webhook-processing-deep-dive)
-   - [Credit Allocation After Payment](#credit-allocation-after-payment)
-   - [Error Handling and Retry Logic](#error-handling-and-retry-logic)
-10. [Testing Procedures and Validation](#testing-procedures-and-validation)
+10. [Backend Integration and Webhooks](#backend-integration-and-webhooks)
+    - [Netlify Functions Implementation](#netlify-functions-implementation)
+    - [Webhook Processing Deep Dive](#webhook-processing-deep-dive)
+    - [Credit Allocation After Payment](#credit-allocation-after-payment)
+    - [Error Handling and Retry Logic](#error-handling-and-retry-logic)
+11. [Testing Procedures and Validation](#testing-procedures-and-validation)
     - [Local Development Testing Setup](#local-development-testing-setup)
     - [Comprehensive Testing Checklist](#comprehensive-testing-checklist)
     - [Automated Testing Scripts](#automated-testing-scripts)
     - [Manual Testing Procedures](#manual-testing-procedures)
-11. [Production Deployment](#production-deployment)
+12. [Production Deployment](#production-deployment)
     - [Environment Setup](#environment-setup)
     - [Production Deployment Checklist](#production-deployment-checklist)
     - [Security Considerations](#security-considerations)
     - [Monitoring and Troubleshooting](#monitoring-and-troubleshooting)
-12. [Step-by-Step Implementation Timeline](#step-by-step-implementation-timeline)
-13. [Support and Maintenance](#support-and-maintenance)
+13. [Step-by-Step Implementation Timeline](#step-by-step-implementation-timeline)
+14. [Support and Maintenance](#support-and-maintenance)
+
+---
+
+## Complete Package Structure and Pricing
+
+### Tournament Credit Packages (5 Packages)
+
+| Package | Credits | Price (₹) | Features |
+|---------|---------|-----------|----------|
+| **Starter Pack** | 50 | ₹49 | Entry fee up to ₹50, Perfect for beginners |
+| **Popular Pack** | 150 | ₹139 | Entry fee up to ₹150, Most chosen package |
+| **Pro Pack** | 300 | ₹279 | Entry fee up to ₹300, For serious gamers |
+| **Elite Pack** | 500 | ₹459 | Entry fee up to ₹500, Elite gaming level |
+| **Champion Pack** | 1000 | ₹899 | Entry fee up to ₹1000, Maximum value |
+
+### Host Credit Packages (5 Packages)
+
+| Package | Credits | Price (₹) | Features |
+|---------|---------|-----------|----------|
+| **Basic Host Pack** | 3 | ₹29 | Create 3 tournaments, Basic tools |
+| **Standard Host Pack** | 5 | ₹45 | Create 5 tournaments, Enhanced tools |
+| **Premium Host Pack** | 10 | ₹85 | Create 10 tournaments, Premium tools |
+| **Pro Host Pack** | 20 | ₹159 | Create 20 tournaments, Pro features |
+| **Ultimate Host Pack** | 50 | ₹375 | Create 50 tournaments, Ultimate suite |
+
+### Credit System Economics
+
+#### Tournament Credits (1 Credit = ₹1 Entry Fee Value)
+- **Usage**: Join tournaments with entry fees
+- **Example**: Tournament with ₹50 entry fee requires 50 tournament credits
+- **Value**: Direct 1:1 mapping with rupee entry fees
+- **Benefit**: Users can join multiple tournaments of varying entry fees
+
+#### Host Credits (1 Credit = Create 1 Tournament)
+- **Usage**: Create tournaments (regardless of tournament size or prize pool)
+- **Example**: Creating any tournament (₹10 entry or ₹1000 entry) costs 1 host credit
+- **Value**: Fixed cost per tournament creation
+- **Benefit**: Predictable hosting costs for tournament organizers
+
+### Package Recommendations
+
+#### For Tournament Participants:
+- **Casual Players**: Starter Pack (₹49 for 50 credits)
+- **Regular Players**: Popular Pack (₹139 for 150 credits) - **Most Popular**
+- **Serious Gamers**: Pro Pack (₹279 for 300 credits)
+- **Elite Players**: Elite Pack (₹459 for 500 credits)
+- **Champions**: Champion Pack (₹899 for 1000 credits) - **Best Value**
+
+#### For Tournament Hosts:
+- **Occasional Hosts**: Basic Host Pack (₹29 for 3 tournaments)
+- **Regular Hosts**: Standard Host Pack (₹45 for 5 tournaments)
+- **Active Hosts**: Premium Host Pack (₹85 for 10 tournaments) - **Most Popular**
+- **Professional Hosts**: Pro Host Pack (₹159 for 20 tournaments)
+- **Tournament Organizers**: Ultimate Host Pack (₹375 for 50 tournaments) - **Best Value**
+
+### Pricing Strategy Benefits
+
+#### For Users:
+1. **Clear Value Proposition**: Know exactly what they're getting
+2. **Multiple Options**: Various package sizes to suit different needs
+3. **Flexible Usage**: Credits don't expire, use when needed
+4. **Transparent Pricing**: No hidden fees or complex calculations
+
+#### For Business:
+1. **Increased Revenue**: Package deals encourage larger purchases
+2. **User Retention**: Credits create commitment to platform
+3. **Predictable Income**: Upfront payments improve cash flow
+4. **Scalable Model**: Easy to add new packages or adjust pricing
+
+#### Implementation Notes:
+- **Payment Currency**: All payments in Indian Rupees (₹)
+- **Credit Currency**: All credits awarded as whole numbers
+- **Simple Pricing**: Straightforward pricing without complex discount calculations
+- **Popular Badges**: Highlight most chosen packages
+- **Special Offers**: Optional seasonal promotions for engagement
+
+---
+
+## Database Schema and Credit System Setup
+
+### Database Schema Updates
+
+#### User Wallet Structure
+```typescript
+// Updated user document structure in Firestore
+interface UserDocument {
+  // ... existing user fields ...
+  wallet: {
+    // New credit fields
+    tournamentCredits: number;      // For joining tournaments
+    hostCredits: number;            // For creating tournaments
+    earnings: number;               // Won from tournaments (in rupees)
+    totalPurchasedTournamentCredits: number;
+    totalPurchasedHostCredits: number;
+    firstPurchaseCompleted: boolean;
+
+    // Migration tracking
+    migrationCompleted: boolean;
+    migrationDate?: Timestamp;
+    legacyBalance?: number; // Store original balance for reference
+
+    // Legacy field (keep for migration)
+    balance?: number; // Will be converted to credits
+  };
+}
+```
+
+#### Credit Transaction Schema
+```typescript
+// Credit transactions collection structure
+interface CreditTransaction {
+  id: string;
+  userId: string;
+  type: 'host_credit_purchase' | 'tournament_credit_purchase' | 'tournament_join' | 'tournament_win' | 'referral_bonus';
+  amount: number;
+  value?: number; // Rupee value for purchases
+  balanceBefore: number;
+  balanceAfter: number;
+  walletType: 'tournamentCredits' | 'hostCredits' | 'earnings';
+  description: string;
+  transactionDetails?: {
+    packageId?: string;
+    packageName?: string;
+    paymentId?: string;
+    orderId?: string;
+    tournamentId?: string;
+  };
+  createdAt: Timestamp;
+}
+```
+
+### Credit Package Definitions
+
+#### Tournament Credit Package Interface
+```typescript
+interface TournamentCreditPackage {
+  id: string;
+  name: string;
+  credits: number;
+  price: number; // In rupees
+  isPopular?: boolean;
+  isSpecialOffer?: boolean;
+  offerType?: 'welcome' | 'weekend' | 'season' | 'referral';
+  features: string[];
+  icon: React.ReactNode;
+  gradient: string;
+}
+```
+
+#### Host Credit Package Interface
+```typescript
+interface HostCreditPackage {
+  id: string;
+  name: string;
+  credits: number;
+  price: number; // In rupees
+  isPopular?: boolean;
+  isSpecialOffer?: boolean;
+  features: string[];
+  icon: React.ReactNode;
+  gradient: string;
+}
+```
+
+### User Wallet Structure
+
+#### Firestore Security Rules Update
+```javascript
+// Add to firestore.rules
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // User wallet access rules
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      // Wallet field validation
+      allow update: if request.auth != null &&
+                   request.auth.uid == userId &&
+                   validateWalletUpdate(resource.data, request.resource.data);
+    }
+
+    // Credit transactions - read only for users, write only for server
+    match /creditTransactions/{transactionId} {
+      allow read: if request.auth != null &&
+                 request.auth.uid == resource.data.userId;
+      allow write: if false; // Only server can write transactions
+    }
+  }
+}
+
+function validateWalletUpdate(before, after) {
+  // Ensure credits can't be manually increased (only through verified purchases)
+  return after.wallet.tournamentCredits >= 0 &&
+         after.wallet.hostCredits >= 0 &&
+         after.wallet.earnings >= 0;
+}
+```
+
+### Transaction History Schema
+
+#### Transaction Types and Validation
+```typescript
+// Transaction type definitions
+export enum TransactionType {
+  HOST_CREDIT_PURCHASE = 'host_credit_purchase',
+  TOURNAMENT_CREDIT_PURCHASE = 'tournament_credit_purchase',
+  TOURNAMENT_JOIN = 'tournament_join',
+  TOURNAMENT_WIN = 'tournament_win',
+  REFERRAL_BONUS = 'referral_bonus'
+}
+
+export enum WalletType {
+  TOURNAMENT_CREDITS = 'tournamentCredits',
+  HOST_CREDITS = 'hostCredits',
+  EARNINGS = 'earnings'
+}
+
+// Transaction validation schema
+export const transactionSchema = {
+  userId: { type: 'string', required: true },
+  type: { type: 'string', enum: Object.values(TransactionType), required: true },
+  amount: { type: 'number', required: true },
+  value: { type: 'number', required: false },
+  balanceBefore: { type: 'number', required: true },
+  balanceAfter: { type: 'number', required: true },
+  walletType: { type: 'string', enum: Object.values(WalletType), required: true },
+  description: { type: 'string', required: true },
+  transactionDetails: { type: 'object', required: false },
+  createdAt: { type: 'timestamp', required: true }
+};
+```
+
+---
+
+## Credit Service Implementation
+
+### Enhanced Credit Service Implementation
+
+#### Credit Balance Hook (src/hooks/useCreditBalance.ts)
+
+```typescript
+import { useState, useEffect } from 'react';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+
+interface CreditBalance {
+  hostCredits: number;
+  tournamentCredits: number;
+  earnings: number;
+  totalPurchasedTournamentCredits: number;
+  totalPurchasedHostCredits: number;
+  firstPurchaseCompleted: boolean;
+}
+
+export const useCreditBalance = (userId: string | undefined) => {
+  const [credits, setCredits] = useState<CreditBalance>({
+    hostCredits: 0,
+    tournamentCredits: 0,
+    earnings: 0,
+    totalPurchasedTournamentCredits: 0,
+    totalPurchasedHostCredits: 0,
+    firstPurchaseCompleted: false
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!userId) {
+      setIsLoading(false);
+      return;
+    }
+
+    const userRef = doc(db, 'users', userId);
+
+    const unsubscribe = onSnapshot(
+      userRef,
+      (doc) => {
+        if (doc.exists()) {
+          const userData = doc.data();
+          const wallet = userData.wallet || {};
+
+          setCredits({
+            hostCredits: wallet.hostCredits || 0,
+            tournamentCredits: wallet.tournamentCredits || 0,
+            earnings: wallet.earnings || 0,
+            totalPurchasedTournamentCredits: wallet.totalPurchasedTournamentCredits || 0,
+            totalPurchasedHostCredits: wallet.totalPurchasedHostCredits || 0,
+            firstPurchaseCompleted: wallet.firstPurchaseCompleted || false
+          });
+        }
+        setIsLoading(false);
+        setError(null);
+      },
+      (err) => {
+        console.error('Error fetching credit balance:', err);
+        setError('Failed to load credit balance');
+        setIsLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [userId]);
+
+  return {
+    ...credits,
+    isLoading,
+    error
+  };
+};
+```
+
+---
+
+## Prize Distribution System
+
+### Overview
+The prize distribution system allows tournament hosts to set prize pools and distribute winnings to tournament winners. This system integrates with the credit system to provide seamless prize management.
+
+### Prize Distribution Flow
+1. **Host Sets Prize Pool**: During tournament creation, host defines total prize credits
+2. **Position-Based Prizes**: Host sets prize distribution for 1st, 2nd, 3rd positions
+3. **Tournament Completion**: After tournament ends, host gets prize distribution interface
+4. **Winner Selection**: Host enters UIDs of winners for each position
+5. **Automatic Distribution**: System transfers prize credits to winners' accounts
+6. **Transaction Recording**: All prize distributions are logged for transparency
+
+### Database Schema Updates
+
+#### Tournament Prize Structure
+```typescript
+// Add to tournament document structure
+interface TournamentDocument {
+  // ... existing tournament fields ...
+  prizePool: {
+    totalPrizeCredits: number;        // Total credits allocated for prizes
+    prizeDistribution: {
+      first: number;                  // Credits for 1st position
+      second: number;                 // Credits for 2nd position
+      third: number;                  // Credits for 3rd position
+      // Can extend for more positions
+    };
+    distributionPercentage: {
+      first: number;                  // Percentage for 1st (e.g., 50%)
+      second: number;                 // Percentage for 2nd (e.g., 30%)
+      third: number;                  // Percentage for 3rd (e.g., 20%)
+    };
+    isDistributed: boolean;           // Whether prizes have been distributed
+    distributedAt?: Timestamp;        // When prizes were distributed
+    distributedBy?: string;           // Host UID who distributed prizes
+  };
+  winners?: {
+    first?: {
+      uid: string;
+      username: string;
+      prizeCredits: number;
+      distributedAt: Timestamp;
+    };
+    second?: {
+      uid: string;
+      username: string;
+      prizeCredits: number;
+      distributedAt: Timestamp;
+    };
+    third?: {
+      uid: string;
+      username: string;
+      prizeCredits: number;
+      distributedAt: Timestamp;
+    };
+  };
+}
+```
+
+#### Prize Transaction Schema
+```typescript
+// Add new transaction type for prize distribution
+interface PrizeTransaction extends CreditTransaction {
+  type: 'tournament_win';
+  prizeDetails: {
+    tournamentId: string;
+    tournamentName: string;
+    position: 'first' | 'second' | 'third';
+    totalParticipants: number;
+    hostUid: string;
+  };
+}
+```
+
+### Prize Distribution Service
+
+#### Enhanced Credit Service for Prizes
+```typescript
+// Add to src/lib/creditService.ts
+
+export class PrizeDistributionService {
+  /**
+   * Distribute prize to tournament winner
+   */
+  static async distributePrize(
+    winnerUid: string,
+    prizeCredits: number,
+    position: 'first' | 'second' | 'third',
+    tournamentId: string,
+    tournamentName: string,
+    hostUid: string
+  ): Promise<boolean> {
+    const winnerRef = doc(db, 'users', winnerUid);
+    const tournamentRef = doc(db, 'tournaments', tournamentId);
+
+    try {
+      await runTransaction(db, async (transaction) => {
+        const winnerDoc = await transaction.get(winnerRef);
+        const tournamentDoc = await transaction.get(tournamentRef);
+
+        if (!winnerDoc.exists()) {
+          throw new Error('Winner user not found');
+        }
+
+        if (!tournamentDoc.exists()) {
+          throw new Error('Tournament not found');
+        }
+
+        const winnerData = winnerDoc.data();
+        const wallet = winnerData.wallet || {};
+        const currentEarnings = wallet.earnings || 0;
+        const newEarnings = currentEarnings + prizeCredits;
+
+        // Update winner's earnings
+        transaction.update(winnerRef, {
+          'wallet.earnings': newEarnings
+        });
+
+        // Update tournament with winner info
+        transaction.update(tournamentRef, {
+          [`winners.${position}`]: {
+            uid: winnerUid,
+            username: winnerData.username || winnerData.displayName || 'Unknown',
+            prizeCredits: prizeCredits,
+            distributedAt: Timestamp.now()
+          }
+        });
+
+        // Create prize transaction record
+        const transactionData: PrizeTransaction = {
+          userId: winnerUid,
+          type: 'tournament_win',
+          amount: prizeCredits,
+          balanceBefore: currentEarnings,
+          balanceAfter: newEarnings,
+          walletType: 'earnings',
+          description: `Won ${position} place in ${tournamentName} - Prize: ${prizeCredits} credits`,
+          prizeDetails: {
+            tournamentId,
+            tournamentName,
+            position,
+            totalParticipants: tournamentDoc.data()?.participants?.length || 0,
+            hostUid
+          },
+          createdAt: Timestamp.now()
+        };
+
+        const transactionRef = doc(collection(db, 'creditTransactions'));
+        transaction.set(transactionRef, transactionData);
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error distributing prize:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Distribute all prizes for a tournament
+   */
+  static async distributeAllPrizes(
+    tournamentId: string,
+    winners: {
+      first?: { uid: string; username: string };
+      second?: { uid: string; username: string };
+      third?: { uid: string; username: string };
+    },
+    hostUid: string
+  ): Promise<{ success: boolean; errors: string[] }> {
+    const tournamentRef = doc(db, 'tournaments', tournamentId);
+    const errors: string[] = [];
+
+    try {
+      const tournamentDoc = await getDoc(tournamentRef);
+      if (!tournamentDoc.exists()) {
+        throw new Error('Tournament not found');
+      }
+
+      const tournamentData = tournamentDoc.data();
+      const prizePool = tournamentData.prizePool;
+      const tournamentName = tournamentData.name;
+
+      if (!prizePool || prizePool.isDistributed) {
+        throw new Error('Prize pool not configured or already distributed');
+      }
+
+      // Distribute prizes for each position
+      const positions: Array<'first' | 'second' | 'third'> = ['first', 'second', 'third'];
+
+      for (const position of positions) {
+        const winner = winners[position];
+        const prizeCredits = prizePool.prizeDistribution[position];
+
+        if (winner && prizeCredits > 0) {
+          const success = await this.distributePrize(
+            winner.uid,
+            prizeCredits,
+            position,
+            tournamentId,
+            tournamentName,
+            hostUid
+          );
+
+          if (!success) {
+            errors.push(`Failed to distribute prize to ${position} place winner`);
+          }
+        }
+      }
+
+      // Mark tournament as prize distributed
+      await updateDoc(tournamentRef, {
+        'prizePool.isDistributed': true,
+        'prizePool.distributedAt': Timestamp.now(),
+        'prizePool.distributedBy': hostUid
+      });
+
+      return { success: errors.length === 0, errors };
+
+    } catch (error) {
+      console.error('Error distributing all prizes:', error);
+      return { success: false, errors: [error.message] };
+    }
+  }
+
+  /**
+   * Calculate prize distribution based on total prize pool
+   */
+  static calculatePrizeDistribution(
+    totalPrizeCredits: number,
+    distributionPercentage: { first: number; second: number; third: number }
+  ): { first: number; second: number; third: number } {
+    return {
+      first: Math.floor(totalPrizeCredits * (distributionPercentage.first / 100)),
+      second: Math.floor(totalPrizeCredits * (distributionPercentage.second / 100)),
+      third: Math.floor(totalPrizeCredits * (distributionPercentage.third / 100))
+    };
+  }
+
+  /**
+   * Validate prize distribution
+   */
+  static validatePrizeDistribution(
+    totalPrizeCredits: number,
+    distribution: { first: number; second: number; third: number }
+  ): { isValid: boolean; errors: string[] } {
+    const errors: string[] = [];
+    const totalDistribution = distribution.first + distribution.second + distribution.third;
+
+    if (totalDistribution > totalPrizeCredits) {
+      errors.push('Total prize distribution exceeds available prize pool');
+    }
+
+    if (distribution.first < 0 || distribution.second < 0 || distribution.third < 0) {
+      errors.push('Prize amounts cannot be negative');
+    }
+
+    if (distribution.first < distribution.second || distribution.second < distribution.third) {
+      errors.push('Prize amounts should be in descending order (1st > 2nd > 3rd)');
+    }
+
+    return { isValid: errors.length === 0, errors };
+  }
+}
+```
+
+### Tournament Creation with Prize Pool
+
+#### Enhanced Tournament Creation Form
+```typescript
+// Add to tournament creation form
+import { PrizeDistributionService } from '@/lib/creditService';
+
+const TournamentCreateForm = () => {
+  const [prizePool, setPrizePool] = useState({
+    totalPrizeCredits: 0,
+    distributionPercentage: { first: 50, second: 30, third: 20 }
+  });
+
+  const calculatePrizeDistribution = () => {
+    return PrizeDistributionService.calculatePrizeDistribution(
+      prizePool.totalPrizeCredits,
+      prizePool.distributionPercentage
+    );
+  };
+
+  const prizeDistribution = calculatePrizeDistribution();
+
+  return (
+    <div className="space-y-6">
+      {/* ... existing tournament form fields ... */}
+
+      {/* Prize Pool Section */}
+      <Card className="bg-gaming-card border-gaming-border">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Trophy className="h-5 w-5 text-yellow-500" />
+            Prize Pool Configuration
+          </CardTitle>
+          <CardDescription>
+            Set the total prize credits and distribution for winners
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent className="space-y-4">
+          {/* Total Prize Credits */}
+          <div>
+            <Label htmlFor="totalPrizeCredits">Total Prize Credits</Label>
+            <Input
+              id="totalPrizeCredits"
+              type="number"
+              min="0"
+              value={prizePool.totalPrizeCredits}
+              onChange={(e) => setPrizePool(prev => ({
+                ...prev,
+                totalPrizeCredits: parseInt(e.target.value) || 0
+              }))}
+              placeholder="Enter total prize credits"
+            />
+          </div>
+
+          {/* Prize Distribution Percentages */}
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="firstPercentage">1st Place (%)</Label>
+              <Input
+                id="firstPercentage"
+                type="number"
+                min="0"
+                max="100"
+                value={prizePool.distributionPercentage.first}
+                onChange={(e) => setPrizePool(prev => ({
+                  ...prev,
+                  distributionPercentage: {
+                    ...prev.distributionPercentage,
+                    first: parseInt(e.target.value) || 0
+                  }
+                }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="secondPercentage">2nd Place (%)</Label>
+              <Input
+                id="secondPercentage"
+                type="number"
+                min="0"
+                max="100"
+                value={prizePool.distributionPercentage.second}
+                onChange={(e) => setPrizePool(prev => ({
+                  ...prev,
+                  distributionPercentage: {
+                    ...prev.distributionPercentage,
+                    second: parseInt(e.target.value) || 0
+                  }
+                }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="thirdPercentage">3rd Place (%)</Label>
+              <Input
+                id="thirdPercentage"
+                type="number"
+                min="0"
+                max="100"
+                value={prizePool.distributionPercentage.third}
+                onChange={(e) => setPrizePool(prev => ({
+                  ...prev,
+                  distributionPercentage: {
+                    ...prev.distributionPercentage,
+                    third: parseInt(e.target.value) || 0
+                  }
+                }))}
+              />
+            </div>
+          </div>
+
+          {/* Prize Distribution Preview */}
+          <div className="bg-gaming-bg/50 rounded-lg p-4">
+            <h4 className="font-semibold mb-3">Prize Distribution Preview</h4>
+            <div className="grid grid-cols-3 gap-4 text-sm">
+              <div className="text-center">
+                <div className="text-yellow-500 font-bold">🥇 1st Place</div>
+                <div className="text-lg font-semibold">{prizeDistribution.first} Credits</div>
+              </div>
+              <div className="text-center">
+                <div className="text-gray-400 font-bold">🥈 2nd Place</div>
+                <div className="text-lg font-semibold">{prizeDistribution.second} Credits</div>
+              </div>
+              <div className="text-center">
+                <div className="text-orange-500 font-bold">🥉 3rd Place</div>
+                <div className="text-lg font-semibold">{prizeDistribution.third} Credits</div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+```
+
+### Prize Distribution Interface
+
+#### Prize Distribution Component for Tournament Hosts
+```typescript
+// src/components/tournaments/PrizeDistributionDialog.tsx
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Trophy, User, Check, AlertTriangle } from 'lucide-react';
+import { toast } from '@/components/ui/use-toast';
+import { PrizeDistributionService } from '@/lib/creditService';
+
+interface PrizeDistributionDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  tournament: {
+    id: string;
+    name: string;
+    prizePool: {
+      totalPrizeCredits: number;
+      prizeDistribution: { first: number; second: number; third: number };
+      isDistributed: boolean;
+    };
+  };
+  hostUid: string;
+}
+
+const PrizeDistributionDialog = ({
+  open,
+  onOpenChange,
+  tournament,
+  hostUid
+}: PrizeDistributionDialogProps) => {
+  const [winners, setWinners] = useState({
+    first: { uid: '', username: '' },
+    second: { uid: '', username: '' },
+    third: { uid: '', username: '' }
+  });
+  const [isDistributing, setIsDistributing] = useState(false);
+  const [errors, setErrors] = useState<string[]>([]);
+
+  const handleWinnerChange = (position: 'first' | 'second' | 'third', field: 'uid' | 'username', value: string) => {
+    setWinners(prev => ({
+      ...prev,
+      [position]: {
+        ...prev[position],
+        [field]: value
+      }
+    }));
+    setErrors([]); // Clear errors when user makes changes
+  };
+
+  const validateWinners = (): boolean => {
+    const newErrors: string[] = [];
+
+    // Check for required fields
+    if (!winners.first.uid || !winners.first.username) {
+      newErrors.push('1st place winner UID and username are required');
+    }
+
+    // Check for duplicate UIDs
+    const uids = [winners.first.uid, winners.second.uid, winners.third.uid].filter(Boolean);
+    if (new Set(uids).size !== uids.length) {
+      newErrors.push('Winner UIDs must be unique');
+    }
+
+    setErrors(newErrors);
+    return newErrors.length === 0;
+  };
+
+  const handleDistributePrizes = async () => {
+    if (!validateWinners()) return;
+
+    setIsDistributing(true);
+
+    try {
+      const result = await PrizeDistributionService.distributeAllPrizes(
+        tournament.id,
+        winners,
+        hostUid
+      );
+
+      if (result.success) {
+        toast({
+          title: "Prizes Distributed Successfully!",
+          description: "All winners have received their prize credits.",
+        });
+        onOpenChange(false);
+      } else {
+        setErrors(result.errors);
+        toast({
+          title: "Prize Distribution Failed",
+          description: "Some prizes could not be distributed. Please check the errors.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error distributing prizes:', error);
+      toast({
+        title: "Distribution Error",
+        description: "An error occurred while distributing prizes.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDistributing(false);
+    }
+  };
+
+  if (tournament.prizePool.isDistributed) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-md bg-gaming-card border-gaming-border">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Check className="h-5 w-5 text-green-500" />
+              Prizes Already Distributed
+            </DialogTitle>
+          </DialogHeader>
+          <div className="text-center py-6">
+            <Trophy className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
+            <p className="text-gaming-muted">
+              Prizes for this tournament have already been distributed to the winners.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-2xl bg-gaming-card border-gaming-border max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Trophy className="h-5 w-5 text-yellow-500" />
+            Distribute Tournament Prizes
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-6">
+          {/* Tournament Info */}
+          <Card className="bg-gaming-bg/50 border-gaming-border/50">
+            <CardContent className="p-4">
+              <h3 className="font-semibold mb-2">{tournament.name}</h3>
+              <p className="text-sm text-gaming-muted">
+                Total Prize Pool: {tournament.prizePool.totalPrizeCredits} Credits
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Error Display */}
+          {errors.length > 0 && (
+            <Card className="bg-red-500/10 border-red-500/30">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertTriangle className="h-4 w-4 text-red-500" />
+                  <span className="font-semibold text-red-500">Validation Errors</span>
+                </div>
+                <ul className="text-sm text-red-400 space-y-1">
+                  {errors.map((error, index) => (
+                    <li key={index}>• {error}</li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Winner Input Forms */}
+          <div className="space-y-4">
+            {/* 1st Place */}
+            <Card className="bg-gradient-to-r from-yellow-500/10 to-yellow-600/10 border-yellow-500/30">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  🥇 1st Place Winner
+                  <span className="text-yellow-500 font-bold">
+                    {tournament.prizePool.prizeDistribution.first} Credits
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <Label htmlFor="first-uid">Winner UID *</Label>
+                  <Input
+                    id="first-uid"
+                    placeholder="Enter winner's UID"
+                    value={winners.first.uid}
+                    onChange={(e) => handleWinnerChange('first', 'uid', e.target.value)}
+                    className="bg-gaming-bg/50"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="first-username">Winner Username *</Label>
+                  <Input
+                    id="first-username"
+                    placeholder="Enter winner's username"
+                    value={winners.first.username}
+                    onChange={(e) => handleWinnerChange('first', 'username', e.target.value)}
+                    className="bg-gaming-bg/50"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* 2nd Place */}
+            {tournament.prizePool.prizeDistribution.second > 0 && (
+              <Card className="bg-gradient-to-r from-gray-400/10 to-gray-500/10 border-gray-400/30">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    🥈 2nd Place Winner
+                    <span className="text-gray-400 font-bold">
+                      {tournament.prizePool.prizeDistribution.second} Credits
+                    </span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div>
+                    <Label htmlFor="second-uid">Winner UID</Label>
+                    <Input
+                      id="second-uid"
+                      placeholder="Enter winner's UID (optional)"
+                      value={winners.second.uid}
+                      onChange={(e) => handleWinnerChange('second', 'uid', e.target.value)}
+                      className="bg-gaming-bg/50"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="second-username">Winner Username</Label>
+                    <Input
+                      id="second-username"
+                      placeholder="Enter winner's username (optional)"
+                      value={winners.second.username}
+                      onChange={(e) => handleWinnerChange('second', 'username', e.target.value)}
+                      className="bg-gaming-bg/50"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* 3rd Place */}
+            {tournament.prizePool.prizeDistribution.third > 0 && (
+              <Card className="bg-gradient-to-r from-orange-500/10 to-orange-600/10 border-orange-500/30">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    🥉 3rd Place Winner
+                    <span className="text-orange-500 font-bold">
+                      {tournament.prizePool.prizeDistribution.third} Credits
+                    </span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div>
+                    <Label htmlFor="third-uid">Winner UID</Label>
+                    <Input
+                      id="third-uid"
+                      placeholder="Enter winner's UID (optional)"
+                      value={winners.third.uid}
+                      onChange={(e) => handleWinnerChange('third', 'uid', e.target.value)}
+                      className="bg-gaming-bg/50"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="third-username">Winner Username</Label>
+                    <Input
+                      id="third-username"
+                      placeholder="Enter winner's username (optional)"
+                      value={winners.third.username}
+                      onChange={(e) => handleWinnerChange('third', 'username', e.target.value)}
+                      className="bg-gaming-bg/50"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              className="flex-1"
+              disabled={isDistributing}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleDistributePrizes}
+              disabled={isDistributing || !winners.first.uid || !winners.first.username}
+              className="flex-1 bg-gaming-primary hover:bg-gaming-primary/90"
+            >
+              {isDistributing ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  Distributing...
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Trophy className="h-4 w-4" />
+                  Distribute Prizes
+                </div>
+              )}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default PrizeDistributionDialog;
+```
+
+#### Tournament Management Integration
+```typescript
+// Add to tournament management page/component
+import PrizeDistributionDialog from '@/components/tournaments/PrizeDistributionDialog';
+
+const TournamentManagement = ({ tournament, isHost }) => {
+  const [showPrizeDistribution, setShowPrizeDistribution] = useState(false);
+
+  const canDistributePrizes = () => {
+    return isHost &&
+           tournament.status === 'completed' &&
+           tournament.prizePool &&
+           !tournament.prizePool.isDistributed;
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* ... existing tournament management content ... */}
+
+      {/* Prize Distribution Section */}
+      {canDistributePrizes() && (
+        <Card className="bg-gaming-card border-gaming-border">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-yellow-500" />
+              Prize Distribution
+            </CardTitle>
+            <CardDescription>
+              Distribute prizes to tournament winners
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-semibold">Total Prize Pool: {tournament.prizePool.totalPrizeCredits} Credits</p>
+                <p className="text-sm text-gaming-muted">
+                  1st: {tournament.prizePool.prizeDistribution.first} |
+                  2nd: {tournament.prizePool.prizeDistribution.second} |
+                  3rd: {tournament.prizePool.prizeDistribution.third}
+                </p>
+              </div>
+              <Button
+                onClick={() => setShowPrizeDistribution(true)}
+                className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold"
+              >
+                <Trophy className="h-4 w-4 mr-2" />
+                Distribute Prizes
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Prize Distribution Dialog */}
+      <PrizeDistributionDialog
+        open={showPrizeDistribution}
+        onOpenChange={setShowPrizeDistribution}
+        tournament={tournament}
+        hostUid={currentUser?.uid || ''}
+      />
+    </div>
+  );
+};
+```
+
+### Prize Display Components
+
+#### Winner Display Component
+```typescript
+// src/components/tournaments/WinnerDisplay.tsx
+import { Card, CardContent } from '@/components/ui/card';
+import { Trophy, Medal, Award } from 'lucide-react';
+
+interface WinnerDisplayProps {
+  winners?: {
+    first?: { uid: string; username: string; prizeCredits: number };
+    second?: { uid: string; username: string; prizeCredits: number };
+    third?: { uid: string; username: string; prizeCredits: number };
+  };
+  prizePool?: {
+    totalPrizeCredits: number;
+    isDistributed: boolean;
+  };
+}
+
+const WinnerDisplay = ({ winners, prizePool }: WinnerDisplayProps) => {
+  if (!prizePool?.isDistributed || !winners) {
+    return (
+      <Card className="bg-gaming-card border-gaming-border">
+        <CardContent className="p-6 text-center">
+          <Trophy className="h-12 w-12 text-gaming-muted mx-auto mb-3" />
+          <p className="text-gaming-muted">
+            {prizePool ? 'Prizes not yet distributed' : 'No prize pool configured'}
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="bg-gaming-card border-gaming-border">
+      <CardContent className="p-6">
+        <h3 className="text-xl font-bold mb-6 text-center flex items-center justify-center gap-2">
+          <Trophy className="h-6 w-6 text-yellow-500" />
+          Tournament Winners
+        </h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* 1st Place */}
+          {winners.first && (
+            <div className="text-center p-4 bg-gradient-to-b from-yellow-500/20 to-yellow-600/10 rounded-lg border border-yellow-500/30">
+              <Trophy className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
+              <div className="text-2xl font-bold text-yellow-500 mb-1">🥇</div>
+              <p className="font-semibold text-gaming-text">{winners.first.username}</p>
+              <p className="text-sm text-gaming-muted mb-2">1st Place</p>
+              <p className="text-lg font-bold text-yellow-500">{winners.first.prizeCredits} Credits</p>
+            </div>
+          )}
+
+          {/* 2nd Place */}
+          {winners.second && (
+            <div className="text-center p-4 bg-gradient-to-b from-gray-400/20 to-gray-500/10 rounded-lg border border-gray-400/30">
+              <Medal className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+              <div className="text-2xl font-bold text-gray-400 mb-1">🥈</div>
+              <p className="font-semibold text-gaming-text">{winners.second.username}</p>
+              <p className="text-sm text-gaming-muted mb-2">2nd Place</p>
+              <p className="text-lg font-bold text-gray-400">{winners.second.prizeCredits} Credits</p>
+            </div>
+          )}
+
+          {/* 3rd Place */}
+          {winners.third && (
+            <div className="text-center p-4 bg-gradient-to-b from-orange-500/20 to-orange-600/10 rounded-lg border border-orange-500/30">
+              <Award className="h-8 w-8 text-orange-500 mx-auto mb-2" />
+              <div className="text-2xl font-bold text-orange-500 mb-1">🥉</div>
+              <p className="font-semibold text-gaming-text">{winners.third.username}</p>
+              <p className="text-sm text-gaming-muted mb-2">3rd Place</p>
+              <p className="text-lg font-bold text-orange-500">{winners.third.prizeCredits} Credits</p>
+            </div>
+          )}
+        </div>
+
+        <div className="mt-6 text-center">
+          <p className="text-sm text-gaming-muted">
+            Total Prize Pool: {prizePool.totalPrizeCredits} Credits
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+export default WinnerDisplay;
+```
+
+---
+
+## UI Components and Credit Display
+
+### Navigation and Credit Display Integration
+
+#### Mobile Navigation Updates (MobileNavbar.tsx)
+
+**Step 1: Add Credit Display to Mobile Navigation**
+```typescript
+// src/components/MobileNavbar.tsx - Add credit display at the top
+import { CreditCard, Coins } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useCreditBalance } from "@/hooks/useCreditBalance";
+
+const MobileNavbar = ({ currentPath }: MobileNavbarProps) => {
+  const { currentUser } = useAuth();
+  const { hostCredits, tournamentCredits, isLoading } = useCreditBalance(currentUser?.uid);
+
+  return (
+    <motion.div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-gaming-bg/90 border-t border-gaming-border backdrop-blur-lg py-1 pb-safe">
+      {/* Credit Display Bar - Add this above navigation */}
+      <div className="px-4 py-2 border-b border-gaming-border/50">
+        <div className="flex items-center justify-between max-w-md mx-auto">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1 bg-gaming-card/50 px-2 py-1 rounded-md">
+              <Coins size={14} className="text-gaming-accent" />
+              <span className="text-xs font-medium text-gaming-text">
+                {isLoading ? "..." : tournamentCredits}
+              </span>
+              <span className="text-xs text-gaming-muted">Tournament</span>
+            </div>
+            <div className="flex items-center gap-1 bg-gaming-card/50 px-2 py-1 rounded-md">
+              <CreditCard size={14} className="text-gaming-primary" />
+              <span className="text-xs font-medium text-gaming-text">
+                {isLoading ? "..." : hostCredits}
+              </span>
+              <span className="text-xs text-gaming-muted">Host</span>
+            </div>
+          </div>
+          <Link
+            to="/credits"
+            className="text-xs text-gaming-accent hover:text-gaming-accent/80 font-medium"
+          >
+            Buy Credits
+          </Link>
+        </div>
+      </div>
+
+      {/* Existing navigation items */}
+      <nav className="grid grid-cols-5 max-w-md mx-auto">
+        {/* ... existing nav items ... */}
+      </nav>
+    </motion.div>
+  );
+};
+```
+
+---
+
+## Subscription/Packages Page Implementation
+
+---
+
+## Converting Existing Rupees System to Credits
 
 ---
 
