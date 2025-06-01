@@ -27,51 +27,59 @@
    - [Tournament Creation with Prize Pool](#tournament-creation-with-prize-pool)
    - [Prize Distribution Interface](#prize-distribution-interface)
    - [Prize Display Components](#prize-display-components)
-5. [UI Components and Credit Display](#ui-components-and-credit-display)
+5. [Tournament Credits Withdrawal System](#tournament-credits-withdrawal-system)
+   - [Withdrawal System Overview](#withdrawal-system-overview)
+   - [Earnings and Withdrawal Flow](#earnings-and-withdrawal-flow)
+   - [Database Schema for Withdrawals](#database-schema-for-withdrawals)
+   - [Withdrawal Service Implementation](#withdrawal-service-implementation)
+   - [Withdrawal UI Components](#withdrawal-ui-components)
+   - [Withdrawal Request Management](#withdrawal-request-management)
+   - [Manual Processing and Admin Tools](#manual-processing-and-admin-tools)
+6. [UI Components and Credit Display](#ui-components-and-credit-display)
    - [Navigation and Credit Display Integration](#navigation-and-credit-display-integration)
    - [Credit Display Components](#credit-display-components)
    - [User Experience Enhancements](#user-experience-enhancements)
    - [Low Credit Alerts and Notifications](#low-credit-alerts-and-notifications)
-6. [Subscription/Packages Page Implementation](#subscriptionpackages-page-implementation)
+7. [Subscription/Packages Page Implementation](#subscriptionpackages-page-implementation)
    - [Credits Page Implementation](#credits-page-implementation)
    - [Credit Package Components](#credit-package-components)
    - [Package Selection and Display](#package-selection-and-display)
    - [Responsive Design Implementation](#responsive-design-implementation)
-7. [Converting Existing Rupees System to Credits](#converting-existing-rupees-system-to-credits)
+8. [Converting Existing Rupees System to Credits](#converting-existing-rupees-system-to-credits)
    - [Database Migration Strategy](#database-migration-strategy)
    - [Wallet Page Updates](#wallet-page-updates)
    - [Add Funds Dialog Modifications](#add-funds-dialog-modifications)
    - [Tournament Logic Updates](#tournament-logic-updates)
    - [Migration Implementation Steps](#migration-implementation-steps)
-8. [Human Developer Setup Guide](#human-developer-setup-guide)
+9. [Human Developer Setup Guide](#human-developer-setup-guide)
    - [Account Creation and Verification](#cashfree-account-creation-and-verification)
    - [API Keys Configuration](#api-keys-configuration)
    - [Dashboard Configuration](#dashboard-configuration)
    - [Webhook Setup Guide](#webhook-setup-guide)
    - [Security Best Practices](#security-best-practices)
    - [Testing Environment Setup](#testing-environment-setup)
-9. [Payment Flow Integration](#payment-flow-integration)
-   - [Enhanced Cashfree Service Updates](#enhanced-cashfree-service-updates)
-   - [Payment Component Implementation](#payment-component-implementation)
-   - [Payment Status Handler](#payment-status-handler)
-   - [Success/Failure Flow Management](#successfailure-flow-management)
-10. [Backend Integration and Webhooks](#backend-integration-and-webhooks)
+10. [Payment Flow Integration](#payment-flow-integration)
+    - [Enhanced Cashfree Service Updates](#enhanced-cashfree-service-updates)
+    - [Payment Component Implementation](#payment-component-implementation)
+    - [Payment Status Handler](#payment-status-handler)
+    - [Success/Failure Flow Management](#successfailure-flow-management)
+11. [Backend Integration and Webhooks](#backend-integration-and-webhooks)
     - [Netlify Functions Implementation](#netlify-functions-implementation)
     - [Webhook Processing Deep Dive](#webhook-processing-deep-dive)
     - [Credit Allocation After Payment](#credit-allocation-after-payment)
     - [Error Handling and Retry Logic](#error-handling-and-retry-logic)
-11. [Testing Procedures and Validation](#testing-procedures-and-validation)
+12. [Testing Procedures and Validation](#testing-procedures-and-validation)
     - [Local Development Testing Setup](#local-development-testing-setup)
     - [Comprehensive Testing Checklist](#comprehensive-testing-checklist)
     - [Automated Testing Scripts](#automated-testing-scripts)
     - [Manual Testing Procedures](#manual-testing-procedures)
-12. [Production Deployment](#production-deployment)
+13. [Production Deployment](#production-deployment)
     - [Environment Setup](#environment-setup)
     - [Production Deployment Checklist](#production-deployment-checklist)
     - [Security Considerations](#security-considerations)
     - [Monitoring and Troubleshooting](#monitoring-and-troubleshooting)
-13. [Step-by-Step Implementation Timeline](#step-by-step-implementation-timeline)
-14. [Support and Maintenance](#support-and-maintenance)
+14. [Step-by-Step Implementation Timeline](#step-by-step-implementation-timeline)
+15. [Support and Maintenance](#support-and-maintenance)
 
 ---
 
@@ -1257,6 +1265,1503 @@ const WinnerDisplay = ({ winners, prizePool }: WinnerDisplayProps) => {
 };
 
 export default WinnerDisplay;
+```
+
+---
+
+## Tournament Credits Withdrawal System
+
+### Withdrawal System Overview
+
+The tournament credits withdrawal system allows users to convert their tournament winnings (earnings) into real money that can be withdrawn to their bank accounts or UPI IDs. This system provides a complete cash-out mechanism for tournament prizes and earnings.
+
+#### Key Features
+- **Earnings Wallet**: Separate wallet for withdrawable tournament winnings
+- **UPI Withdrawals**: Direct withdrawal to UPI IDs (most popular in India)
+- **Bank Transfers**: Traditional bank account withdrawals
+- **Withdrawal Requests**: Manual processing system for security
+- **Transaction Tracking**: Complete audit trail of all withdrawals
+- **Status Updates**: Real-time withdrawal status tracking
+
+#### Withdrawal Flow Overview
+1. **Earn Credits**: Users win tournaments and receive earnings credits
+2. **Request Withdrawal**: Users initiate withdrawal through the app
+3. **Validation**: System validates user balance and withdrawal details
+4. **Request Creation**: Withdrawal request is created and stored
+5. **Manual Processing**: Admin processes withdrawal manually (2-3 business days)
+6. **Status Updates**: Users receive updates on withdrawal status
+7. **Completion**: Funds transferred to user's account
+
+### Earnings and Withdrawal Flow
+
+#### How Users Earn Withdrawable Credits
+```typescript
+// Tournament winnings flow
+1. User joins tournament (spends tournament credits)
+2. User wins tournament (receives earnings credits)
+3. Earnings credits are withdrawable (unlike tournament credits)
+4. User can withdraw earnings to bank/UPI
+```
+
+#### Credit Types and Withdrawal Rules
+```typescript
+interface UserWallet {
+  tournamentCredits: number;    // For joining tournaments (non-withdrawable)
+  hostCredits: number;          // For creating tournaments (non-withdrawable)
+  earnings: number;             // Withdrawable winnings from tournaments
+}
+
+// Withdrawal Rules:
+// ✅ earnings → Can be withdrawn to bank/UPI
+// ❌ tournamentCredits → Cannot be withdrawn (used for tournament entry)
+// ❌ hostCredits → Cannot be withdrawn (used for tournament creation)
+```
+
+#### Minimum Withdrawal Requirements
+- **Minimum Amount**: ₹100 (configurable)
+- **Maximum Amount**: ₹50,000 per transaction
+- **Daily Limit**: ₹1,00,000 per day
+- **KYC Required**: For withdrawals above ₹10,000
+- **Processing Time**: 2-3 business days
+
+### Database Schema for Withdrawals
+
+#### Withdrawal Request Schema
+```typescript
+// Collection: withdrawalRequests
+interface WithdrawalRequest {
+  id: string;                    // Auto-generated document ID
+  userId: string;                // User who requested withdrawal
+  amount: number;                // Amount to withdraw (in rupees)
+  upiId?: string;                // UPI ID for UPI withdrawals
+  bankDetails?: {                // Bank details for bank transfers
+    accountNumber: string;
+    ifscCode: string;
+    accountHolderName: string;
+    bankName: string;
+  };
+  withdrawalMethod: 'upi' | 'bank';
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
+  requestedAt: Timestamp;        // When withdrawal was requested
+  processedAt?: Timestamp;       // When withdrawal was processed
+  completedAt?: Timestamp;       // When withdrawal was completed
+  failureReason?: string;        // Reason if withdrawal failed
+  transactionId?: string;        // Bank/UPI transaction ID
+  processedBy?: string;          // Admin who processed the withdrawal
+  notes?: string;                // Admin notes or user instructions
+}
+```
+
+#### Enhanced Credit Transaction Schema
+```typescript
+// Add withdrawal transaction type
+interface WithdrawalTransaction extends CreditTransaction {
+  type: 'withdrawal';
+  amount: number;                // Negative amount (deducted from earnings)
+  walletType: 'earnings';        // Always earnings for withdrawals
+  transactionDetails: {
+    withdrawalId: string;        // Reference to withdrawal request
+    withdrawalMethod: 'upi' | 'bank';
+    upiId?: string;
+    bankDetails?: object;
+    status: 'pending' | 'processing' | 'completed' | 'failed';
+  };
+}
+```
+
+#### User Wallet Updates for Withdrawals
+```typescript
+// Enhanced user wallet structure
+interface UserWallet {
+  // ... existing fields ...
+  withdrawalHistory: {
+    totalWithdrawn: number;      // Total amount withdrawn till date
+    lastWithdrawal?: Timestamp;  // Last withdrawal date
+    pendingWithdrawals: number;  // Amount in pending withdrawals
+  };
+  kycStatus?: {
+    isCompleted: boolean;
+    verifiedAt?: Timestamp;
+    documents?: string[];        // Document URLs
+  };
+}
+```
+
+### Withdrawal Service Implementation
+
+#### Enhanced Credit Service for Withdrawals
+```typescript
+// Add to src/lib/creditService.ts
+
+export class WithdrawalService {
+  /**
+   * Request withdrawal of earnings to UPI
+   */
+  static async requestWithdrawal(
+    userId: string,
+    amount: number,
+    upiId: string
+  ): Promise<{ success: boolean; transactionId?: string; error?: string }> {
+    const userRef = doc(db, 'users', userId);
+
+    try {
+      let transactionId: string | undefined;
+
+      await runTransaction(db, async (transaction) => {
+        const userDoc = await transaction.get(userRef);
+
+        if (!userDoc.exists()) {
+          throw new Error('User not found');
+        }
+
+        const userData = userDoc.data();
+        const wallet = userData.wallet || {};
+        const currentEarnings = wallet.earnings || 0;
+
+        // Validate withdrawal amount
+        if (amount < 100) {
+          throw new Error('Minimum withdrawal amount is ₹100');
+        }
+
+        if (amount > 50000) {
+          throw new Error('Maximum withdrawal amount is ₹50,000 per transaction');
+        }
+
+        // Check if user has enough earnings
+        if (currentEarnings < amount) {
+          throw new Error('Insufficient earnings');
+        }
+
+        // Create withdrawal request record
+        const withdrawalData: WithdrawalRequest = {
+          userId,
+          amount,
+          upiId,
+          withdrawalMethod: 'upi',
+          status: 'pending',
+          requestedAt: Timestamp.now(),
+          notes: 'Withdrawal request pending. Funds will be transferred in 2-3 business days.'
+        };
+
+        const withdrawalRef = doc(collection(db, 'withdrawalRequests'));
+        transaction.set(withdrawalRef, withdrawalData);
+        transactionId = withdrawalRef.id;
+
+        // Deduct from earnings
+        const newEarnings = currentEarnings - amount;
+        transaction.update(userRef, {
+          'wallet.earnings': newEarnings,
+          'wallet.withdrawalHistory.pendingWithdrawals': (wallet.withdrawalHistory?.pendingWithdrawals || 0) + amount
+        });
+
+        // Record transaction
+        const transactionData: WithdrawalTransaction = {
+          userId,
+          type: 'withdrawal',
+          amount: -amount,
+          balanceBefore: currentEarnings,
+          balanceAfter: newEarnings,
+          walletType: 'earnings',
+          description: `Withdrawal of ₹${amount} to UPI: ${upiId}`,
+          transactionDetails: {
+            withdrawalId: withdrawalRef.id,
+            withdrawalMethod: 'upi',
+            upiId,
+            status: 'pending'
+          },
+          createdAt: Timestamp.now()
+        };
+
+        const transactionRef = doc(collection(db, 'creditTransactions'));
+        transaction.set(transactionRef, transactionData);
+      });
+
+      return { success: true, transactionId };
+    } catch (error) {
+      console.error('Error requesting withdrawal:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Request withdrawal to bank account
+   */
+  static async requestBankWithdrawal(
+    userId: string,
+    amount: number,
+    bankDetails: {
+      accountNumber: string;
+      ifscCode: string;
+      accountHolderName: string;
+      bankName: string;
+    }
+  ): Promise<{ success: boolean; transactionId?: string; error?: string }> {
+    const userRef = doc(db, 'users', userId);
+
+    try {
+      let transactionId: string | undefined;
+
+      await runTransaction(db, async (transaction) => {
+        const userDoc = await transaction.get(userRef);
+
+        if (!userDoc.exists()) {
+          throw new Error('User not found');
+        }
+
+        const userData = userDoc.data();
+        const wallet = userData.wallet || {};
+        const currentEarnings = wallet.earnings || 0;
+
+        // Validate withdrawal amount
+        if (amount < 100) {
+          throw new Error('Minimum withdrawal amount is ₹100');
+        }
+
+        if (amount > 50000) {
+          throw new Error('Maximum withdrawal amount is ₹50,000 per transaction');
+        }
+
+        // Check if user has enough earnings
+        if (currentEarnings < amount) {
+          throw new Error('Insufficient earnings');
+        }
+
+        // Validate bank details
+        if (!bankDetails.accountNumber || !bankDetails.ifscCode || !bankDetails.accountHolderName) {
+          throw new Error('All bank details are required');
+        }
+
+        // Create withdrawal request record
+        const withdrawalData: WithdrawalRequest = {
+          userId,
+          amount,
+          bankDetails,
+          withdrawalMethod: 'bank',
+          status: 'pending',
+          requestedAt: Timestamp.now(),
+          notes: 'Bank withdrawal request pending. Funds will be transferred in 2-3 business days.'
+        };
+
+        const withdrawalRef = doc(collection(db, 'withdrawalRequests'));
+        transaction.set(withdrawalRef, withdrawalData);
+        transactionId = withdrawalRef.id;
+
+        // Deduct from earnings
+        const newEarnings = currentEarnings - amount;
+        transaction.update(userRef, {
+          'wallet.earnings': newEarnings,
+          'wallet.withdrawalHistory.pendingWithdrawals': (wallet.withdrawalHistory?.pendingWithdrawals || 0) + amount
+        });
+
+        // Record transaction
+        const transactionData: WithdrawalTransaction = {
+          userId,
+          type: 'withdrawal',
+          amount: -amount,
+          balanceBefore: currentEarnings,
+          balanceAfter: newEarnings,
+          walletType: 'earnings',
+          description: `Bank withdrawal of ₹${amount} to ${bankDetails.accountNumber}`,
+          transactionDetails: {
+            withdrawalId: withdrawalRef.id,
+            withdrawalMethod: 'bank',
+            bankDetails,
+            status: 'pending'
+          },
+          createdAt: Timestamp.now()
+        };
+
+        const transactionRef = doc(collection(db, 'creditTransactions'));
+        transaction.set(transactionRef, transactionData);
+      });
+
+      return { success: true, transactionId };
+    } catch (error) {
+      console.error('Error requesting bank withdrawal:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get user's withdrawal history
+   */
+  static async getWithdrawalHistory(userId: string): Promise<WithdrawalRequest[]> {
+    try {
+      const withdrawalsRef = collection(db, 'withdrawalRequests');
+      const q = query(
+        withdrawalsRef,
+        where('userId', '==', userId),
+        orderBy('requestedAt', 'desc'),
+        limit(50)
+      );
+
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as WithdrawalRequest));
+    } catch (error) {
+      console.error('Error fetching withdrawal history:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Check withdrawal eligibility
+   */
+  static async checkWithdrawalEligibility(
+    userId: string,
+    amount: number
+  ): Promise<{ eligible: boolean; errors: string[] }> {
+    const errors: string[] = [];
+
+    try {
+      const userRef = doc(db, 'users', userId);
+      const userDoc = await getDoc(userRef);
+
+      if (!userDoc.exists()) {
+        errors.push('User not found');
+        return { eligible: false, errors };
+      }
+
+      const userData = userDoc.data();
+      const wallet = userData.wallet || {};
+      const currentEarnings = wallet.earnings || 0;
+
+      // Check minimum amount
+      if (amount < 100) {
+        errors.push('Minimum withdrawal amount is ₹100');
+      }
+
+      // Check maximum amount
+      if (amount > 50000) {
+        errors.push('Maximum withdrawal amount is ₹50,000 per transaction');
+      }
+
+      // Check sufficient balance
+      if (currentEarnings < amount) {
+        errors.push(`Insufficient earnings. Available: ₹${currentEarnings}`);
+      }
+
+      // Check for pending withdrawals (optional limit)
+      const pendingWithdrawals = wallet.withdrawalHistory?.pendingWithdrawals || 0;
+      if (pendingWithdrawals > 100000) {
+        errors.push('You have too many pending withdrawals. Please wait for them to be processed.');
+      }
+
+      return { eligible: errors.length === 0, errors };
+    } catch (error) {
+      console.error('Error checking withdrawal eligibility:', error);
+      return { eligible: false, errors: ['Error checking eligibility'] };
+    }
+  }
+}
+```
+
+### Withdrawal UI Components
+
+#### Enhanced Withdraw Dialog Component
+```typescript
+// src/components/wallet/WithdrawDialog.tsx
+import { useState, useEffect } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Loader2, ArrowUpCircle, WalletCards, AlertTriangle, CheckCircle } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { WithdrawalService } from "@/lib/creditService";
+import { motion, AnimatePresence } from "framer-motion";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { toast } from "@/components/ui/use-toast";
+
+interface WithdrawDialogProps {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  wallet: {
+    balance: number;
+    lastUpdated: Date;
+  };
+}
+
+const WithdrawDialog = ({
+  isOpen,
+  onOpenChange,
+  wallet,
+}: WithdrawDialogProps) => {
+  const [amount, setAmount] = useState<string>("");
+  const [withdrawalMethod, setWithdrawalMethod] = useState<"upi" | "bank">("upi");
+  const [upiId, setUpiId] = useState<string>("");
+  const [bankDetails, setBankDetails] = useState({
+    accountNumber: "",
+    ifscCode: "",
+    accountHolderName: "",
+    bankName: ""
+  });
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [eligibilityErrors, setEligibilityErrors] = useState<string[]>([]);
+  const { currentUser } = useAuth();
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [transactionId, setTransactionId] = useState<string | undefined>(undefined);
+  const [confirmedAmount, setConfirmedAmount] = useState(0);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setAmount("");
+      setUpiId("");
+      setBankDetails({
+        accountNumber: "",
+        ifscCode: "",
+        accountHolderName: "",
+        bankName: ""
+      });
+      setError(null);
+      setEligibilityErrors([]);
+      setIsLoading(false);
+    }
+  }, [isOpen]);
+
+  // Check eligibility when amount changes
+  useEffect(() => {
+    const checkEligibility = async () => {
+      const numAmount = Number(amount);
+      if (numAmount > 0 && currentUser) {
+        const eligibility = await WithdrawalService.checkWithdrawalEligibility(
+          currentUser.uid,
+          numAmount
+        );
+        setEligibilityErrors(eligibility.errors);
+      } else {
+        setEligibilityErrors([]);
+      }
+    };
+
+    const timeoutId = setTimeout(checkEligibility, 500);
+    return () => clearTimeout(timeoutId);
+  }, [amount, currentUser]);
+
+  const handleSubmit = async () => {
+    const numAmount = Number(amount);
+
+    if (!amount || isNaN(numAmount)) {
+      setError("Please enter a valid amount.");
+      return;
+    }
+
+    if (!wallet) {
+      setError("Unable to retrieve wallet information.");
+      return;
+    }
+
+    if (numAmount <= 0) {
+      setError("Amount must be greater than 0.");
+      return;
+    }
+
+    if (numAmount > wallet.balance) {
+      setError("Insufficient balance in your wallet.");
+      return;
+    }
+
+    if (withdrawalMethod === "upi" && !upiId) {
+      setError("Please enter a valid UPI ID.");
+      return;
+    }
+
+    if (withdrawalMethod === "bank") {
+      if (!bankDetails.accountNumber || !bankDetails.ifscCode || !bankDetails.accountHolderName) {
+        setError("Please fill all bank details.");
+        return;
+      }
+    }
+
+    if (!currentUser) {
+      setError("You must be logged in to withdraw funds.");
+      return;
+    }
+
+    if (eligibilityErrors.length > 0) {
+      setError("Please fix the eligibility errors before proceeding.");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      let result;
+      if (withdrawalMethod === "upi") {
+        result = await WithdrawalService.requestWithdrawal(
+          currentUser.uid,
+          numAmount,
+          upiId
+        );
+      } else {
+        result = await WithdrawalService.requestBankWithdrawal(
+          currentUser.uid,
+          numAmount,
+          bankDetails
+        );
+      }
+
+      if (result.success) {
+        setIsLoading(false);
+        onOpenChange(false);
+
+        // Show success dialog
+        setTransactionId(result.transactionId);
+        setConfirmedAmount(numAmount);
+        setShowSuccessDialog(true);
+
+        toast({
+          title: "Withdrawal Request Submitted!",
+          description: `Your withdrawal of ₹${numAmount} has been submitted and will be processed in 2-3 business days.`,
+        });
+      } else {
+        throw new Error(result.error || "Failed to process withdrawal");
+      }
+    } catch (err) {
+      console.error("Withdrawal error:", err);
+      setError("Failed to process withdrawal. Please try again.");
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <>
+      {/* Main Withdrawal Dialog */}
+      <Dialog open={isOpen} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-md bg-gaming-card border-gaming-border">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-gaming-text">
+              <ArrowUpCircle className="h-5 w-5 text-gaming-primary" />
+              Withdraw Earnings
+            </DialogTitle>
+            <DialogDescription className="text-gaming-muted">
+              Withdraw your tournament earnings to your bank account or UPI.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Current Balance Display */}
+            <div className="bg-gaming-bg/50 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gaming-muted">Available Earnings</span>
+                <span className="text-lg font-bold text-gaming-text">₹{wallet?.balance || 0}</span>
+              </div>
+            </div>
+
+            {/* Amount Input */}
+            <motion.div
+              initial={{ y: 10, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.1 }}
+              className="space-y-2"
+            >
+              <Label htmlFor="amount" className="text-gaming-text text-sm">
+                Withdrawal Amount
+              </Label>
+              <Input
+                id="amount"
+                type="number"
+                placeholder="Enter amount (Min: ₹100)"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                className="bg-gaming-bg/50 border-gaming-border text-gaming-text placeholder:text-gaming-muted focus:border-gaming-primary"
+                min="100"
+                max="50000"
+              />
+              <p className="text-xs text-gaming-muted">
+                Minimum: ₹100 | Maximum: ₹50,000 per transaction
+              </p>
+            </motion.div>
+
+            {/* Eligibility Errors */}
+            {eligibilityErrors.length > 0 && (
+              <Alert className="bg-red-500/10 border-red-500/30">
+                <AlertTriangle className="h-4 w-4 text-red-500" />
+                <AlertDescription className="text-red-400">
+                  <ul className="space-y-1">
+                    {eligibilityErrors.map((error, index) => (
+                      <li key={index}>• {error}</li>
+                    ))}
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Withdrawal Method Selection */}
+            <motion.div
+              initial={{ y: 10, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.15 }}
+              className="space-y-2"
+            >
+              <Label className="text-gaming-text text-sm">Withdrawal Method</Label>
+              <RadioGroup
+                value={withdrawalMethod}
+                onValueChange={(value) => setWithdrawalMethod(value as "upi" | "bank")}
+                className="flex space-x-4"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem
+                    value="upi"
+                    id="upi-withdraw"
+                    className="border-gaming-primary text-gaming-primary focus:ring-offset-gaming-bg"
+                  />
+                  <Label htmlFor="upi-withdraw" className="text-gaming-text cursor-pointer">UPI</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem
+                    value="bank"
+                    id="bank-withdraw"
+                    className="border-gaming-primary text-gaming-primary focus:ring-offset-gaming-bg"
+                  />
+                  <Label htmlFor="bank-withdraw" className="text-gaming-text cursor-pointer">Bank Transfer</Label>
+                </div>
+              </RadioGroup>
+            </motion.div>
+
+            {/* UPI Details */}
+            {withdrawalMethod === "upi" && (
+              <motion.div
+                initial={{ y: 10, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="space-y-2"
+              >
+                <Label htmlFor="upi-id" className="text-gaming-text text-sm">
+                  UPI ID
+                </Label>
+                <Input
+                  id="upi-id"
+                  type="text"
+                  placeholder="yourname@paytm"
+                  value={upiId}
+                  onChange={(e) => setUpiId(e.target.value)}
+                  className="bg-gaming-bg/50 border-gaming-border text-gaming-text placeholder:text-gaming-muted focus:border-gaming-primary"
+                />
+              </motion.div>
+            )}
+
+            {/* Bank Details */}
+            {withdrawalMethod === "bank" && (
+              <motion.div
+                initial={{ y: 10, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="space-y-3"
+              >
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="account-number" className="text-gaming-text text-sm">
+                      Account Number
+                    </Label>
+                    <Input
+                      id="account-number"
+                      type="text"
+                      placeholder="1234567890"
+                      value={bankDetails.accountNumber}
+                      onChange={(e) => setBankDetails(prev => ({ ...prev, accountNumber: e.target.value }))}
+                      className="bg-gaming-bg/50 border-gaming-border text-gaming-text placeholder:text-gaming-muted focus:border-gaming-primary"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="ifsc-code" className="text-gaming-text text-sm">
+                      IFSC Code
+                    </Label>
+                    <Input
+                      id="ifsc-code"
+                      type="text"
+                      placeholder="SBIN0001234"
+                      value={bankDetails.ifscCode}
+                      onChange={(e) => setBankDetails(prev => ({ ...prev, ifscCode: e.target.value.toUpperCase() }))}
+                      className="bg-gaming-bg/50 border-gaming-border text-gaming-text placeholder:text-gaming-muted focus:border-gaming-primary"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="account-holder" className="text-gaming-text text-sm">
+                    Account Holder Name
+                  </Label>
+                  <Input
+                    id="account-holder"
+                    type="text"
+                    placeholder="John Doe"
+                    value={bankDetails.accountHolderName}
+                    onChange={(e) => setBankDetails(prev => ({ ...prev, accountHolderName: e.target.value }))}
+                    className="bg-gaming-bg/50 border-gaming-border text-gaming-text placeholder:text-gaming-muted focus:border-gaming-primary"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="bank-name" className="text-gaming-text text-sm">
+                    Bank Name
+                  </Label>
+                  <Input
+                    id="bank-name"
+                    type="text"
+                    placeholder="State Bank of India"
+                    value={bankDetails.bankName}
+                    onChange={(e) => setBankDetails(prev => ({ ...prev, bankName: e.target.value }))}
+                    className="bg-gaming-bg/50 border-gaming-border text-gaming-text placeholder:text-gaming-muted focus:border-gaming-primary"
+                  />
+                </div>
+              </motion.div>
+            )}
+
+            {/* Error Display */}
+            {error && (
+              <Alert className="bg-red-500/10 border-red-500/30">
+                <AlertTriangle className="h-4 w-4 text-red-500" />
+                <AlertDescription className="text-red-400">
+                  {error}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Processing Info */}
+            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+              <p className="text-xs text-blue-400">
+                <strong>Processing Time:</strong> 2-3 business days<br />
+                <strong>Processing Fee:</strong> No additional charges<br />
+                <strong>Status Updates:</strong> You'll receive notifications about your withdrawal status
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isLoading}
+              className="border-gaming-border text-gaming-text hover:bg-gaming-bg/50"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={isLoading || !amount || Number(amount) <= 0 || eligibilityErrors.length > 0}
+              className="bg-gaming-primary hover:bg-gaming-primary/90 text-white"
+            >
+              {isLoading ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Processing...
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <WalletCards className="h-4 w-4" />
+                  Request Withdrawal
+                </div>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Success Dialog */}
+      <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+        <DialogContent className="sm:max-w-md bg-gaming-card border-gaming-border">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-gaming-text">
+              <CheckCircle className="h-5 w-5 text-green-500" />
+              Withdrawal Request Submitted
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="text-center py-6">
+            <div className="mb-4">
+              <div className="text-3xl font-bold text-gaming-text">₹{confirmedAmount}</div>
+              <p className="text-gaming-muted">Withdrawal Amount</p>
+            </div>
+
+            <div className="bg-gaming-bg/50 rounded-lg p-4 mb-4">
+              <p className="text-sm text-gaming-muted mb-2">Transaction ID</p>
+              <p className="text-xs font-mono text-gaming-text break-all">{transactionId}</p>
+            </div>
+
+            <div className="space-y-2 text-sm text-gaming-muted">
+              <p>✅ Your withdrawal request has been submitted successfully</p>
+              <p>⏱️ Processing time: 2-3 business days</p>
+              <p>📧 You'll receive email updates on the status</p>
+              <p>💰 Funds will be transferred to your {withdrawalMethod === 'upi' ? 'UPI ID' : 'bank account'}</p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              onClick={() => setShowSuccessDialog(false)}
+              className="w-full bg-gaming-primary hover:bg-gaming-primary/90 text-white"
+            >
+              Done
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+};
+
+export default WithdrawDialog;
+```
+
+### Withdrawal Request Management
+
+#### Withdrawal History Component
+```typescript
+// src/components/wallet/WithdrawalHistory.tsx
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Loader2, Clock, CheckCircle, XCircle, AlertTriangle, RefreshCw } from 'lucide-react';
+import { WithdrawalService } from '@/lib/creditService';
+import { useAuth } from '@/contexts/AuthContext';
+import { format } from 'date-fns';
+
+interface WithdrawalRequest {
+  id: string;
+  amount: number;
+  withdrawalMethod: 'upi' | 'bank';
+  upiId?: string;
+  bankDetails?: {
+    accountNumber: string;
+    ifscCode: string;
+    accountHolderName: string;
+    bankName: string;
+  };
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
+  requestedAt: any;
+  processedAt?: any;
+  completedAt?: any;
+  failureReason?: string;
+  transactionId?: string;
+  notes?: string;
+}
+
+const WithdrawalHistory = () => {
+  const [withdrawals, setWithdrawals] = useState<WithdrawalRequest[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { currentUser } = useAuth();
+
+  const fetchWithdrawals = async () => {
+    if (!currentUser) return;
+
+    try {
+      setIsLoading(true);
+      setError(null);
+      const history = await WithdrawalService.getWithdrawalHistory(currentUser.uid);
+      setWithdrawals(history);
+    } catch (err) {
+      console.error('Error fetching withdrawal history:', err);
+      setError('Failed to load withdrawal history');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchWithdrawals();
+  }, [currentUser]);
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-500"><Clock className="h-3 w-3 mr-1" />Pending</Badge>;
+      case 'processing':
+        return <Badge variant="secondary" className="bg-blue-500/20 text-blue-500"><RefreshCw className="h-3 w-3 mr-1" />Processing</Badge>;
+      case 'completed':
+        return <Badge variant="secondary" className="bg-green-500/20 text-green-500"><CheckCircle className="h-3 w-3 mr-1" />Completed</Badge>;
+      case 'failed':
+        return <Badge variant="secondary" className="bg-red-500/20 text-red-500"><XCircle className="h-3 w-3 mr-1" />Failed</Badge>;
+      case 'cancelled':
+        return <Badge variant="secondary" className="bg-gray-500/20 text-gray-500"><XCircle className="h-3 w-3 mr-1" />Cancelled</Badge>;
+      default:
+        return <Badge variant="secondary">{status}</Badge>;
+    }
+  };
+
+  const formatDate = (timestamp: any) => {
+    if (!timestamp) return 'N/A';
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    return format(date, 'MMM dd, yyyy HH:mm');
+  };
+
+  if (isLoading) {
+    return (
+      <Card className="bg-gaming-card border-gaming-border">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-center">
+            <Loader2 className="h-6 w-6 animate-spin text-gaming-primary" />
+            <span className="ml-2 text-gaming-muted">Loading withdrawal history...</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="bg-gaming-card border-gaming-border">
+        <CardContent className="p-6">
+          <div className="text-center">
+            <AlertTriangle className="h-8 w-8 text-red-500 mx-auto mb-2" />
+            <p className="text-red-400 mb-4">{error}</p>
+            <Button onClick={fetchWithdrawals} variant="outline" size="sm">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Retry
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="bg-gaming-card border-gaming-border">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-gaming-text">Withdrawal History</CardTitle>
+          <Button onClick={fetchWithdrawals} variant="outline" size="sm">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {withdrawals.length === 0 ? (
+          <div className="text-center py-8">
+            <div className="text-gaming-muted">No withdrawal requests found</div>
+            <p className="text-sm text-gaming-muted mt-2">Your withdrawal history will appear here</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {withdrawals.map((withdrawal) => (
+              <div
+                key={withdrawal.id}
+                className="bg-gaming-bg/50 rounded-lg p-4 border border-gaming-border/50"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="text-lg font-bold text-gaming-text">₹{withdrawal.amount}</div>
+                    {getStatusBadge(withdrawal.status)}
+                  </div>
+                  <div className="text-sm text-gaming-muted">
+                    {formatDate(withdrawal.requestedAt)}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span className="text-gaming-muted">Method: </span>
+                    <span className="text-gaming-text capitalize">{withdrawal.withdrawalMethod}</span>
+                  </div>
+
+                  {withdrawal.withdrawalMethod === 'upi' && withdrawal.upiId && (
+                    <div>
+                      <span className="text-gaming-muted">UPI ID: </span>
+                      <span className="text-gaming-text">{withdrawal.upiId}</span>
+                    </div>
+                  )}
+
+                  {withdrawal.withdrawalMethod === 'bank' && withdrawal.bankDetails && (
+                    <div>
+                      <span className="text-gaming-muted">Account: </span>
+                      <span className="text-gaming-text">
+                        {withdrawal.bankDetails.accountNumber.replace(/\d(?=\d{4})/g, '*')}
+                      </span>
+                    </div>
+                  )}
+
+                  {withdrawal.transactionId && (
+                    <div className="md:col-span-2">
+                      <span className="text-gaming-muted">Transaction ID: </span>
+                      <span className="text-gaming-text font-mono text-xs">{withdrawal.transactionId}</span>
+                    </div>
+                  )}
+
+                  {withdrawal.failureReason && (
+                    <div className="md:col-span-2">
+                      <span className="text-red-400">Failure Reason: </span>
+                      <span className="text-red-300">{withdrawal.failureReason}</span>
+                    </div>
+                  )}
+
+                  {withdrawal.notes && (
+                    <div className="md:col-span-2">
+                      <span className="text-gaming-muted">Notes: </span>
+                      <span className="text-gaming-text">{withdrawal.notes}</span>
+                    </div>
+                  )}
+                </div>
+
+                {withdrawal.status === 'processing' && (
+                  <div className="mt-3 p-2 bg-blue-500/10 border border-blue-500/30 rounded text-xs text-blue-400">
+                    Your withdrawal is being processed. Funds will be transferred within 2-3 business days.
+                  </div>
+                )}
+
+                {withdrawal.status === 'completed' && withdrawal.completedAt && (
+                  <div className="mt-3 p-2 bg-green-500/10 border border-green-500/30 rounded text-xs text-green-400">
+                    Completed on {formatDate(withdrawal.completedAt)}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+export default WithdrawalHistory;
+```
+
+### Manual Processing and Admin Tools
+
+#### Admin Withdrawal Management Interface
+```typescript
+// src/components/admin/WithdrawalManagement.tsx
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Loader2,
+  CheckCircle,
+  XCircle,
+  Clock,
+  RefreshCw,
+  Eye,
+  DollarSign,
+  Users
+} from 'lucide-react';
+import { toast } from '@/components/ui/use-toast';
+
+// Admin service for withdrawal management
+class AdminWithdrawalService {
+  static async getAllWithdrawals(status?: string): Promise<WithdrawalRequest[]> {
+    // Implementation to fetch all withdrawal requests
+    // This would typically be a server-side function with admin privileges
+    return [];
+  }
+
+  static async updateWithdrawalStatus(
+    withdrawalId: string,
+    status: string,
+    notes?: string,
+    transactionId?: string,
+    adminId?: string
+  ): Promise<{ success: boolean; error?: string }> {
+    // Implementation to update withdrawal status
+    // This would be a server-side function with admin privileges
+    return { success: true };
+  }
+
+  static async getWithdrawalStats(): Promise<{
+    pending: number;
+    processing: number;
+    completed: number;
+    failed: number;
+    totalAmount: number;
+  }> {
+    // Implementation to get withdrawal statistics
+    return {
+      pending: 0,
+      processing: 0,
+      completed: 0,
+      failed: 0,
+      totalAmount: 0
+    };
+  }
+}
+
+const WithdrawalManagement = () => {
+  const [withdrawals, setWithdrawals] = useState<WithdrawalRequest[]>([]);
+  const [filteredWithdrawals, setFilteredWithdrawals] = useState<WithdrawalRequest[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [selectedWithdrawal, setSelectedWithdrawal] = useState<WithdrawalRequest | null>(null);
+  const [showUpdateDialog, setShowUpdateDialog] = useState(false);
+  const [updateData, setUpdateData] = useState({
+    status: '',
+    notes: '',
+    transactionId: ''
+  });
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [stats, setStats] = useState({
+    pending: 0,
+    processing: 0,
+    completed: 0,
+    failed: 0,
+    totalAmount: 0
+  });
+
+  const fetchWithdrawals = async () => {
+    try {
+      setIsLoading(true);
+      const [withdrawalData, statsData] = await Promise.all([
+        AdminWithdrawalService.getAllWithdrawals(),
+        AdminWithdrawalService.getWithdrawalStats()
+      ]);
+      setWithdrawals(withdrawalData);
+      setStats(statsData);
+    } catch (error) {
+      console.error('Error fetching withdrawals:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load withdrawal requests",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchWithdrawals();
+  }, []);
+
+  useEffect(() => {
+    if (statusFilter === 'all') {
+      setFilteredWithdrawals(withdrawals);
+    } else {
+      setFilteredWithdrawals(withdrawals.filter(w => w.status === statusFilter));
+    }
+  }, [withdrawals, statusFilter]);
+
+  const handleUpdateWithdrawal = async () => {
+    if (!selectedWithdrawal) return;
+
+    try {
+      setIsUpdating(true);
+      const result = await AdminWithdrawalService.updateWithdrawalStatus(
+        selectedWithdrawal.id,
+        updateData.status,
+        updateData.notes,
+        updateData.transactionId,
+        'admin-user-id' // Replace with actual admin user ID
+      );
+
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "Withdrawal status updated successfully"
+        });
+        setShowUpdateDialog(false);
+        fetchWithdrawals(); // Refresh data
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      console.error('Error updating withdrawal:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update withdrawal status",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const openUpdateDialog = (withdrawal: WithdrawalRequest) => {
+    setSelectedWithdrawal(withdrawal);
+    setUpdateData({
+      status: withdrawal.status,
+      notes: withdrawal.notes || '',
+      transactionId: withdrawal.transactionId || ''
+    });
+    setShowUpdateDialog(true);
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-500">Pending</Badge>;
+      case 'processing':
+        return <Badge variant="secondary" className="bg-blue-500/20 text-blue-500">Processing</Badge>;
+      case 'completed':
+        return <Badge variant="secondary" className="bg-green-500/20 text-green-500">Completed</Badge>;
+      case 'failed':
+        return <Badge variant="secondary" className="bg-red-500/20 text-red-500">Failed</Badge>;
+      case 'cancelled':
+        return <Badge variant="secondary" className="bg-gray-500/20 text-gray-500">Cancelled</Badge>;
+      default:
+        return <Badge variant="secondary">{status}</Badge>;
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <Card className="bg-gaming-card border-gaming-border">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-yellow-500" />
+              <div>
+                <p className="text-sm text-gaming-muted">Pending</p>
+                <p className="text-xl font-bold text-gaming-text">{stats.pending}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gaming-card border-gaming-border">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <RefreshCw className="h-4 w-4 text-blue-500" />
+              <div>
+                <p className="text-sm text-gaming-muted">Processing</p>
+                <p className="text-xl font-bold text-gaming-text">{stats.processing}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gaming-card border-gaming-border">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 text-green-500" />
+              <div>
+                <p className="text-sm text-gaming-muted">Completed</p>
+                <p className="text-xl font-bold text-gaming-text">{stats.completed}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gaming-card border-gaming-border">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <XCircle className="h-4 w-4 text-red-500" />
+              <div>
+                <p className="text-sm text-gaming-muted">Failed</p>
+                <p className="text-xl font-bold text-gaming-text">{stats.failed}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gaming-card border-gaming-border">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-4 w-4 text-gaming-primary" />
+              <div>
+                <p className="text-sm text-gaming-muted">Total Amount</p>
+                <p className="text-xl font-bold text-gaming-text">₹{stats.totalAmount.toLocaleString()}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters and Actions */}
+      <Card className="bg-gaming-card border-gaming-border">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-gaming-text">Withdrawal Requests</CardTitle>
+            <div className="flex items-center gap-3">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="processing">Processing</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="failed">Failed</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button onClick={fetchWithdrawals} variant="outline" size="sm">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+
+        <CardContent>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-gaming-primary" />
+              <span className="ml-2 text-gaming-muted">Loading withdrawals...</span>
+            </div>
+          ) : filteredWithdrawals.length === 0 ? (
+            <div className="text-center py-8">
+              <Users className="h-12 w-12 text-gaming-muted mx-auto mb-3" />
+              <p className="text-gaming-muted">No withdrawal requests found</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {filteredWithdrawals.map((withdrawal) => (
+                <div
+                  key={withdrawal.id}
+                  className="bg-gaming-bg/50 rounded-lg p-4 border border-gaming-border/50"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="text-lg font-bold text-gaming-text">₹{withdrawal.amount}</div>
+                      {getStatusBadge(withdrawal.status)}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        onClick={() => openUpdateDialog(withdrawal)}
+                        variant="outline"
+                        size="sm"
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        Manage
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                    <div>
+                      <span className="text-gaming-muted">User ID: </span>
+                      <span className="text-gaming-text font-mono">{withdrawal.userId}</span>
+                    </div>
+                    <div>
+                      <span className="text-gaming-muted">Method: </span>
+                      <span className="text-gaming-text capitalize">{withdrawal.withdrawalMethod}</span>
+                    </div>
+                    <div>
+                      <span className="text-gaming-muted">Requested: </span>
+                      <span className="text-gaming-text">
+                        {withdrawal.requestedAt?.toDate?.()?.toLocaleDateString() || 'N/A'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Update Dialog */}
+      <Dialog open={showUpdateDialog} onOpenChange={setShowUpdateDialog}>
+        <DialogContent className="sm:max-w-md bg-gaming-card border-gaming-border">
+          <DialogHeader>
+            <DialogTitle className="text-gaming-text">Update Withdrawal Status</DialogTitle>
+          </DialogHeader>
+
+          {selectedWithdrawal && (
+            <div className="space-y-4">
+              <div className="bg-gaming-bg/50 rounded-lg p-3">
+                <p className="text-sm text-gaming-muted">Withdrawal Amount</p>
+                <p className="text-xl font-bold text-gaming-text">₹{selectedWithdrawal.amount}</p>
+                <p className="text-xs text-gaming-muted">
+                  {selectedWithdrawal.withdrawalMethod === 'upi'
+                    ? `UPI: ${selectedWithdrawal.upiId}`
+                    : `Bank: ${selectedWithdrawal.bankDetails?.accountNumber}`}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="status">Status</Label>
+                <Select value={updateData.status} onValueChange={(value) => setUpdateData(prev => ({ ...prev, status: value }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="processing">Processing</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="failed">Failed</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {(updateData.status === 'completed' || updateData.status === 'processing') && (
+                <div className="space-y-2">
+                  <Label htmlFor="transactionId">Transaction ID</Label>
+                  <Input
+                    id="transactionId"
+                    value={updateData.transactionId}
+                    onChange={(e) => setUpdateData(prev => ({ ...prev, transactionId: e.target.value }))}
+                    placeholder="Enter bank/UPI transaction ID"
+                    className="bg-gaming-bg/50 border-gaming-border"
+                  />
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="notes">Notes</Label>
+                <Textarea
+                  id="notes"
+                  value={updateData.notes}
+                  onChange={(e) => setUpdateData(prev => ({ ...prev, notes: e.target.value }))}
+                  placeholder="Add notes for the user..."
+                  className="bg-gaming-bg/50 border-gaming-border"
+                  rows={3}
+                />
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowUpdateDialog(false)}
+              disabled={isUpdating}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleUpdateWithdrawal}
+              disabled={isUpdating || !updateData.status}
+              className="bg-gaming-primary hover:bg-gaming-primary/90"
+            >
+              {isUpdating ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Updating...
+                </div>
+              ) : (
+                'Update Status'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default WithdrawalManagement;
 ```
 
 ---
