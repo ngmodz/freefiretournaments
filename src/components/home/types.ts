@@ -4,6 +4,7 @@ export interface TournamentType {
   id: string;
   title: string;
   mode: string;
+  map: string;
   entryFee: number;
   prizeMoney: number;
   date: string;

@@ -1,4 +1,4 @@
-import { Search, Filter } from "lucide-react";
+import { Search, Filter, Map, Users } from "lucide-react";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -10,7 +10,7 @@ import {
   DropdownMenuRadioItem 
 } from "@/components/ui/dropdown-menu";
 import { Calendar, Trophy } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 
 interface TournamentFiltersProps {
@@ -18,10 +18,92 @@ interface TournamentFiltersProps {
   setFilter: (filter: string) => void;
   sortBy: string;
   setSortBy: (sortBy: string) => void;
+  searchQuery?: string;
+  setSearchQuery?: (query: string) => void;
 }
 
-const TournamentFilters = ({ filter, setFilter, sortBy, setSortBy }: TournamentFiltersProps) => {
+// Common search suggestions
+const SEARCH_SUGGESTIONS = {
+  modes: ["Solo", "Duo", "Squad"],
+  maps: ["Bermuda", "Kalahari", "Purgatory", "Alpine"]
+};
+
+const TournamentFilters = ({ 
+  filter, 
+  setFilter, 
+  sortBy, 
+  setSortBy,
+  searchQuery = "",
+  setSearchQuery = () => {}
+}: TournamentFiltersProps) => {
   const [isFocused, setIsFocused] = useState(false);
+  const [inputValue, setInputValue] = useState(searchQuery);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
+
+  // Update local state when prop changes, but only if it's different from input value
+  // This prevents the input from being reset while typing
+  useEffect(() => {
+    if (searchQuery !== inputValue && !isFocused) {
+      setInputValue(searchQuery);
+    }
+  }, [searchQuery, isFocused]);
+
+  // Handle search input change with debounce
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setInputValue(newValue);
+    
+    // Clear any existing timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    
+    // Set a new timer
+    debounceTimerRef.current = setTimeout(() => {
+      setSearchQuery(newValue);
+    }, 500); // Increased debounce time for better user experience
+  };
+
+  // Clean up the timer when component unmounts
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
+
+  // Handle suggestion click
+  const handleSuggestionClick = (suggestion: string) => {
+    setInputValue(suggestion);
+    setSearchQuery(suggestion);
+    setShowSuggestions(false);
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  };
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        suggestionsRef.current && 
+        !suggestionsRef.current.contains(event.target as Node) &&
+        inputRef.current && 
+        !inputRef.current.contains(event.target as Node)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   return (
     <div className="mb-4">
@@ -47,12 +129,74 @@ const TournamentFilters = ({ filter, setFilter, sortBy, setSortBy }: TournamentF
         
         {/* Input field */}
         <input 
+          ref={inputRef}
           type="text" 
-          placeholder="Search tournaments..." 
+          placeholder="Search by name, mode (Solo, Duo, Squad) or map..." 
           className="w-full pl-10 pr-4 py-3 bg-transparent relative z-10 rounded-lg text-white placeholder-[#A0A0A0]/70 focus:outline-none transition-all duration-300"
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
+          onFocus={() => {
+            setIsFocused(true);
+            setShowSuggestions(true);
+          }}
+          onBlur={() => {
+            setIsFocused(false);
+            // Sync the input value with the search query when blurring
+            if (inputValue !== searchQuery) {
+              setSearchQuery(inputValue);
+            }
+            // Don't hide suggestions immediately to allow clicking them
+            setTimeout(() => {
+              if (!suggestionsRef.current?.contains(document.activeElement)) {
+                setShowSuggestions(false);
+              }
+            }, 200);
+          }}
+          value={inputValue}
+          onChange={handleSearchChange}
         />
+
+        {/* Search suggestions */}
+        {showSuggestions && (
+          <div 
+            ref={suggestionsRef}
+            className="absolute top-full left-0 right-0 mt-1 bg-[#1A1A1A] border border-[#333333] rounded-lg shadow-lg z-20 overflow-hidden"
+          >
+            {/* Game modes suggestions */}
+            <div className="p-2">
+              <div className="flex items-center text-xs text-gaming-primary mb-1">
+                <Users size={14} className="mr-1" /> Game Modes
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {SEARCH_SUGGESTIONS.modes.map(mode => (
+                  <button
+                    key={mode}
+                    className="px-2 py-1 text-xs bg-[#252525] hover:bg-gaming-primary/20 rounded-md text-white"
+                    onClick={() => handleSuggestionClick(mode)}
+                  >
+                    {mode}
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            {/* Maps suggestions */}
+            <div className="p-2 border-t border-[#333333]">
+              <div className="flex items-center text-xs text-gaming-accent mb-1">
+                <Map size={14} className="mr-1" /> Maps
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {SEARCH_SUGGESTIONS.maps.map(map => (
+                  <button
+                    key={map}
+                    className="px-2 py-1 text-xs bg-[#252525] hover:bg-gaming-primary/20 rounded-md text-white"
+                    onClick={() => handleSuggestionClick(map)}
+                  >
+                    {map}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </motion.div>
       
       <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">

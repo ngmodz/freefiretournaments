@@ -13,6 +13,7 @@ import { getTournaments } from "@/lib/tournamentService";
 const Tournaments = () => {
   const [filter, setFilter] = useState("all");
   const [sortBy, setSortBy] = useState("none");
+  const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("joined-tournaments");
   const [loading, setLoading] = useState(true);
 
@@ -42,6 +43,7 @@ const Tournaments = () => {
     id: tournament.id,
     title: tournament.name,
     mode: tournament.mode,
+    map: tournament.map || "",
     entryFee: tournament.entry_fee,
     prizeMoney: tournament.entry_fee * tournament.max_players,
     date: tournament.start_date,
@@ -57,6 +59,7 @@ const Tournaments = () => {
     id: tournament.id,
     title: tournament.name,
     mode: tournament.mode,
+    map: tournament.map || "",
     entryFee: tournament.entry_fee,
     prizeMoney: tournament.entry_fee * tournament.max_players,
     date: tournament.start_date,
@@ -67,21 +70,35 @@ const Tournaments = () => {
     isPremium: tournament.entry_fee > 100
   }));
   
-  // Apply filters and sorting to joined tournaments
-  let displayedJoinedTournaments = filter === "all" ? formattedJoinedTournaments : formattedJoinedTournaments.filter(tournament => {
-    if (filter === "active") return tournament.status === 'active';
-    if (filter === "ongoing") return tournament.status === 'ongoing';
-    if (filter === "completed") return tournament.status === 'completed';
-    return true;
-  });
+  // Apply search filter
+  const applySearchFilter = (tournaments: TournamentType[]) => {
+    if (!searchQuery.trim()) return tournaments;
+    
+    const query = searchQuery.toLowerCase().trim();
+    return tournaments.filter(tournament => 
+      tournament.title.toLowerCase().includes(query) ||
+      tournament.mode.toLowerCase().includes(query) ||
+      tournament.map.toLowerCase().includes(query)
+    );
+  };
   
-  // Apply filters and sorting to hosted tournaments
-  let displayedHostedTournaments = filter === "all" ? formattedHostedTournaments : formattedHostedTournaments.filter(tournament => {
-    if (filter === "active") return tournament.status === 'active';
-    if (filter === "ongoing") return tournament.status === 'ongoing';
-    if (filter === "completed") return tournament.status === 'completed';
-    return true;
-  });
+  // Apply status filter
+  const applyStatusFilter = (tournaments: TournamentType[]) => {
+    if (filter === "all") return tournaments;
+    
+    return tournaments.filter(tournament => {
+      if (filter === "active") return tournament.status === 'active';
+      if (filter === "ongoing") return tournament.status === 'ongoing';
+      if (filter === "completed") return tournament.status === 'completed';
+      return true;
+    });
+  };
+  
+  // Apply filters to joined tournaments
+  let displayedJoinedTournaments = applySearchFilter(applyStatusFilter(formattedJoinedTournaments));
+  
+  // Apply filters to hosted tournaments
+  let displayedHostedTournaments = applySearchFilter(applyStatusFilter(formattedHostedTournaments));
   
   // Apply sorting
   if (sortBy !== "none") {
@@ -135,6 +152,8 @@ const Tournaments = () => {
         setFilter={setFilter}
         sortBy={sortBy}
         setSortBy={setSortBy}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
       />
       
       {/* Tabs */}
@@ -159,6 +178,11 @@ const Tournaments = () => {
               </div>
             ) : displayedJoinedTournaments.length > 0 ? (
               <TournamentList tournaments={displayedJoinedTournaments} />
+            ) : searchQuery ? (
+              <div className="text-center py-10 bg-gaming-card rounded-lg p-6">
+                <h3 className="text-lg font-medium text-white mb-2">No matches found</h3>
+                <p className="text-[#A0A0A0] mb-4">Try a different search term or filter</p>
+              </div>
             ) : (
               <div className="text-center py-10 bg-gaming-card rounded-lg p-6">
                 <h3 className="text-lg font-medium text-white mb-2">No tournaments joined yet</h3>
@@ -189,6 +213,11 @@ const Tournaments = () => {
                 </div>
                 <TournamentList tournaments={displayedHostedTournaments} />
               </>
+            ) : searchQuery ? (
+              <div className="text-center py-10 bg-gaming-card rounded-lg p-6">
+                <h3 className="text-lg font-medium text-white mb-2">No matches found</h3>
+                <p className="text-[#A0A0A0] mb-4">Try a different search term or filter</p>
+              </div>
             ) : (
               <div className="text-center py-10 bg-gaming-card rounded-lg p-6">
                 <h3 className="text-lg font-medium text-white mb-2">No tournaments hosted yet</h3>
