@@ -16,6 +16,8 @@ import Landing from "./pages/Landing";
 import { useAuth } from "./contexts/AuthContext";
 import { TournamentProvider } from "./contexts/TournamentContext";
 import Wallet from "./pages/Wallet";
+import Credits from "./pages/Credits";
+import PaymentStatus from "./pages/PaymentStatus";
 import "./App.css";
 
 function App() {
@@ -43,6 +45,23 @@ function App() {
             } />
             <Route path="/wallet" element={
               currentUser ? <Wallet /> : <Navigate to="/auth" replace />
+            } />
+            {/* Credits routes - available at multiple paths */}
+            <Route path="/credits" element={
+              currentUser ? <Credits /> : <Navigate to="/auth" replace />
+            } />
+            <Route path="/packages" element={
+              currentUser ? <Credits /> : <Navigate to="/auth" replace />
+            } />
+            <Route path="/subscription" element={
+              currentUser ? <Credits /> : <Navigate to="/auth" replace />
+            } />
+            <Route path="/buy-credits" element={
+              currentUser ? <Credits /> : <Navigate to="/auth" replace />
+            } />
+            {/* Payment status page */}
+            <Route path="/payment-status" element={
+              currentUser ? <PaymentStatus /> : <Navigate to="/auth" replace />
             } />
             <Route path="/profile" element={<Navigate to="/settings" replace />} />
             <Route path="/settings" element={<Settings />} />

@@ -81,11 +81,11 @@
 
 | Package | Credits | Price (₹) | Features |
 |---------|---------|-----------|----------|
-| **Starter Pack** | 50 | ₹49 | Entry fee up to ₹50, Perfect for beginners |
-| **Popular Pack** | 150 | ₹139 | Entry fee up to ₹150, Most chosen package |
-| **Pro Pack** | 300 | ₹279 | Entry fee up to ₹300, For serious gamers |
-| **Elite Pack** | 500 | ₹459 | Entry fee up to ₹500, Elite gaming level |
-| **Champion Pack** | 1000 | ₹899 | Entry fee up to ₹1000, Maximum value |
+| **Starter Pack** | 50 | ₹50 | Entry fee up to ₹50, Perfect for beginners |
+| **Popular Pack** | 150 | ₹150 | Entry fee up to ₹150, Most chosen package |
+| **Pro Pack** | 300 | ₹300 | Entry fee up to ₹300, For serious gamers |
+| **Elite Pack** | 500 | ₹500 | Entry fee up to ₹500, Elite gaming level |
+| **Champion Pack** | 900 | ₹900 | Entry fee up to ₹900, Maximum value |
 
 ### Host Credit Packages (5 Packages)
 
@@ -114,11 +114,11 @@
 ### Package Recommendations
 
 #### For Tournament Participants:
-- **Casual Players**: Starter Pack (₹49 for 50 credits)
-- **Regular Players**: Popular Pack (₹139 for 150 credits) - **Most Popular**
-- **Serious Gamers**: Pro Pack (₹279 for 300 credits)
-- **Elite Players**: Elite Pack (₹459 for 500 credits)
-- **Champions**: Champion Pack (₹899 for 1000 credits) - **Best Value**
+- **Casual Players**: Starter Pack (₹49 for 49 credits)
+- **Regular Players**: Popular Pack (₹149 for 149 credits) - **Most Popular**
+- **Serious Gamers**: Pro Pack (₹299 for 299 credits)
+- **Elite Players**: Elite Pack (₹499 for 499 credits)
+- **Champions**: Champion Pack (₹899 for 899 credits) - **Best Value**
 
 #### For Tournament Hosts:
 - **Occasional Hosts**: Basic Host Pack (₹29 for 3 tournaments)
@@ -2139,7 +2139,7 @@ const Credits = () => {
       id: 'popular_pack',
       name: 'Popular Pack',
       credits: 150,
-      price: 139,
+      price: 149,
       isPopular: true,
       features: ['150 Tournament Credits', 'Entry fee up to ₹150', 'Most chosen package', 'Great value'],
       icon: <Star size={24} />,
@@ -2149,7 +2149,7 @@ const Credits = () => {
       id: 'pro_pack',
       name: 'Pro Pack',
       credits: 300,
-      price: 279,
+      price: 299,
       features: ['300 Tournament Credits', 'Entry fee up to ₹300', 'For serious gamers', 'Great value package'],
       icon: <Crown size={24} />,
       gradient: 'from-purple-500/20 to-pink-500/20'
@@ -2158,7 +2158,7 @@ const Credits = () => {
       id: 'elite_pack',
       name: 'Elite Pack',
       credits: 500,
-      price: 459,
+      price: 499,
       features: ['500 Tournament Credits', 'Entry fee up to ₹500', 'Elite gaming level', 'Premium tournaments'],
       icon: <Zap size={24} />,
       gradient: 'from-green-500/20 to-emerald-500/20'
@@ -2166,11 +2166,11 @@ const Credits = () => {
     {
       id: 'champion_pack',
       name: 'Champion Pack',
-      credits: 1000,
+      credits: 900,
       price: 899,
       isSpecialOffer: true,
       offerType: 'season',
-      features: ['1000 Tournament Credits', 'Entry fee up to ₹1000', 'Champion level access', 'Maximum value'],
+      features: ['900 Tournament Credits', 'Entry fee up to ₹900', 'Champion level access', 'Maximum value'],
       icon: <Crown size={24} />,
       gradient: 'from-yellow-500/20 to-orange-600/20'
     }
@@ -4221,11 +4221,11 @@ This migration strategy ensures a smooth transition from the rupees system to th
 
 | Package | Credits | Price (₹) | Features |
 |---------|---------|-----------|----------|
-| **Starter Pack** | 50 | ₹49 | Entry fee up to ₹50, Perfect for beginners |
-| **Popular Pack** | 150 | ₹139 | Entry fee up to ₹150, Most chosen package |
-| **Pro Pack** | 300 | ₹279 | Entry fee up to ₹300, For serious gamers |
-| **Elite Pack** | 500 | ₹459 | Entry fee up to ₹500, Elite gaming level |
-| **Champion Pack** | 1000 | ₹899 | Entry fee up to ₹1000, Maximum value |
+| **Starter Pack** | 50 | ₹50 | Entry fee up to ₹50, Perfect for beginners |
+| **Popular Pack** | 150 | ₹150 | Entry fee up to ₹150, Most chosen package |
+| **Pro Pack** | 300 | ₹300 | Entry fee up to ₹300, For serious gamers |
+| **Elite Pack** | 500 | ₹500 | Entry fee up to ₹500, Elite gaming level |
+| **Champion Pack** | 900 | ₹900 | Entry fee up to ₹900, Maximum value |
 
 ### Host Credit Packages (5 Packages)
 
@@ -4254,11 +4254,11 @@ This migration strategy ensures a smooth transition from the rupees system to th
 ### Package Recommendations
 
 #### For Tournament Participants:
-- **Casual Players**: Starter Pack (₹49 for 50 credits)
-- **Regular Players**: Popular Pack (₹139 for 150 credits) - **Most Popular**
-- **Serious Gamers**: Pro Pack (₹279 for 300 credits)
-- **Elite Players**: Elite Pack (₹459 for 500 credits)
-- **Champions**: Champion Pack (₹899 for 1000 credits) - **Best Value**
+- **Casual Players**: Starter Pack (₹49 for 49 credits)
+- **Regular Players**: Popular Pack (₹149 for 149 credits) - **Most Popular**
+- **Serious Gamers**: Pro Pack (₹299 for 299 credits)
+- **Elite Players**: Elite Pack (₹499 for 499 credits)
+- **Champions**: Champion Pack (₹899 for 899 credits) - **Best Value**
 
 #### For Tournament Hosts:
 - **Occasional Hosts**: Basic Host Pack (₹29 for 3 tournaments)

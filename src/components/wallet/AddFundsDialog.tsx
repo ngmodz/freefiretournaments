@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, CreditCard, Wallet } from "lucide-react";
+import { Loader2, CreditCard, Wallet, ShoppingCart, Coins, ArrowRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Wallet as WalletType } from "@/lib/walletService";
@@ -22,21 +22,30 @@ import React from "react";
 import TransactionSuccessDialog from "./TransactionSuccessDialog";
 import { CashfreeCheckout } from "@/components/payment/CashfreeCheckout";
 import { CashfreeService, PaymentOrderResponse } from "@/lib/cashfree-service";
+import { useNavigate } from "react-router-dom";
 
 // Minimum amount that can be added
 const MIN_AMOUNT = 100;
 
 interface AddFundsDialogProps {
-  isOpen: boolean;
-  onOpenChange: (isOpen: boolean) => void;
-  wallet: WalletType | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-const AddFundsDialog = ({
-  isOpen,
-  onOpenChange,
-  wallet,
-}: AddFundsDialogProps) => {
+// Define a type for the extended User with wallet
+interface ExtendedUser {
+  uid: string;
+  displayName: string | null;
+  email: string | null;
+  phoneNumber: string | null;
+  wallet?: {
+    balance: number;
+    lastUpdated?: Date;
+  };
+}
+
+const AddFundsDialog = ({ open, onOpenChange }: AddFundsDialogProps) => {
+  const navigate = useNavigate();
   const [amount, setAmount] = useState<string>("");
   const [paymentMethod, setPaymentMethod] = useState<"upi" | "card">("upi");
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -46,14 +55,17 @@ const AddFundsDialog = ({
   const [transactionId, setTransactionId] = useState<string | undefined>(undefined);
   const [confirmedAmount, setConfirmedAmount] = useState(0);
 
+  // Cast currentUser to ExtendedUser type
+  const extendedUser = currentUser as ExtendedUser | null;
+
   // Reset state when dialog opens/closes
   useEffect(() => {
-    if (!isOpen) {
+    if (!open) {
       setAmount("");
       setError(null);
       setIsLoading(false);
     }
-  }, [isOpen]);
+  }, [open]);
 
   // Handle amount change
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -178,9 +190,14 @@ const AddFundsDialog = ({
     }
   };
 
+  const handleBuyCredits = () => {
+    onOpenChange(false); // Close dialog
+    navigate('/credits'); // Redirect to subscription/packages page with all credit packages
+  };
+
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogPortal>
           <DialogOverlay className="bg-black/60 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
           <DialogPrimitive.Content
@@ -195,11 +212,11 @@ const AddFundsDialog = ({
             <div className="relative">
               <DialogHeader className="mb-2">
                 <div className="flex items-center gap-2 mb-1">
-                  <Wallet className="h-5 w-5 text-gaming-primary" />
-                  <DialogTitle className="text-gaming-text text-xl font-bold">Add Funds</DialogTitle>
+                  <ShoppingCart className="h-5 w-5 text-gaming-accent" />
+                  <DialogTitle className="text-gaming-text text-xl font-bold">Buy Credits</DialogTitle>
                 </div>
                 <DialogDescription className="text-gaming-muted">
-                  Add funds to your wallet using UPI or card payment.
+                  Choose from our credit packages to join tournaments or create your own
                 </DialogDescription>
               </DialogHeader>
 
@@ -213,7 +230,7 @@ const AddFundsDialog = ({
                   <div className="flex justify-between">
                     <span className="text-gaming-muted">Current Balance:</span>
                     <span className="text-gaming-accent font-semibold">
-                      ₹{wallet?.balance.toFixed(2) || "0.00"}
+                      ₹{extendedUser?.wallet?.balance?.toFixed(2) || "0.00"}
                     </span>
                   </div>
                 </motion.div>

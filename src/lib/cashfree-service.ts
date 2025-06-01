@@ -16,6 +16,15 @@ export interface PaymentOrderParams {
 }
 
 /**
+ * Interface for credit payment order parameters
+ */
+export interface CreditPaymentOrderParams extends PaymentOrderParams {
+  packageId?: string;
+  packageType?: 'tournament' | 'host';
+  creditsAmount?: number;
+}
+
+/**
  * Interface for payment order response
  */
 export interface PaymentOrderResponse {
@@ -76,7 +85,7 @@ export class CashfreeService {
   /**
    * Create a payment order via Netlify function
    */
-  public async createPaymentOrder(params: PaymentOrderParams): Promise<PaymentOrderResponse> {
+  public async createPaymentOrder(params: PaymentOrderParams | CreditPaymentOrderParams): Promise<PaymentOrderResponse> {
     try {
       // Generate a unique order ID if not provided
       const orderId = params.orderId || `order_${Date.now()}_${uuidv4().substring(0, 8)}`;
@@ -112,6 +121,37 @@ export class CashfreeService {
       return {
         success: false,
         error: 'Failed to create payment order',
+        details: error.response?.data || error.message
+      };
+    }
+  }
+
+  /**
+   * Create a payment order specifically for credit purchases
+   */
+  public async createCreditPaymentOrder(params: CreditPaymentOrderParams): Promise<PaymentOrderResponse> {
+    try {
+      const orderId = params.orderId || `credits_${Date.now()}_${uuidv4().substring(0, 8)}`;
+
+      console.log('Creating credit payment order:', {
+        ...params,
+        orderId,
+        packageType: params.packageType,
+        creditsAmount: params.creditsAmount
+      });
+
+      // Call the Netlify function for credit payment order creation
+      const response = await axios.post('/.netlify/functions/create-credit-payment-order', {
+        ...params,
+        orderId,
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('Error creating credit payment order:', error);
+      return {
+        success: false,
+        error: 'Failed to create credit payment order',
         details: error.response?.data || error.message
       };
     }
