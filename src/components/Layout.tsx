@@ -5,6 +5,7 @@ import DesktopSidebar from "./DesktopSidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import LowCreditAlert from "./ui/LowCreditAlert";
 
 const Layout = () => {
   const location = useLocation();
@@ -13,6 +14,7 @@ const Layout = () => {
   const [isHovered, setIsHovered] = useState(false);
   const isTermsPage = currentPath === "/terms-and-privacy";
   const isSettingsPage = currentPath === "/settings";
+  const isCreditsPage = currentPath === "/credits" || currentPath === "/packages" || currentPath === "/subscription";
 
   // Listen for hover state changes from the sidebar
   const handleSidebarHover = (hovered: boolean) => {
@@ -36,6 +38,9 @@ const Layout = () => {
           onHoverChange={handleSidebarHover}
         />
       )}
+      
+      {/* Only show low credit alert if not on credits page */}
+      {!isCreditsPage && <LowCreditAlert />}
       
       <motion.div 
         className={`flex-1 w-full transition-all duration-300 ease-out ${

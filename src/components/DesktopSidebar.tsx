@@ -11,6 +11,7 @@ import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { UserAvatar } from "./ui/UserAvatar";
+import CreditDisplay from "./ui/CreditDisplay";
 
 interface SidebarItemProps {
   icon: React.ReactNode;
@@ -129,6 +130,20 @@ const DesktopSidebar = ({ currentPath, onHoverChange }: DesktopSidebarProps) => 
             )}
           </AnimatePresence>
         </div>
+
+        {/* Credit Display Section - Using CreditDisplay component */}
+        <AnimatePresence>
+          {isHovered && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="px-3 py-4 border-b border-gaming-border/50"
+            >
+              <CreditDisplay variant="vertical" />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Navigation */}
         <div className="flex-1 px-2">

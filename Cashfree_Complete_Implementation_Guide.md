@@ -2775,40 +2775,61 @@ export default WithdrawalManagement;
 **Step 1: Add Credit Display to Mobile Navigation**
 ```typescript
 // src/components/MobileNavbar.tsx - Add credit display at the top
-import { CreditCard, Coins } from "lucide-react";
+import { CreditCard, Coins, Wallet, Plus } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreditBalance } from "@/hooks/useCreditBalance";
+import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
+
+interface MobileNavbarProps {
+  currentPath: string;
+}
 
 const MobileNavbar = ({ currentPath }: MobileNavbarProps) => {
   const { currentUser } = useAuth();
-  const { hostCredits, tournamentCredits, isLoading } = useCreditBalance(currentUser?.uid);
+  const { hostCredits, tournamentCredits, earnings, isLoading } = useCreditBalance(currentUser?.uid);
 
   return (
     <motion.div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-gaming-bg/90 border-t border-gaming-border backdrop-blur-lg py-1 pb-safe">
       {/* Credit Display Bar - Add this above navigation */}
       <div className="px-4 py-2 border-b border-gaming-border/50">
         <div className="flex items-center justify-between max-w-md mx-auto">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            {/* Tournament Credits */}
             <div className="flex items-center gap-1 bg-gaming-card/50 px-2 py-1 rounded-md">
-              <Coins size={14} className="text-gaming-accent" />
+              <Coins size={12} className="text-gaming-accent" />
               <span className="text-xs font-medium text-gaming-text">
                 {isLoading ? "..." : tournamentCredits}
               </span>
-              <span className="text-xs text-gaming-muted">Tournament</span>
+              <span className="text-xs text-gaming-muted hidden sm:inline">Tournament</span>
             </div>
+
+            {/* Host Credits */}
             <div className="flex items-center gap-1 bg-gaming-card/50 px-2 py-1 rounded-md">
-              <CreditCard size={14} className="text-gaming-primary" />
+              <CreditCard size={12} className="text-gaming-primary" />
               <span className="text-xs font-medium text-gaming-text">
                 {isLoading ? "..." : hostCredits}
               </span>
-              <span className="text-xs text-gaming-muted">Host</span>
+              <span className="text-xs text-gaming-muted hidden sm:inline">Host</span>
+            </div>
+
+            {/* Earnings */}
+            <div className="flex items-center gap-1 bg-gaming-card/50 px-2 py-1 rounded-md">
+              <Wallet size={12} className="text-green-500" />
+              <span className="text-xs font-medium text-gaming-text">
+                ₹{isLoading ? "..." : earnings}
+              </span>
+              <span className="text-xs text-gaming-muted hidden sm:inline">Earnings</span>
             </div>
           </div>
+
           <Link
             to="/credits"
-            className="text-xs text-gaming-accent hover:text-gaming-accent/80 font-medium"
+            className="flex items-center gap-1 text-xs text-gaming-accent hover:text-gaming-accent/80 font-medium bg-gaming-accent/10 px-2 py-1 rounded-md"
           >
-            Buy Credits
+            <Plus size={12} />
+            <span className="hidden sm:inline">Buy Credits</span>
+            <span className="sm:hidden">Buy</span>
           </Link>
         </div>
       </div>
@@ -2820,6 +2841,1007 @@ const MobileNavbar = ({ currentPath }: MobileNavbarProps) => {
     </motion.div>
   );
 };
+
+export default MobileNavbar;
+```
+
+#### Desktop Navigation Updates (Navbar.tsx)
+
+**Step 2: Add Credit Display to Desktop Navigation**
+```typescript
+// src/components/Navbar.tsx - Add credit display to desktop header
+import { CreditCard, Coins, Wallet, Plus, ChevronDown } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useCreditBalance } from "@/hooks/useCreditBalance";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+const Navbar = () => {
+  const { currentUser } = useAuth();
+  const { hostCredits, tournamentCredits, earnings, isLoading } = useCreditBalance(currentUser?.uid);
+
+  return (
+    <nav className="hidden lg:flex items-center justify-between p-4 bg-gaming-bg/90 border-b border-gaming-border backdrop-blur-lg">
+      {/* Logo and Brand */}
+      <div className="flex items-center gap-4">
+        <Link to="/" className="text-xl font-bold text-gaming-text">
+          FreeFire Tournaments
+        </Link>
+      </div>
+
+      {/* Credit Display Section */}
+      {currentUser && (
+        <div className="flex items-center gap-4">
+          {/* Credit Balance Display */}
+          <div className="flex items-center gap-3 bg-gaming-card/50 px-4 py-2 rounded-lg border border-gaming-border/50">
+            {/* Tournament Credits */}
+            <div className="flex items-center gap-2">
+              <Coins size={16} className="text-gaming-accent" />
+              <div className="text-center">
+                <div className="text-sm font-semibold text-gaming-text">
+                  {isLoading ? "..." : tournamentCredits}
+                </div>
+                <div className="text-xs text-gaming-muted">Tournament</div>
+              </div>
+            </div>
+
+            <div className="w-px h-8 bg-gaming-border/50"></div>
+
+            {/* Host Credits */}
+            <div className="flex items-center gap-2">
+              <CreditCard size={16} className="text-gaming-primary" />
+              <div className="text-center">
+                <div className="text-sm font-semibold text-gaming-text">
+                  {isLoading ? "..." : hostCredits}
+                </div>
+                <div className="text-xs text-gaming-muted">Host</div>
+              </div>
+            </div>
+
+            <div className="w-px h-8 bg-gaming-border/50"></div>
+
+            {/* Earnings */}
+            <div className="flex items-center gap-2">
+              <Wallet size={16} className="text-green-500" />
+              <div className="text-center">
+                <div className="text-sm font-semibold text-gaming-text">
+                  ₹{isLoading ? "..." : earnings}
+                </div>
+                <div className="text-xs text-gaming-muted">Earnings</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Credit Actions Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="bg-gaming-primary hover:bg-gaming-primary/90 text-white border-gaming-primary">
+                <Plus size={16} className="mr-2" />
+                Manage Credits
+                <ChevronDown size={16} className="ml-2" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56 bg-gaming-card border-gaming-border">
+              <DropdownMenuLabel className="text-gaming-text">Credit Actions</DropdownMenuLabel>
+              <DropdownMenuSeparator className="bg-gaming-border" />
+              <DropdownMenuItem asChild>
+                <Link to="/credits" className="flex items-center gap-2 text-gaming-text hover:text-gaming-accent">
+                  <Coins size={16} />
+                  Buy Tournament Credits
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/credits?tab=host" className="flex items-center gap-2 text-gaming-text hover:text-gaming-accent">
+                  <CreditCard size={16} />
+                  Buy Host Credits
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-gaming-border" />
+              <DropdownMenuItem asChild>
+                <Link to="/wallet" className="flex items-center gap-2 text-gaming-text hover:text-gaming-accent">
+                  <Wallet size={16} />
+                  View Wallet
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/wallet/withdraw" className="flex items-center gap-2 text-gaming-text hover:text-gaming-accent">
+                  <Wallet size={16} />
+                  Withdraw Earnings
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
+
+      {/* User Menu and other nav items */}
+      {/* ... existing user menu and navigation ... */}
+    </nav>
+  );
+};
+
+export default Navbar;
+```
+
+### Credit Display Components
+
+#### Comprehensive Credit Balance Widget
+
+**Step 3: Create Reusable Credit Balance Component**
+```typescript
+// src/components/credits/CreditBalanceWidget.tsx
+import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Coins, CreditCard, Wallet, Plus, Eye, EyeOff, TrendingUp, ArrowUpRight } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useCreditBalance } from '@/hooks/useCreditBalance';
+import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
+
+interface CreditBalanceWidgetProps {
+  variant?: 'compact' | 'full' | 'dashboard';
+  showActions?: boolean;
+  className?: string;
+}
+
+const CreditBalanceWidget = ({
+  variant = 'full',
+  showActions = true,
+  className = ''
+}: CreditBalanceWidgetProps) => {
+  const { currentUser } = useAuth();
+  const {
+    hostCredits,
+    tournamentCredits,
+    earnings,
+    totalPurchasedTournamentCredits,
+    totalPurchasedHostCredits,
+    isLoading
+  } = useCreditBalance(currentUser?.uid);
+
+  const [showEarnings, setShowEarnings] = useState(true);
+
+  if (!currentUser) return null;
+
+  const totalCreditsValue = (totalPurchasedTournamentCredits || 0) + (totalPurchasedHostCredits || 0);
+
+  if (variant === 'compact') {
+    return (
+      <div className={`flex items-center gap-3 ${className}`}>
+        <div className="flex items-center gap-1 bg-gaming-card/50 px-3 py-1.5 rounded-lg">
+          <Coins size={16} className="text-gaming-accent" />
+          <span className="text-sm font-medium text-gaming-text">
+            {isLoading ? "..." : tournamentCredits}
+          </span>
+        </div>
+        <div className="flex items-center gap-1 bg-gaming-card/50 px-3 py-1.5 rounded-lg">
+          <CreditCard size={16} className="text-gaming-primary" />
+          <span className="text-sm font-medium text-gaming-text">
+            {isLoading ? "..." : hostCredits}
+          </span>
+        </div>
+        {showActions && (
+          <Link to="/credits">
+            <Button size="sm" className="bg-gaming-primary hover:bg-gaming-primary/90">
+              <Plus size={14} className="mr-1" />
+              Buy
+            </Button>
+          </Link>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <Card className={`bg-gaming-card border-gaming-border ${className}`}>
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center justify-between">
+          <span className="flex items-center gap-2">
+            <Wallet className="h-5 w-5 text-gaming-accent" />
+            Credit Balance
+          </span>
+          {variant === 'dashboard' && (
+            <Badge variant="outline" className="text-gaming-muted border-gaming-border">
+              Total Purchased: ₹{totalCreditsValue}
+            </Badge>
+          )}
+        </CardTitle>
+      </CardHeader>
+
+      <CardContent className="space-y-4">
+        {/* Credit Balances Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Tournament Credits */}
+          <motion.div
+            className="bg-gradient-to-br from-gaming-accent/10 to-gaming-accent/5 p-4 rounded-lg border border-gaming-accent/20"
+            whileHover={{ scale: 1.02 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <Coins className="h-5 w-5 text-gaming-accent" />
+              <Badge variant="secondary" className="text-xs">Tournament</Badge>
+            </div>
+            <div className="space-y-1">
+              <div className="text-2xl font-bold text-gaming-text">
+                {isLoading ? "..." : tournamentCredits}
+              </div>
+              <div className="text-sm text-gaming-muted">
+                Available for tournaments
+              </div>
+              {variant === 'dashboard' && (
+                <div className="text-xs text-gaming-muted">
+                  Total Purchased: {totalPurchasedTournamentCredits || 0}
+                </div>
+              )}
+            </div>
+          </motion.div>
+
+          {/* Host Credits */}
+          <motion.div
+            className="bg-gradient-to-br from-gaming-primary/10 to-gaming-primary/5 p-4 rounded-lg border border-gaming-primary/20"
+            whileHover={{ scale: 1.02 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <CreditCard className="h-5 w-5 text-gaming-primary" />
+              <Badge variant="secondary" className="text-xs">Host</Badge>
+            </div>
+            <div className="space-y-1">
+              <div className="text-2xl font-bold text-gaming-text">
+                {isLoading ? "..." : hostCredits}
+              </div>
+              <div className="text-sm text-gaming-muted">
+                Available for hosting
+              </div>
+              {variant === 'dashboard' && (
+                <div className="text-xs text-gaming-muted">
+                  Total Purchased: {totalPurchasedHostCredits || 0}
+                </div>
+              )}
+            </div>
+          </motion.div>
+
+          {/* Earnings */}
+          <motion.div
+            className="bg-gradient-to-br from-green-500/10 to-green-500/5 p-4 rounded-lg border border-green-500/20"
+            whileHover={{ scale: 1.02 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <Wallet className="h-5 w-5 text-green-500" />
+              <div className="flex items-center gap-1">
+                <Badge variant="secondary" className="text-xs">Withdrawable</Badge>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowEarnings(!showEarnings)}
+                  className="h-6 w-6 p-0"
+                >
+                  {showEarnings ? <Eye size={12} /> : <EyeOff size={12} />}
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <div className="text-2xl font-bold text-gaming-text">
+                {isLoading ? "..." : showEarnings ? `₹${earnings}` : "₹***"}
+              </div>
+              <div className="text-sm text-gaming-muted">
+                Tournament winnings
+              </div>
+              {earnings > 0 && (
+                <div className="flex items-center gap-1 text-xs text-green-500">
+                  <TrendingUp size={12} />
+                  <span>Available for withdrawal</span>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Action Buttons */}
+        {showActions && (
+          <div className="flex flex-col sm:flex-row gap-3 pt-2">
+            <Link to="/credits" className="flex-1">
+              <Button className="w-full bg-gaming-primary hover:bg-gaming-primary/90">
+                <Plus className="h-4 w-4 mr-2" />
+                Buy Credits
+              </Button>
+            </Link>
+
+            <Link to="/wallet" className="flex-1">
+              <Button variant="outline" className="w-full border-gaming-border hover:bg-gaming-card/50">
+                <Wallet className="h-4 w-4 mr-2" />
+                View Wallet
+              </Button>
+            </Link>
+
+            {earnings > 0 && (
+              <Link to="/wallet/withdraw" className="flex-1">
+                <Button variant="outline" className="w-full border-green-500/30 text-green-500 hover:bg-green-500/10">
+                  <ArrowUpRight className="h-4 w-4 mr-2" />
+                  Withdraw
+                </Button>
+              </Link>
+            )}
+          </div>
+        )}
+
+        {/* Quick Stats for Dashboard Variant */}
+        {variant === 'dashboard' && (
+          <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gaming-border/50">
+            <div className="text-center">
+              <div className="text-lg font-semibold text-gaming-text">
+                ₹{totalCreditsValue}
+              </div>
+              <div className="text-xs text-gaming-muted">Total Invested</div>
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-semibold text-green-500">
+                ₹{earnings}
+              </div>
+              <div className="text-xs text-gaming-muted">Total Earned</div>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+export default CreditBalanceWidget;
+```
+
+#### Credit Status Indicator Component
+
+**Step 4: Create Credit Status Indicators**
+```typescript
+// src/components/credits/CreditStatusIndicator.tsx
+import { AlertTriangle, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+
+interface CreditStatusIndicatorProps {
+  tournamentCredits: number;
+  hostCredits: number;
+  earnings: number;
+  className?: string;
+}
+
+const CreditStatusIndicator = ({
+  tournamentCredits,
+  hostCredits,
+  earnings,
+  className = ''
+}: CreditStatusIndicatorProps) => {
+  const getTournamentStatus = () => {
+    if (tournamentCredits === 0) return { status: 'empty', color: 'red', icon: XCircle };
+    if (tournamentCredits < 50) return { status: 'low', color: 'yellow', icon: AlertTriangle };
+    return { status: 'good', color: 'green', icon: CheckCircle };
+  };
+
+  const getHostStatus = () => {
+    if (hostCredits === 0) return { status: 'empty', color: 'red', icon: XCircle };
+    if (hostCredits < 3) return { status: 'low', color: 'yellow', icon: AlertTriangle };
+    return { status: 'good', color: 'green', icon: CheckCircle };
+  };
+
+  const tournamentStatus = getTournamentStatus();
+  const hostStatus = getHostStatus();
+
+  return (
+    <div className={`space-y-3 ${className}`}>
+      {/* Tournament Credits Status */}
+      <div className="flex items-center justify-between p-3 bg-gaming-card/30 rounded-lg border border-gaming-border/50">
+        <div className="flex items-center gap-3">
+          <tournamentStatus.icon
+            size={20}
+            className={`text-${tournamentStatus.color}-500`}
+          />
+          <div>
+            <div className="font-medium text-gaming-text">Tournament Credits</div>
+            <div className="text-sm text-gaming-muted">
+              {tournamentCredits} credits available
+            </div>
+          </div>
+        </div>
+        <Badge
+          variant={tournamentStatus.status === 'good' ? 'default' : 'destructive'}
+          className={`
+            ${tournamentStatus.status === 'good' ? 'bg-green-500/20 text-green-500' : ''}
+            ${tournamentStatus.status === 'low' ? 'bg-yellow-500/20 text-yellow-500' : ''}
+            ${tournamentStatus.status === 'empty' ? 'bg-red-500/20 text-red-500' : ''}
+          `}
+        >
+          {tournamentStatus.status === 'good' && 'Good'}
+          {tournamentStatus.status === 'low' && 'Low'}
+          {tournamentStatus.status === 'empty' && 'Empty'}
+        </Badge>
+      </div>
+
+      {/* Host Credits Status */}
+      <div className="flex items-center justify-between p-3 bg-gaming-card/30 rounded-lg border border-gaming-border/50">
+        <div className="flex items-center gap-3">
+          <hostStatus.icon
+            size={20}
+            className={`text-${hostStatus.color}-500`}
+          />
+          <div>
+            <div className="font-medium text-gaming-text">Host Credits</div>
+            <div className="text-sm text-gaming-muted">
+              {hostCredits} credits available
+            </div>
+          </div>
+        </div>
+        <Badge
+          variant={hostStatus.status === 'good' ? 'default' : 'destructive'}
+          className={`
+            ${hostStatus.status === 'good' ? 'bg-green-500/20 text-green-500' : ''}
+            ${hostStatus.status === 'low' ? 'bg-yellow-500/20 text-yellow-500' : ''}
+            ${hostStatus.status === 'empty' ? 'bg-red-500/20 text-red-500' : ''}
+          `}
+        >
+          {hostStatus.status === 'good' && 'Good'}
+          {hostStatus.status === 'low' && 'Low'}
+          {hostStatus.status === 'empty' && 'Empty'}
+        </Badge>
+      </div>
+
+      {/* Earnings Status */}
+      {earnings > 0 && (
+        <div className="flex items-center justify-between p-3 bg-green-500/10 rounded-lg border border-green-500/20">
+          <div className="flex items-center gap-3">
+            <CheckCircle size={20} className="text-green-500" />
+            <div>
+              <div className="font-medium text-gaming-text">Earnings Available</div>
+              <div className="text-sm text-gaming-muted">
+                ₹{earnings} ready for withdrawal
+              </div>
+            </div>
+          </div>
+          <Badge className="bg-green-500/20 text-green-500">
+            Withdrawable
+          </Badge>
+        </div>
+      )}
+
+      {/* Low Credit Warnings */}
+      {tournamentCredits < 50 && tournamentCredits > 0 && (
+        <Alert className="border-yellow-500/30 bg-yellow-500/10">
+          <AlertTriangle className="h-4 w-4 text-yellow-500" />
+          <AlertDescription className="text-yellow-200">
+            Your tournament credits are running low. Consider purchasing more to continue joining tournaments.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {hostCredits < 3 && hostCredits > 0 && (
+        <Alert className="border-yellow-500/30 bg-yellow-500/10">
+          <AlertTriangle className="h-4 w-4 text-yellow-500" />
+          <AlertDescription className="text-yellow-200">
+            Your host credits are running low. Purchase more to continue creating tournaments.
+          </AlertDescription>
+        </Alert>
+      )}
+    </div>
+  );
+};
+
+export default CreditStatusIndicator;
+```
+
+### User Experience Enhancements
+
+#### Credit Usage Tracking Component
+
+**Step 5: Create Credit Usage Analytics**
+```typescript
+// src/components/credits/CreditUsageChart.tsx
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { TrendingUp, TrendingDown, Activity, Calendar } from 'lucide-react';
+import { useCreditTransactions } from '@/hooks/useCreditTransactions';
+import { useAuth } from '@/contexts/AuthContext';
+
+interface CreditUsageChartProps {
+  className?: string;
+}
+
+const CreditUsageChart = ({ className = '' }: CreditUsageChartProps) => {
+  const { currentUser } = useAuth();
+  const { transactions, isLoading } = useCreditTransactions(currentUser?.uid);
+
+  // Calculate usage statistics
+  const last30Days = transactions.filter(t => {
+    const transactionDate = new Date(t.createdAt.seconds * 1000);
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    return transactionDate >= thirtyDaysAgo;
+  });
+
+  const tournamentSpending = last30Days
+    .filter(t => t.type === 'tournament_join')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const hostSpending = last30Days
+    .filter(t => t.type === 'tournament_create')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const earnings = last30Days
+    .filter(t => t.type === 'tournament_win')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const purchases = last30Days
+    .filter(t => t.type.includes('purchase'))
+    .reduce((sum, t) => sum + (t.value || 0), 0);
+
+  if (isLoading) {
+    return (
+      <Card className={`bg-gaming-card border-gaming-border ${className}`}>
+        <CardContent className="p-6">
+          <div className="animate-pulse space-y-4">
+            <div className="h-4 bg-gaming-border rounded w-1/2"></div>
+            <div className="h-8 bg-gaming-border rounded"></div>
+            <div className="h-4 bg-gaming-border rounded w-3/4"></div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className={`bg-gaming-card border-gaming-border ${className}`}>
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2">
+          <Activity className="h-5 w-5 text-gaming-accent" />
+          Credit Usage (Last 30 Days)
+        </CardTitle>
+      </CardHeader>
+
+      <CardContent className="space-y-4">
+        {/* Usage Statistics Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {/* Tournament Spending */}
+          <div className="text-center p-3 bg-gaming-bg/50 rounded-lg">
+            <div className="text-lg font-bold text-gaming-text">{tournamentSpending}</div>
+            <div className="text-xs text-gaming-muted">Tournament Credits Used</div>
+            <Badge variant="outline" className="mt-1 text-xs">
+              Tournaments
+            </Badge>
+          </div>
+
+          {/* Host Spending */}
+          <div className="text-center p-3 bg-gaming-bg/50 rounded-lg">
+            <div className="text-lg font-bold text-gaming-text">{hostSpending}</div>
+            <div className="text-xs text-gaming-muted">Host Credits Used</div>
+            <Badge variant="outline" className="mt-1 text-xs">
+              Hosting
+            </Badge>
+          </div>
+
+          {/* Earnings */}
+          <div className="text-center p-3 bg-green-500/10 rounded-lg">
+            <div className="text-lg font-bold text-green-500">₹{earnings}</div>
+            <div className="text-xs text-gaming-muted">Earned</div>
+            <Badge className="mt-1 text-xs bg-green-500/20 text-green-500">
+              Winnings
+            </Badge>
+          </div>
+
+          {/* Purchases */}
+          <div className="text-center p-3 bg-gaming-primary/10 rounded-lg">
+            <div className="text-lg font-bold text-gaming-primary">₹{purchases}</div>
+            <div className="text-xs text-gaming-muted">Purchased</div>
+            <Badge className="mt-1 text-xs bg-gaming-primary/20 text-gaming-primary">
+              Invested
+            </Badge>
+          </div>
+        </div>
+
+        {/* Usage Trends */}
+        <div className="space-y-3">
+          <h4 className="font-semibold text-gaming-text flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
+            Usage Trends
+          </h4>
+
+          {/* Tournament Activity */}
+          <div className="flex items-center justify-between p-3 bg-gaming-bg/30 rounded-lg">
+            <div className="flex items-center gap-3">
+              <div className="w-3 h-3 bg-gaming-accent rounded-full"></div>
+              <span className="text-sm text-gaming-text">Tournament Activity</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-gaming-text">
+                {last30Days.filter(t => t.type === 'tournament_join').length} joins
+              </span>
+              {tournamentSpending > 0 ? (
+                <TrendingUp className="h-4 w-4 text-green-500" />
+              ) : (
+                <TrendingDown className="h-4 w-4 text-red-500" />
+              )}
+            </div>
+          </div>
+
+          {/* Hosting Activity */}
+          <div className="flex items-center justify-between p-3 bg-gaming-bg/30 rounded-lg">
+            <div className="flex items-center gap-3">
+              <div className="w-3 h-3 bg-gaming-primary rounded-full"></div>
+              <span className="text-sm text-gaming-text">Hosting Activity</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-gaming-text">
+                {last30Days.filter(t => t.type === 'tournament_create').length} tournaments
+              </span>
+              {hostSpending > 0 ? (
+                <TrendingUp className="h-4 w-4 text-green-500" />
+              ) : (
+                <TrendingDown className="h-4 w-4 text-red-500" />
+              )}
+            </div>
+          </div>
+
+          {/* Win Rate */}
+          {tournamentSpending > 0 && (
+            <div className="flex items-center justify-between p-3 bg-green-500/10 rounded-lg border border-green-500/20">
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                <span className="text-sm text-gaming-text">Win Rate</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-green-500">
+                  {earnings > 0 ? `+₹${earnings}` : '₹0'}
+                </span>
+                <Badge className="bg-green-500/20 text-green-500 text-xs">
+                  {((earnings / (tournamentSpending || 1)) * 100).toFixed(1)}% ROI
+                </Badge>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Quick Insights */}
+        {last30Days.length === 0 ? (
+          <div className="text-center py-6 text-gaming-muted">
+            <Activity className="h-8 w-8 mx-auto mb-2 opacity-50" />
+            <p>No activity in the last 30 days</p>
+            <p className="text-xs">Start joining tournaments to see your usage statistics</p>
+          </div>
+        ) : (
+          <div className="bg-gaming-bg/30 p-3 rounded-lg">
+            <h5 className="font-medium text-gaming-text mb-2">Quick Insights</h5>
+            <div className="space-y-1 text-sm text-gaming-muted">
+              <p>• You've been active for {last30Days.length} transactions this month</p>
+              {earnings > tournamentSpending && (
+                <p className="text-green-500">• You're profitable! Keep up the good work 🎉</p>
+              )}
+              {tournamentSpending > 0 && earnings === 0 && (
+                <p className="text-yellow-500">• Focus on improving your tournament performance</p>
+              )}
+              {purchases > 0 && (
+                <p>• You've invested ₹{purchases} in credits this month</p>
+              )}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+export default CreditUsageChart;
+```
+
+### Low Credit Alerts and Notifications
+
+#### Smart Credit Alerts System
+
+**Step 6: Create Low Credit Alert Component**
+```typescript
+// src/components/credits/LowCreditAlert.tsx
+import { useState, useEffect } from 'react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { AlertTriangle, X, ShoppingCart, Zap, Clock } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useCreditBalance } from '@/hooks/useCreditBalance';
+import { Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+
+interface LowCreditAlertProps {
+  className?: string;
+  variant?: 'banner' | 'card' | 'toast';
+  onDismiss?: () => void;
+}
+
+const LowCreditAlert = ({
+  className = '',
+  variant = 'banner',
+  onDismiss
+}: LowCreditAlertProps) => {
+  const { currentUser } = useAuth();
+  const { hostCredits, tournamentCredits, isLoading } = useCreditBalance(currentUser?.uid);
+  const [dismissed, setDismissed] = useState(false);
+  const [showUrgent, setShowUrgent] = useState(false);
+
+  // Check for critical low credits
+  const isTournamentCritical = tournamentCredits === 0;
+  const isHostCritical = hostCredits === 0;
+  const isTournamentLow = tournamentCredits > 0 && tournamentCredits < 50;
+  const isHostLow = hostCredits > 0 && hostCredits < 3;
+
+  const hasAnyAlert = isTournamentCritical || isHostCritical || isTournamentLow || isHostLow;
+
+  // Auto-dismiss logic for non-critical alerts
+  useEffect(() => {
+    if (!isTournamentCritical && !isHostCritical && (isTournamentLow || isHostLow)) {
+      const timer = setTimeout(() => {
+        setShowUrgent(true);
+      }, 5000); // Show urgent state after 5 seconds
+
+      return () => clearTimeout(timer);
+    }
+  }, [isTournamentCritical, isHostCritical, isTournamentLow, isHostLow]);
+
+  const handleDismiss = () => {
+    setDismissed(true);
+    onDismiss?.();
+  };
+
+  if (isLoading || !currentUser || !hasAnyAlert || dismissed) {
+    return null;
+  }
+
+  const getAlertContent = () => {
+    if (isTournamentCritical && isHostCritical) {
+      return {
+        title: "Critical: No Credits Available!",
+        description: "You have no tournament or host credits. Purchase credits to continue using the platform.",
+        urgency: "critical",
+        icon: AlertTriangle,
+        color: "red"
+      };
+    }
+
+    if (isTournamentCritical) {
+      return {
+        title: "No Tournament Credits!",
+        description: "You can't join any tournaments. Purchase tournament credits to continue playing.",
+        urgency: "critical",
+        icon: AlertTriangle,
+        color: "red"
+      };
+    }
+
+    if (isHostCritical) {
+      return {
+        title: "No Host Credits!",
+        description: "You can't create tournaments. Purchase host credits to continue hosting.",
+        urgency: "critical",
+        icon: AlertTriangle,
+        color: "red"
+      };
+    }
+
+    if (isTournamentLow && isHostLow) {
+      return {
+        title: "Credits Running Low",
+        description: `You have ${tournamentCredits} tournament credits and ${hostCredits} host credits remaining.`,
+        urgency: "warning",
+        icon: Clock,
+        color: "yellow"
+      };
+    }
+
+    if (isTournamentLow) {
+      return {
+        title: "Tournament Credits Low",
+        description: `Only ${tournamentCredits} tournament credits remaining. Consider purchasing more.`,
+        urgency: "warning",
+        icon: Clock,
+        color: "yellow"
+      };
+    }
+
+    if (isHostLow) {
+      return {
+        title: "Host Credits Low",
+        description: `Only ${hostCredits} host credits remaining. Consider purchasing more.`,
+        urgency: "warning",
+        icon: Clock,
+        color: "yellow"
+      };
+    }
+
+    return null;
+  };
+
+  const alertContent = getAlertContent();
+  if (!alertContent) return null;
+
+  // Banner variant (top of page)
+  if (variant === 'banner') {
+    return (
+      <AnimatePresence>
+        <motion.div
+          initial={{ opacity: 0, y: -50 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -50 }}
+          className={`w-full ${className}`}
+        >
+          <Alert
+            className={`
+              border-${alertContent.color}-500/30
+              bg-${alertContent.color}-500/10
+              ${alertContent.urgency === 'critical' ? 'animate-pulse' : ''}
+            `}
+          >
+            <alertContent.icon className={`h-4 w-4 text-${alertContent.color}-500`} />
+            <div className="flex items-center justify-between w-full">
+              <div className="flex-1">
+                <div className={`font-semibold text-${alertContent.color}-500`}>
+                  {alertContent.title}
+                </div>
+                <AlertDescription className={`text-${alertContent.color}-200`}>
+                  {alertContent.description}
+                </AlertDescription>
+              </div>
+              <div className="flex items-center gap-2 ml-4">
+                <Link to="/credits">
+                  <Button
+                    size="sm"
+                    className={`
+                      bg-${alertContent.color}-500
+                      hover:bg-${alertContent.color}-600
+                      text-white
+                    `}
+                  >
+                    <ShoppingCart className="h-4 w-4 mr-1" />
+                    Buy Credits
+                  </Button>
+                </Link>
+                {alertContent.urgency !== 'critical' && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleDismiss}
+                    className={`text-${alertContent.color}-500 hover:bg-${alertContent.color}-500/20`}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          </Alert>
+        </motion.div>
+      </AnimatePresence>
+    );
+  }
+
+  // Card variant (in dashboard/wallet)
+  if (variant === 'card') {
+    return (
+      <Card className={`border-${alertContent.color}-500/30 bg-${alertContent.color}-500/10 ${className}`}>
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3">
+            <alertContent.icon className={`h-5 w-5 text-${alertContent.color}-500 mt-0.5`} />
+            <div className="flex-1">
+              <h4 className={`font-semibold text-${alertContent.color}-500 mb-1`}>
+                {alertContent.title}
+              </h4>
+              <p className={`text-sm text-${alertContent.color}-200 mb-3`}>
+                {alertContent.description}
+              </p>
+              <div className="flex gap-2">
+                <Link to="/credits">
+                  <Button
+                    size="sm"
+                    className={`
+                      bg-${alertContent.color}-500
+                      hover:bg-${alertContent.color}-600
+                      text-white
+                    `}
+                  >
+                    <Zap className="h-4 w-4 mr-1" />
+                    Quick Purchase
+                  </Button>
+                </Link>
+                {alertContent.urgency !== 'critical' && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDismiss}
+                    className={`border-${alertContent.color}-500/30 text-${alertContent.color}-500`}
+                  >
+                    Dismiss
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Toast variant (floating notification)
+  if (variant === 'toast') {
+    return (
+      <AnimatePresence>
+        <motion.div
+          initial={{ opacity: 0, x: 300 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: 300 }}
+          className={`
+            fixed top-4 right-4 z-50 max-w-sm
+            ${className}
+          `}
+        >
+          <Alert
+            className={`
+              border-${alertContent.color}-500/30
+              bg-gaming-card/95
+              backdrop-blur-lg
+              shadow-lg
+              ${showUrgent ? 'animate-bounce' : ''}
+            `}
+          >
+            <alertContent.icon className={`h-4 w-4 text-${alertContent.color}-500`} />
+            <div className="flex items-start justify-between w-full">
+              <div className="flex-1 pr-2">
+                <div className={`font-semibold text-${alertContent.color}-500 text-sm`}>
+                  {alertContent.title}
+                </div>
+                <AlertDescription className={`text-${alertContent.color}-200 text-xs`}>
+                  {alertContent.description}
+                </AlertDescription>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleDismiss}
+                className={`text-${alertContent.color}-500 hover:bg-${alertContent.color}-500/20 h-6 w-6 p-0`}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+            <div className="mt-2">
+              <Link to="/credits">
+                <Button
+                  size="sm"
+                  className={`
+                    w-full
+                    bg-${alertContent.color}-500
+                    hover:bg-${alertContent.color}-600
+                    text-white
+                    text-xs
+                  `}
+                >
+                  <ShoppingCart className="h-3 w-3 mr-1" />
+                  Buy Now
+                </Button>
+              </Link>
+            </div>
+          </Alert>
+        </motion.div>
+      </AnimatePresence>
+    );
+  }
+
+  return null;
+};
+
+export default LowCreditAlert;
 ```
 
 ---
