@@ -20,6 +20,7 @@ import { Wallet as WalletType, updateWalletBalance, addTransaction } from "@/lib
 import { motion, AnimatePresence } from "framer-motion";
 import React from "react";
 import TransactionSuccessDialog from "./TransactionSuccessDialog";
+import { CreditService } from "@/lib/creditService";
 
 interface WithdrawDialogProps {
   isOpen: boolean;
@@ -103,45 +104,23 @@ const WithdrawDialog = ({
 
       console.log(`Withdrawing: ₹${numAmount} to ${upiId} via ${withdrawalMethod} for user ${currentUser.uid}`);
       
-      // First record the transaction
-      const transactionData = {
-        userId: currentUser.uid,
-        amount: numAmount,
-        type: 'withdrawal' as const,
-        date: new Date(),
-        status: 'completed' as const,
-        details: {
-          paymentMethod: withdrawalMethod,
-          transactionId: upiId
-        }
-      };
+      // Use the new CreditService method for withdrawal
+      const result = await CreditService.requestWithdrawal(
+        currentUser.uid,
+        numAmount,
+        upiId
+      );
       
-      console.log("Creating withdrawal transaction record:", transactionData);
-      
-      // Make sure we only proceed if transaction is successful
-      try {
-        const newTransactionId = await addTransaction(transactionData);
-        console.log("Withdrawal transaction created with ID:", newTransactionId);
-        
-        if (!newTransactionId) {
-          throw new Error("Failed to create transaction record");
-        }
-        
-        // Then update wallet balance
-        await updateWalletBalance(currentUser.uid, -numAmount);
-        console.log("Wallet balance updated for withdrawal");
-        
+      if (result.success) {
         setIsLoading(false);
         onOpenChange(false);
         
         // Show success dialog
-        setTransactionId(newTransactionId);
+        setTransactionId(result.transactionId);
         setConfirmedAmount(numAmount);
         setShowSuccessDialog(true);
-      } catch (transactionError) {
-        console.error("Transaction creation failed:", transactionError);
-        setError("Failed to record transaction. Please try again.");
-        setIsLoading(false);
+      } else {
+        throw new Error(result.error || "Failed to process withdrawal");
       }
     } catch (err) {
       console.error("Withdrawal error:", err);
@@ -253,6 +232,18 @@ const WithdrawDialog = ({
                     >
                       <p className="text-gaming-muted">Bank withdrawal is currently under development.</p>
                       <p className="text-gaming-muted text-sm">Please use UPI for now.</p>
+                    </motion.div>
+                  )}
+
+                  {withdrawalMethod === "upi" && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.3 }}
+                      className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 text-sm text-blue-200"
+                    >
+                      <p className="font-medium mb-1">Processing Time:</p>
+                      <p>Funds will be transferred to your UPI ID in 2-3 business days.</p>
                     </motion.div>
                   )}
 

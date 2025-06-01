@@ -4,7 +4,7 @@ import NotchHeader from "@/components/NotchHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { Loader2, CreditCard, Wallet as WalletIcon, ShoppingCart, Coins, TrendingUp } from "lucide-react";
+import { Loader2, CreditCard, Wallet as WalletIcon, ShoppingCart, Coins, TrendingUp, ArrowRightLeft } from "lucide-react";
 import { 
   subscribeToWallet, 
   Wallet as WalletType, 
@@ -14,6 +14,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import WithdrawDialog from "@/components/wallet/WithdrawDialog";
 import AddFundsDialog from "@/components/wallet/AddFundsDialog";
+import ConvertCreditsDialog from "@/components/wallet/ConvertCreditsDialog";
 import CreditTransactionHistory from "@/components/wallet/CreditTransactionHistory";
 import { collection, getDocs, query, where, limit, Timestamp, doc, setDoc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -28,6 +29,7 @@ const Wallet = () => {
   const [error, setError] = useState<string | null>(null);
   const [isAddFundsOpen, setIsAddFundsOpen] = useState(false);
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
+  const [isConvertCreditsOpen, setIsConvertCreditsOpen] = useState(false);
   const { tournamentCredits, hostCredits, earnings, isLoading: isCreditsLoading } = useCreditBalance(currentUser?.uid);
   
   useEffect(() => {
@@ -165,12 +167,11 @@ const Wallet = () => {
                 <h3 className="text-lg font-medium text-gaming-muted mb-2">Your Credits</h3>
                 
                 {isCreditsLoading ? (
-                  <div className="flex items-center space-x-2 mb-4">
-                    <Loader2 className="h-5 w-5 animate-spin text-gaming-muted" />
-                    <span className="text-gaming-muted">Loading credits...</span>
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-gaming-primary" />
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     {/* Tournament Credits */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
@@ -184,11 +185,12 @@ const Wallet = () => {
                       </div>
                       <Button 
                         size="sm" 
-                        onClick={() => navigate('/credits')}
+                        onClick={() => setIsConvertCreditsOpen(true)}
                         className="bg-gaming-accent/20 hover:bg-gaming-accent/30 text-gaming-accent"
+                        disabled={tournamentCredits <= 0}
                       >
-                        <ShoppingCart className="h-4 w-4 mr-1" />
-                        Buy
+                        <ArrowRightLeft className="h-4 w-4 mr-1" />
+                        Convert
                       </Button>
                     </div>
                     
@@ -291,7 +293,7 @@ const Wallet = () => {
               >
                 <Button 
                   className="bg-gaming-accent hover:bg-gaming-accent/90 hover:shadow-[0_0_15px_rgba(155,135,245,0.4)] text-white px-8 py-7 text-lg w-full rounded-xl transition-all duration-300 flex items-center justify-center gap-2"
-                  onClick={handleAddFunds}
+                  onClick={() => navigate('/credits')}
                 >
                   <ShoppingCart className="h-5 w-5" />
                   Buy Credits
@@ -345,6 +347,11 @@ const Wallet = () => {
           balance: earnings || 0,
           lastUpdated: new Date()
         }}
+      />
+
+      <ConvertCreditsDialog
+        isOpen={isConvertCreditsOpen}
+        onOpenChange={setIsConvertCreditsOpen}
       />
     </div>
   );
