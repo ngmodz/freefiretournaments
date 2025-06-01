@@ -10,6 +10,8 @@ import {
   DropdownMenuRadioItem 
 } from "@/components/ui/dropdown-menu";
 import { Calendar, Trophy } from "lucide-react";
+import { useState } from "react";
+import { motion } from "framer-motion";
 
 interface TournamentFiltersProps {
   filter: string;
@@ -19,24 +21,51 @@ interface TournamentFiltersProps {
 }
 
 const TournamentFilters = ({ filter, setFilter, sortBy, setSortBy }: TournamentFiltersProps) => {
+  const [isFocused, setIsFocused] = useState(false);
+
   return (
     <div className="mb-4">
-      <div className="relative mb-3">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#A0A0A0]" size={18} />
-        <input type="text" placeholder="Search tournaments..." className="w-full pl-10 pr-4 py-2.5 bg-[#1A1A1A] border border-[#333333] rounded-lg text-white placeholder-[#A0A0A0]/70 focus:outline-none focus:ring-2 focus:ring-gaming-primary/50" />
-      </div>
+      <motion.div 
+        className={`relative mb-3 ${isFocused ? 'shadow-glow' : ''}`}
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        {/* Animated gradient border */}
+        <div className={`absolute inset-0 rounded-lg ${isFocused ? 'bg-gradient-to-r from-gaming-primary via-gaming-accent to-gaming-primary p-[1.5px]' : 'bg-[#333333] p-[1px]'}`}>
+          <div className="absolute inset-0 bg-[#151926] rounded-lg"></div>
+        </div>
+        
+        {/* Search icon with animation - fixed vertical alignment */}
+        <motion.div
+          animate={{ scale: isFocused ? 1.1 : 1 }}
+          transition={{ duration: 0.2 }}
+          className="absolute left-3 top-0 h-full flex items-center justify-center z-10"
+        >
+          <Search className={`${isFocused ? 'text-gaming-primary' : 'text-[#A0A0A0]'}`} size={18} />
+        </motion.div>
+        
+        {/* Input field */}
+        <input 
+          type="text" 
+          placeholder="Search tournaments..." 
+          className="w-full pl-10 pr-4 py-3 bg-transparent relative z-10 rounded-lg text-white placeholder-[#A0A0A0]/70 focus:outline-none transition-all duration-300"
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+        />
+      </motion.div>
       
       <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-        <button onClick={() => setFilter("all")} className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 ${filter === "all" ? "bg-gaming-primary text-white" : "bg-[#1A1A1A] text-[#A0A0A0] hover:bg-gaming-primary/20"}`}>
+        <button onClick={() => setFilter("all")} className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 transition-all duration-300 ${filter === "all" ? "bg-gaming-primary text-white shadow-glow" : "bg-[#1A1A1A] text-[#A0A0A0] hover:bg-gaming-primary/20"}`}>
           All Tournaments
         </button>
-        <button onClick={() => setFilter("active")} className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 ${filter === "active" ? "bg-gaming-primary text-white" : "bg-[#1A1A1A] text-[#A0A0A0] hover:bg-gaming-primary/20"}`}>
+        <button onClick={() => setFilter("active")} className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 transition-all duration-300 ${filter === "active" ? "bg-gaming-primary text-white shadow-glow" : "bg-[#1A1A1A] text-[#A0A0A0] hover:bg-gaming-primary/20"}`}>
           Upcoming
         </button>
         
         {/* Sort & Filter Dropdown */}
         <DropdownMenu>
-          <DropdownMenuTrigger className="px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 bg-[#1A1A1A] text-[#A0A0A0] hover:bg-gaming-primary/20 flex items-center">
+          <DropdownMenuTrigger className="px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 bg-[#1A1A1A] text-[#A0A0A0] hover:bg-gaming-primary/20 flex items-center transition-all duration-300">
             <Filter size={14} className="mr-1" /> Sort & Filter
           </DropdownMenuTrigger>
           <DropdownMenuContent className="bg-[#1A1A1A] border-[#333333] text-white">
