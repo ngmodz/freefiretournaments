@@ -5813,6 +5813,2765 @@ interface CreditPackage {
   isSpecialOffer: boolean;
   offerType?: 'welcome' | 'weekend' | 'season' | 'referral';
   offerEndsAt?: Timestamp;
+  features: string[];
+  isActive: boolean;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+// hostCreditPackages/{packageId} - For Host Credits
+interface HostCreditPackage {
+  id: string;
+  name: string;
+  credits: number;
+  price: number;
+  features: string[];
+  isActive: boolean;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+```
+
+### 5. Environment Configuration Checklist
+
+#### Development Environment (.env.local)
+```bash
+# Cashfree Configuration
+VITE_CASHFREE_APP_ID=your_test_app_id_here
+CASHFREE_APP_ID=your_test_app_id_here
+CASHFREE_SECRET_KEY=your_test_secret_key_here
+CASHFREE_WEBHOOK_SECRET=your_webhook_secret_key_here
+VITE_CASHFREE_ENVIRONMENT=sandbox
+
+# Application URLs
+NEXT_PUBLIC_APP_URL=http://localhost:8080
+VITE_APP_URL=http://localhost:8080
+
+# Firebase Configuration
+FIREBASE_PROJECT_ID=your-project-id
+VITE_FIREBASE_API_KEY=your-firebase-api-key
+VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your-project-id
+VITE_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
+VITE_FIREBASE_APP_ID=1:123456789:web:abcdef
+
+# Service Account (Server-side only)
+SERVICE_ACCOUNT_KEY_PATH=./firebase-service-account.json
+```
+
+#### Production Environment (.env)
+```bash
+# Cashfree Configuration
+VITE_CASHFREE_APP_ID=your_production_app_id_here
+CASHFREE_APP_ID=your_production_app_id_here
+CASHFREE_SECRET_KEY=your_production_secret_key_here
+CASHFREE_WEBHOOK_SECRET=your_production_webhook_secret_key_here
+VITE_CASHFREE_ENVIRONMENT=production
+
+# Application URLs
+NEXT_PUBLIC_APP_URL=https://freefiretournaments.netlify.app
+VITE_APP_URL=https://freefiretournaments.netlify.app
+
+# Firebase Configuration (same as development)
+FIREBASE_PROJECT_ID=your-project-id
+# ... other Firebase config variables
+
+# Service Account (Base64 encoded for Netlify)
+FIREBASE_SERVICE_ACCOUNT_KEY=base64_encoded_service_account_json
+```
+
+### 6. Deployment Configuration
+
+#### Netlify Configuration (netlify.toml)
+```toml
+[build]
+  command = "npm run build"
+  functions = "netlify/functions"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+[[headers]]
+  for = "/.netlify/functions/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Headers = "Content-Type, Authorization"
+    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[functions]
+  node_bundler = "esbuild"
+```
+
+### 7. Security Implementation Checklist
+
+#### API Key Security
+- [ ] **Never commit API keys** to version control
+- [ ] **Use environment variables** for all sensitive data
+- [ ] **Separate keys** for development and production
+- [ ] **Rotate keys regularly** (every 6 months)
+- [ ] **Monitor key usage** in Cashfree dashboard
+
+#### Webhook Security
+- [ ] **HTTPS only** for webhook URLs
+- [ ] **Signature verification** for all webhook requests
+- [ ] **Idempotency handling** for duplicate webhooks
+- [ ] **Rate limiting** to prevent abuse
+- [ ] **Logging and monitoring** for security events
+
+#### Application Security
+- [ ] **Input validation** for all user inputs
+- [ ] **SQL injection prevention** (using Firestore)
+- [ ] **XSS protection** with proper sanitization
+- [ ] **CSRF protection** with proper headers
+- [ ] **Authentication verification** for all protected routes
+
+### 8. Monitoring and Logging Setup
+
+#### Essential Monitoring Points
+1. **Payment Success Rate**: Track successful vs failed payments
+2. **Webhook Delivery**: Monitor webhook success/failure rates
+3. **API Response Times**: Track Cashfree API performance
+4. **Error Rates**: Monitor application errors and exceptions
+5. **User Activity**: Track credit purchases and usage patterns
+
+#### Logging Implementation
+```javascript
+// Enhanced logging for production
+const logger = {
+  info: (message, data = {}) => {
+    console.log(`[INFO] ${new Date().toISOString()} - ${message}`, data);
+  },
+  error: (message, error = {}) => {
+    console.error(`[ERROR] ${new Date().toISOString()} - ${message}`, error);
+  },
+  webhook: (event, data = {}) => {
+    console.log(`[WEBHOOK] ${new Date().toISOString()} - ${event}`, data);
+  }
+};
+
+// Usage in webhook handler
+exports.handler = async (event, context) => {
+  logger.webhook('Received webhook', {
+    headers: event.headers,
+    body: event.body
+  });
+
+  try {
+    // Process webhook
+    const result = await processWebhook(event.body);
+    logger.info('Webhook processed successfully', result);
+    return { statusCode: 200, body: 'OK' };
+  } catch (error) {
+    logger.error('Webhook processing failed', error);
+    return { statusCode: 500, body: 'Error' };
+  }
+};
+```
+
+### 9. Performance Optimization
+
+#### Frontend Optimization
+- [ ] **Lazy loading** for payment components
+- [ ] **Code splitting** for better load times
+- [ ] **Image optimization** for package displays
+- [ ] **Caching strategies** for API responses
+- [ ] **Bundle size optimization** with tree shaking
+
+#### Backend Optimization
+- [ ] **Function cold start** optimization
+- [ ] **Database query** optimization
+- [ ] **Webhook processing** efficiency
+- [ ] **Error handling** performance
+- [ ] **Memory usage** optimization
+
+### 10. Troubleshooting Guide
+
+#### Common Issues and Solutions
+
+**Issue 1: Webhook Not Receiving Events**
+```bash
+# Check webhook URL accessibility
+curl -X POST https://yourdomain.com/.netlify/functions/cashfree-webhook \
+  -H "Content-Type: application/json" \
+  -d '{"test": "webhook"}'
+
+# Expected response: 200 OK
+```
+
+**Issue 2: Payment Order Creation Fails**
+```javascript
+// Debug payment order creation
+const debugOrderCreation = async (orderData) => {
+  console.log('Order creation attempt:', {
+    appId: process.env.CASHFREE_APP_ID ? 'Present' : 'Missing',
+    secretKey: process.env.CASHFREE_SECRET_KEY ? 'Present' : 'Missing',
+    orderData: orderData
+  });
+
+  try {
+    const response = await createPaymentOrder(orderData);
+    console.log('Order creation success:', response);
+    return response;
+  } catch (error) {
+    console.error('Order creation failed:', error);
+    throw error;
+  }
+};
+```
+
+**Issue 3: Credit Balance Not Updating**
+```javascript
+// Debug credit balance updates
+const debugCreditUpdate = async (userId, creditType, amount) => {
+  const userRef = db.collection('users').doc(userId);
+  const userDoc = await userRef.get();
+
+  console.log('Before credit update:', {
+    userId,
+    currentWallet: userDoc.data()?.wallet,
+    updateType: creditType,
+    updateAmount: amount
+  });
+
+  // Perform update
+  await updateUserCredits(userId, creditType, amount);
+
+  const updatedDoc = await userRef.get();
+  console.log('After credit update:', {
+    updatedWallet: updatedDoc.data()?.wallet
+  });
+};
+```
+
+This completes the comprehensive Human Developer Setup Guide with all necessary configuration, security, monitoring, and troubleshooting information.
+
+---
+
+## Payment Flow Integration
+
+### Overview
+This section covers the complete payment flow integration with Cashfree, including enhanced service updates, payment components, status handling, and success/failure flow management. The implementation provides a seamless payment experience for credit purchases.
+
+### Enhanced Cashfree Service Updates
+
+#### Updated Cashfree Service (src/lib/cashfree-service.ts)
+```typescript
+import { toast } from "@/components/ui/use-toast";
+
+interface PaymentOrderParams {
+  orderAmount: number;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  orderNote: string;
+  userId: string;
+  packageId: string;
+  packageType: 'tournament' | 'host';
+  creditsAmount: number;
+}
+
+interface PaymentOrderResponse {
+  success: boolean;
+  order_id?: string;
+  order_token?: string;
+  payment_session_id?: string;
+  error?: string;
+  message?: string;
+}
+
+interface CashfreeCheckoutOptions {
+  onSuccess?: (data: any) => void;
+  onFailure?: (data: any) => void;
+  onCancel?: (data: any) => void;
+}
+
+export class CashfreeService {
+  private static instance: CashfreeService;
+  private cashfree: any = null;
+  private isInitialized = false;
+
+  private constructor() {}
+
+  static getInstance(): CashfreeService {
+    if (!CashfreeService.instance) {
+      CashfreeService.instance = new CashfreeService();
+    }
+    return CashfreeService.instance;
+  }
+
+  /**
+   * Initialize Cashfree SDK
+   */
+  async initialize(): Promise<void> {
+    if (this.isInitialized && this.cashfree) {
+      return;
+    }
+
+    try {
+      // Load Cashfree SDK
+      await this.loadCashfreeSDK();
+
+      // Initialize Cashfree
+      const environment = import.meta.env.VITE_CASHFREE_ENVIRONMENT || 'sandbox';
+
+      this.cashfree = new window.Cashfree({
+        mode: environment === 'production' ? 'production' : 'sandbox'
+      });
+
+      this.isInitialized = true;
+      console.log('Cashfree SDK initialized successfully');
+    } catch (error) {
+      console.error('Failed to initialize Cashfree SDK:', error);
+      throw new Error('Payment system initialization failed');
+    }
+  }
+
+  /**
+   * Load Cashfree SDK script
+   */
+  private loadCashfreeSDK(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      // Check if SDK is already loaded
+      if (window.Cashfree) {
+        resolve();
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
+      script.async = true;
+
+      script.onload = () => {
+        console.log('Cashfree SDK loaded successfully');
+        resolve();
+      };
+
+      script.onerror = () => {
+        console.error('Failed to load Cashfree SDK');
+        reject(new Error('Failed to load payment SDK'));
+      };
+
+      document.head.appendChild(script);
+    });
+  }
+
+  /**
+   * Create payment order via Netlify function
+   */
+  async createPaymentOrder(params: PaymentOrderParams): Promise<PaymentOrderResponse> {
+    try {
+      console.log('Creating payment order with params:', params);
+
+      const response = await fetch('/.netlify/functions/create-credit-payment-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(params)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Payment order creation failed:', errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log('Payment order created successfully:', data);
+
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to create payment order');
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error creating payment order:', error);
+      return {
+        success: false,
+        error: error.message || 'Failed to create payment order'
+      };
+    }
+  }
+
+  /**
+   * Initialize Cashfree Drop-in checkout
+   */
+  async initializeDropIn(orderToken: string, options: CashfreeCheckoutOptions = {}): Promise<void> {
+    try {
+      // Ensure SDK is initialized
+      await this.initialize();
+
+      if (!this.cashfree) {
+        throw new Error('Cashfree SDK not initialized');
+      }
+
+      // Configure checkout options
+      const checkoutOptions = {
+        paymentSessionId: orderToken,
+        returnUrl: `${window.location.origin}/payment-status`,
+        ...options
+      };
+
+      console.log('Initializing Cashfree checkout with options:', checkoutOptions);
+
+      // Open Cashfree checkout
+      this.cashfree.checkout(checkoutOptions);
+
+    } catch (error) {
+      console.error('Error initializing Cashfree checkout:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Verify payment status
+   */
+  async verifyPaymentStatus(orderId: string): Promise<any> {
+    try {
+      const response = await fetch('/.netlify/functions/verify-payment-status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ orderId })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error verifying payment status:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Handle payment success
+   */
+  handlePaymentSuccess(data: any): void {
+    console.log('Payment successful:', data);
+
+    toast({
+      title: "Payment Successful!",
+      description: "Your credits will be added to your account shortly.",
+    });
+
+    // Redirect to success page or refresh credits
+    window.location.href = `/payment-status?status=success&order_id=${data.order_id}`;
+  }
+
+  /**
+   * Handle payment failure
+   */
+  handlePaymentFailure(data: any): void {
+    console.log('Payment failed:', data);
+
+    toast({
+      title: "Payment Failed",
+      description: "Your payment could not be processed. Please try again.",
+      variant: "destructive"
+    });
+
+    // Redirect to failure page
+    window.location.href = `/payment-status?status=failed&order_id=${data.order_id}`;
+  }
+
+  /**
+   * Handle payment cancellation
+   */
+  handlePaymentCancel(data: any): void {
+    console.log('Payment cancelled:', data);
+
+    toast({
+      title: "Payment Cancelled",
+      description: "You cancelled the payment process.",
+      variant: "destructive"
+    });
+
+    // Redirect to cancel page
+    window.location.href = `/payment-status?status=cancelled&order_id=${data.order_id}`;
+  }
+}
+
+// Global type declaration for Cashfree SDK
+declare global {
+  interface Window {
+    Cashfree: any;
+  }
+}
+
+export default CashfreeService;
+```
+
+### Payment Component Implementation
+
+#### Credit Purchase Button Component
+```typescript
+// src/components/payment/CreditPurchaseButton.tsx
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Loader2, CreditCard, ShoppingCart } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { CashfreeService } from "@/lib/cashfree-service";
+import { toast } from "@/components/ui/use-toast";
+
+interface CreditPurchaseButtonProps {
+  packageData: {
+    id: string;
+    name: string;
+    credits: number;
+    price: number;
+  };
+  packageType: 'tournament' | 'host';
+  variant?: 'default' | 'outline' | 'secondary';
+  size?: 'sm' | 'md' | 'lg';
+  className?: string;
+  disabled?: boolean;
+  children?: React.ReactNode;
+}
+
+const CreditPurchaseButton = ({
+  packageData,
+  packageType,
+  variant = 'default',
+  size = 'md',
+  className = '',
+  disabled = false,
+  children
+}: CreditPurchaseButtonProps) => {
+  const { currentUser } = useAuth();
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handlePurchase = async () => {
+    if (!currentUser) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to purchase credits.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (disabled || isProcessing) {
+      return;
+    }
+
+    setIsProcessing(true);
+
+    try {
+      const cashfreeService = CashfreeService.getInstance();
+
+      // Prepare payment parameters
+      const paymentParams = {
+        orderAmount: packageData.price,
+        customerName: currentUser.displayName || currentUser.email?.split('@')[0] || 'User',
+        customerEmail: currentUser.email || 'user@example.com',
+        customerPhone: currentUser.phoneNumber || '9999999999',
+        orderNote: `${packageType === 'host' ? 'Host' : 'Tournament'} Credits - ${packageData.name}`,
+        userId: currentUser.uid,
+        packageId: packageData.id,
+        packageType: packageType,
+        creditsAmount: packageData.credits
+      };
+
+      console.log(`Initiating payment for ${packageData.name}:`, paymentParams);
+
+      // Create payment order
+      const response = await cashfreeService.createPaymentOrder(paymentParams);
+
+      if (!response.success || !response.payment_session_id) {
+        throw new Error(response.error || 'Failed to create payment order');
+      }
+
+      // Initialize Cashfree checkout
+      await cashfreeService.initializeDropIn(response.payment_session_id, {
+        onSuccess: (data: any) => {
+          console.log('Payment successful:', data);
+          cashfreeService.handlePaymentSuccess(data);
+        },
+        onFailure: (data: any) => {
+          console.log('Payment failed:', data);
+          cashfreeService.handlePaymentFailure(data);
+        },
+        onCancel: (data: any) => {
+          console.log('Payment cancelled:', data);
+          cashfreeService.handlePaymentCancel(data);
+        }
+      });
+
+    } catch (error) {
+      console.error('Payment error:', error);
+      toast({
+        title: "Payment Error",
+        description: error.message || "An error occurred while processing your payment.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  return (
+    <Button
+      onClick={handlePurchase}
+      disabled={disabled || isProcessing}
+      variant={variant}
+      size={size}
+      className={`${className} ${isProcessing ? 'cursor-not-allowed' : ''}`}
+    >
+      {isProcessing ? (
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Processing...
+        </div>
+      ) : children ? (
+        children
+      ) : (
+        <div className="flex items-center gap-2">
+          <CreditCard className="h-4 w-4" />
+          Buy for ₹{packageData.price}
+        </div>
+      )}
+    </Button>
+  );
+};
+
+export default CreditPurchaseButton;
+```
+
+#### Payment Modal Component
+```typescript
+// src/components/payment/PaymentModal.tsx
+import { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, CreditCard, Coins, X, CheckCircle, AlertCircle } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { CashfreeService } from "@/lib/cashfree-service";
+import { toast } from "@/components/ui/use-toast";
+import { motion, AnimatePresence } from "framer-motion";
+
+interface PaymentModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  packageData: {
+    id: string;
+    name: string;
+    credits: number;
+    price: number;
+    features?: string[];
+  };
+  packageType: 'tournament' | 'host';
+}
+
+const PaymentModal = ({ isOpen, onClose, packageData, packageType }: PaymentModalProps) => {
+  const { currentUser } = useAuth();
+  const [paymentStep, setPaymentStep] = useState<'confirm' | 'processing' | 'success' | 'error'>('confirm');
+  const [errorMessage, setErrorMessage] = useState<string>('');
+
+  // Reset state when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setPaymentStep('confirm');
+      setErrorMessage('');
+    }
+  }, [isOpen]);
+
+  const handlePayment = async () => {
+    if (!currentUser) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to purchase credits.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setPaymentStep('processing');
+
+    try {
+      const cashfreeService = CashfreeService.getInstance();
+
+      const paymentParams = {
+        orderAmount: packageData.price,
+        customerName: currentUser.displayName || currentUser.email?.split('@')[0] || 'User',
+        customerEmail: currentUser.email || 'user@example.com',
+        customerPhone: currentUser.phoneNumber || '9999999999',
+        orderNote: `${packageType === 'host' ? 'Host' : 'Tournament'} Credits - ${packageData.name}`,
+        userId: currentUser.uid,
+        packageId: packageData.id,
+        packageType: packageType,
+        creditsAmount: packageData.credits
+      };
+
+      const response = await cashfreeService.createPaymentOrder(paymentParams);
+
+      if (!response.success || !response.payment_session_id) {
+        throw new Error(response.error || 'Failed to create payment order');
+      }
+
+      // Close modal and open Cashfree checkout
+      onClose();
+
+      await cashfreeService.initializeDropIn(response.payment_session_id, {
+        onSuccess: (data: any) => {
+          setPaymentStep('success');
+          cashfreeService.handlePaymentSuccess(data);
+        },
+        onFailure: (data: any) => {
+          setPaymentStep('error');
+          setErrorMessage('Payment failed. Please try again.');
+          cashfreeService.handlePaymentFailure(data);
+        },
+        onCancel: (data: any) => {
+          setPaymentStep('confirm');
+          cashfreeService.handlePaymentCancel(data);
+        }
+      });
+
+    } catch (error) {
+      console.error('Payment error:', error);
+      setPaymentStep('error');
+      setErrorMessage(error.message || 'An error occurred while processing your payment.');
+    }
+  };
+
+  const renderContent = () => {
+    switch (paymentStep) {
+      case 'confirm':
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="space-y-6"
+          >
+            {/* Package Details */}
+            <Card className="bg-gaming-card/50 border-gaming-border">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gaming-text">{packageData.name}</h3>
+                  <Badge className={packageType === 'tournament' ? 'bg-gaming-accent' : 'bg-gaming-primary'}>
+                    {packageType === 'tournament' ? 'Tournament' : 'Host'} Credits
+                  </Badge>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-gaming-text">{packageData.credits}</div>
+                    <div className="text-sm text-gaming-muted">Credits</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-gaming-text">₹{packageData.price}</div>
+                    <div className="text-sm text-gaming-muted">Total Amount</div>
+                  </div>
+                </div>
+
+                {packageData.features && (
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium text-gaming-text">Features:</h4>
+                    <ul className="space-y-1">
+                      {packageData.features.map((feature, index) => (
+                        <li key={index} className="flex items-center gap-2 text-sm text-gaming-muted">
+                          <CheckCircle className="h-3 w-3 text-green-500" />
+                          {feature}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Payment Actions */}
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={onClose}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handlePayment}
+                className="flex-1 bg-gaming-accent hover:bg-gaming-accent/90"
+              >
+                <CreditCard className="h-4 w-4 mr-2" />
+                Pay ₹{packageData.price}
+              </Button>
+            </div>
+          </motion.div>
+        );
+
+      case 'processing':
+        return (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-center py-8"
+          >
+            <Loader2 className="h-12 w-12 animate-spin text-gaming-accent mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gaming-text mb-2">Processing Payment</h3>
+            <p className="text-gaming-muted">Please wait while we process your payment...</p>
+          </motion.div>
+        );
+
+      case 'success':
+        return (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-center py-8"
+          >
+            <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gaming-text mb-2">Payment Successful!</h3>
+            <p className="text-gaming-muted mb-4">
+              {packageData.credits} {packageType} credits have been added to your account.
+            </p>
+            <Button onClick={onClose} className="bg-gaming-accent hover:bg-gaming-accent/90">
+              Continue
+            </Button>
+          </motion.div>
+        );
+
+      case 'error':
+        return (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-center py-8"
+          >
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gaming-text mb-2">Payment Failed</h3>
+            <p className="text-gaming-muted mb-4">{errorMessage}</p>
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={onClose} className="flex-1">
+                Close
+              </Button>
+              <Button
+                onClick={() => setPaymentStep('confirm')}
+                className="flex-1 bg-gaming-accent hover:bg-gaming-accent/90"
+              >
+                Try Again
+              </Button>
+            </div>
+          </motion.div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="bg-gaming-card border-gaming-border max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center justify-between text-gaming-text">
+            <span>Purchase Credits</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              className="h-6 w-6 p-0"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </DialogTitle>
+        </DialogHeader>
+
+        <AnimatePresence mode="wait">
+          {renderContent()}
+        </AnimatePresence>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default PaymentModal;
+```
+
+### Payment Status Handler
+
+#### Payment Status Page Component
+```typescript
+// src/pages/PaymentStatus.tsx
+import { useEffect, useState } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { CheckCircle, XCircle, AlertCircle, Loader2, Home, CreditCard } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/contexts/AuthContext";
+import { CashfreeService } from "@/lib/cashfree-service";
+import { useCreditBalance } from "@/hooks/useCreditBalance";
+import NotchHeader from "@/components/NotchHeader";
+
+type PaymentStatus = 'success' | 'failed' | 'cancelled' | 'pending' | 'verifying';
+
+const PaymentStatus = () => {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { currentUser } = useAuth();
+  const { tournamentCredits, hostCredits, isLoading: creditsLoading } = useCreditBalance(currentUser?.uid);
+
+  const [status, setStatus] = useState<PaymentStatus>('verifying');
+  const [orderDetails, setOrderDetails] = useState<any>(null);
+  const [isVerifying, setIsVerifying] = useState(true);
+
+  // Get URL parameters
+  const urlStatus = searchParams.get('status') as PaymentStatus;
+  const orderId = searchParams.get('order_id');
+  const orderToken = searchParams.get('order_token');
+
+  useEffect(() => {
+    const verifyPayment = async () => {
+      if (!orderId) {
+        setStatus('failed');
+        setIsVerifying(false);
+        return;
+      }
+
+      try {
+        // Set initial status from URL
+        if (urlStatus) {
+          setStatus(urlStatus);
+        }
+
+        // Verify payment status with backend
+        const cashfreeService = CashfreeService.getInstance();
+        const verificationResult = await cashfreeService.verifyPaymentStatus(orderId);
+
+        if (verificationResult.success) {
+          setOrderDetails(verificationResult.orderDetails);
+          setStatus(verificationResult.paymentStatus || urlStatus || 'success');
+        } else {
+          setStatus('failed');
+        }
+      } catch (error) {
+        console.error('Payment verification error:', error);
+        setStatus('failed');
+      } finally {
+        setIsVerifying(false);
+      }
+    };
+
+    verifyPayment();
+  }, [orderId, urlStatus]);
+
+  const getStatusIcon = () => {
+    switch (status) {
+      case 'success':
+        return <CheckCircle className="h-16 w-16 text-green-500" />;
+      case 'failed':
+        return <XCircle className="h-16 w-16 text-red-500" />;
+      case 'cancelled':
+        return <AlertCircle className="h-16 w-16 text-yellow-500" />;
+      case 'pending':
+        return <Loader2 className="h-16 w-16 text-blue-500 animate-spin" />;
+      default:
+        return <Loader2 className="h-16 w-16 text-gaming-accent animate-spin" />;
+    }
+  };
+
+  const getStatusMessage = () => {
+    switch (status) {
+      case 'success':
+        return {
+          title: 'Payment Successful!',
+          description: 'Your credits have been added to your account.',
+          color: 'text-green-500'
+        };
+      case 'failed':
+        return {
+          title: 'Payment Failed',
+          description: 'Your payment could not be processed. Please try again.',
+          color: 'text-red-500'
+        };
+      case 'cancelled':
+        return {
+          title: 'Payment Cancelled',
+          description: 'You cancelled the payment process.',
+          color: 'text-yellow-500'
+        };
+      case 'pending':
+        return {
+          title: 'Payment Pending',
+          description: 'Your payment is being processed. Please wait.',
+          color: 'text-blue-500'
+        };
+      default:
+        return {
+          title: 'Verifying Payment',
+          description: 'Please wait while we verify your payment.',
+          color: 'text-gaming-accent'
+        };
+    }
+  };
+
+  const handleReturnHome = () => {
+    navigate('/');
+  };
+
+  const handleBuyMoreCredits = () => {
+    navigate('/credits');
+  };
+
+  const statusInfo = getStatusMessage();
+
+  if (isVerifying) {
+    return (
+      <div className="min-h-screen bg-gaming-bg text-gaming-text">
+        <NotchHeader />
+        <div className="flex items-center justify-center h-screen">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-center"
+          >
+            <Loader2 className="h-12 w-12 animate-spin text-gaming-accent mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-gaming-text mb-2">Verifying Payment</h2>
+            <p className="text-gaming-muted">Please wait while we verify your payment...</p>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gaming-bg text-gaming-text">
+      <NotchHeader />
+
+      <div className="container mx-auto px-4 py-8 max-w-2xl">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <Card className="bg-gaming-card border-gaming-border">
+            <CardContent className="p-8 text-center">
+              {/* Status Icon */}
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                className="mb-6"
+              >
+                {getStatusIcon()}
+              </motion.div>
+
+              {/* Status Message */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="mb-6"
+              >
+                <h1 className={`text-2xl font-bold mb-2 ${statusInfo.color}`}>
+                  {statusInfo.title}
+                </h1>
+                <p className="text-gaming-muted text-lg">
+                  {statusInfo.description}
+                </p>
+              </motion.div>
+
+              {/* Order Details */}
+              {orderDetails && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.6 }}
+                  className="bg-gaming-bg/50 rounded-lg p-4 mb-6"
+                >
+                  <h3 className="text-lg font-semibold text-gaming-text mb-3">Order Details</h3>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-gaming-muted">Order ID:</span>
+                      <p className="font-medium text-gaming-text">{orderDetails.orderId}</p>
+                    </div>
+                    <div>
+                      <span className="text-gaming-muted">Amount:</span>
+                      <p className="font-medium text-gaming-text">₹{orderDetails.amount}</p>
+                    </div>
+                    <div>
+                      <span className="text-gaming-muted">Package:</span>
+                      <p className="font-medium text-gaming-text">{orderDetails.packageName}</p>
+                    </div>
+                    <div>
+                      <span className="text-gaming-muted">Credits:</span>
+                      <p className="font-medium text-gaming-text">{orderDetails.credits}</p>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Current Balance (for successful payments) */}
+              {status === 'success' && !creditsLoading && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.8 }}
+                  className="grid grid-cols-2 gap-4 mb-6"
+                >
+                  <div className="bg-gaming-accent/10 rounded-lg p-4">
+                    <div className="text-2xl font-bold text-gaming-accent">{tournamentCredits}</div>
+                    <div className="text-sm text-gaming-muted">Tournament Credits</div>
+                  </div>
+                  <div className="bg-gaming-primary/10 rounded-lg p-4">
+                    <div className="text-2xl font-bold text-gaming-primary">{hostCredits}</div>
+                    <div className="text-sm text-gaming-muted">Host Credits</div>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Action Buttons */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1 }}
+                className="flex flex-col sm:flex-row gap-4"
+              >
+                <Button
+                  onClick={handleReturnHome}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  <Home className="h-4 w-4 mr-2" />
+                  Return Home
+                </Button>
+
+                {status === 'success' ? (
+                  <Button
+                    onClick={handleBuyMoreCredits}
+                    className="flex-1 bg-gaming-accent hover:bg-gaming-accent/90"
+                  >
+                    <CreditCard className="h-4 w-4 mr-2" />
+                    Buy More Credits
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleBuyMoreCredits}
+                    className="flex-1 bg-gaming-accent hover:bg-gaming-accent/90"
+                  >
+                    <CreditCard className="h-4 w-4 mr-2" />
+                    Try Again
+                  </Button>
+                )}
+              </motion.div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+    </div>
+  );
+};
+
+export default PaymentStatus;
+```
+
+### Success/Failure Flow Management
+
+#### Payment Flow Manager
+```typescript
+// src/lib/paymentFlowManager.ts
+import { toast } from "@/components/ui/use-toast";
+
+export interface PaymentFlowData {
+  orderId: string;
+  packageId: string;
+  packageName: string;
+  packageType: 'tournament' | 'host';
+  credits: number;
+  amount: number;
+  userId: string;
+  timestamp: number;
+}
+
+export class PaymentFlowManager {
+  private static readonly STORAGE_KEY = 'payment_flow_data';
+  private static readonly FLOW_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+
+  /**
+   * Store payment flow data in session storage
+   */
+  static storePaymentFlow(data: PaymentFlowData): void {
+    try {
+      const flowData = {
+        ...data,
+        timestamp: Date.now()
+      };
+      sessionStorage.setItem(this.STORAGE_KEY, JSON.stringify(flowData));
+      console.log('Payment flow data stored:', flowData);
+    } catch (error) {
+      console.error('Failed to store payment flow data:', error);
+    }
+  }
+
+  /**
+   * Retrieve payment flow data from session storage
+   */
+  static getPaymentFlow(): PaymentFlowData | null {
+    try {
+      const stored = sessionStorage.getItem(this.STORAGE_KEY);
+      if (!stored) return null;
+
+      const data = JSON.parse(stored) as PaymentFlowData;
+
+      // Check if data has expired
+      if (Date.now() - data.timestamp > this.FLOW_TIMEOUT) {
+        this.clearPaymentFlow();
+        return null;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Failed to retrieve payment flow data:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Clear payment flow data
+   */
+  static clearPaymentFlow(): void {
+    try {
+      sessionStorage.removeItem(this.STORAGE_KEY);
+      console.log('Payment flow data cleared');
+    } catch (error) {
+      console.error('Failed to clear payment flow data:', error);
+    }
+  }
+
+  /**
+   * Handle successful payment
+   */
+  static handlePaymentSuccess(orderId: string): void {
+    const flowData = this.getPaymentFlow();
+
+    if (flowData && flowData.orderId === orderId) {
+      toast({
+        title: "Payment Successful!",
+        description: `${flowData.credits} ${flowData.packageType} credits have been added to your account.`,
+      });
+
+      // Track successful payment
+      this.trackPaymentEvent('payment_success', flowData);
+
+      // Clear flow data
+      this.clearPaymentFlow();
+    }
+  }
+
+  /**
+   * Handle failed payment
+   */
+  static handlePaymentFailure(orderId: string, reason?: string): void {
+    const flowData = this.getPaymentFlow();
+
+    if (flowData && flowData.orderId === orderId) {
+      toast({
+        title: "Payment Failed",
+        description: reason || "Your payment could not be processed. Please try again.",
+        variant: "destructive"
+      });
+
+      // Track failed payment
+      this.trackPaymentEvent('payment_failed', { ...flowData, failureReason: reason });
+    }
+  }
+
+  /**
+   * Handle cancelled payment
+   */
+  static handlePaymentCancel(orderId: string): void {
+    const flowData = this.getPaymentFlow();
+
+    if (flowData && flowData.orderId === orderId) {
+      toast({
+        title: "Payment Cancelled",
+        description: "You cancelled the payment process.",
+        variant: "destructive"
+      });
+
+      // Track cancelled payment
+      this.trackPaymentEvent('payment_cancelled', flowData);
+    }
+  }
+
+  /**
+   * Track payment events for analytics
+   */
+  private static trackPaymentEvent(event: string, data: any): void {
+    try {
+      // Send to analytics service (Google Analytics, Mixpanel, etc.)
+      if (typeof gtag !== 'undefined') {
+        gtag('event', event, {
+          event_category: 'payment',
+          event_label: data.packageName,
+          value: data.amount,
+          custom_parameters: {
+            package_id: data.packageId,
+            package_type: data.packageType,
+            credits: data.credits,
+            user_id: data.userId
+          }
+        });
+      }
+
+      console.log(`Payment event tracked: ${event}`, data);
+    } catch (error) {
+      console.error('Failed to track payment event:', error);
+    }
+  }
+
+  /**
+   * Validate payment flow integrity
+   */
+  static validatePaymentFlow(orderId: string): boolean {
+    const flowData = this.getPaymentFlow();
+    return flowData?.orderId === orderId;
+  }
+
+  /**
+   * Get payment flow status
+   */
+  static getPaymentFlowStatus(): 'active' | 'expired' | 'none' {
+    const flowData = this.getPaymentFlow();
+
+    if (!flowData) return 'none';
+
+    if (Date.now() - flowData.timestamp > this.FLOW_TIMEOUT) {
+      this.clearPaymentFlow();
+      return 'expired';
+    }
+
+    return 'active';
+  }
+}
+
+// Global type declaration for Google Analytics
+declare global {
+  function gtag(...args: any[]): void;
+}
+
+export default PaymentFlowManager;
+```
+
+---
+
+## Backend Integration and Webhooks
+
+### Overview
+This section covers the complete backend integration with Netlify Functions for handling payment orders, webhook processing, credit allocation, and error handling. The implementation ensures secure and reliable payment processing with proper error handling and retry logic.
+
+### Netlify Functions Implementation
+
+#### Create Credit Payment Order Function
+```javascript
+// netlify/functions/create-credit-payment-order.js
+const admin = require('firebase-admin');
+const crypto = require('crypto');
+
+// Initialize Firebase Admin SDK
+if (!admin.apps.length) {
+  const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
+    ? JSON.parse(Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_KEY, 'base64').toString())
+    : require('../../firebase-service-account.json');
+
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    projectId: process.env.FIREBASE_PROJECT_ID
+  });
+}
+
+const db = admin.firestore();
+
+// Cashfree API configuration
+const CASHFREE_CONFIG = {
+  appId: process.env.CASHFREE_APP_ID,
+  secretKey: process.env.CASHFREE_SECRET_KEY,
+  environment: process.env.VITE_CASHFREE_ENVIRONMENT || 'sandbox',
+  baseUrl: process.env.VITE_CASHFREE_ENVIRONMENT === 'production'
+    ? 'https://api.cashfree.com/pg'
+    : 'https://sandbox.cashfree.com/pg'
+};
+
+// CORS headers
+const headers = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Content-Type': 'application/json'
+};
+
+exports.handler = async (event, context) => {
+  // Handle preflight requests
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers,
+      body: ''
+    };
+  }
+
+  if (event.httpMethod !== 'POST') {
+    return {
+      statusCode: 405,
+      headers,
+      body: JSON.stringify({ error: 'Method not allowed' })
+    };
+  }
+
+  try {
+    const requestBody = JSON.parse(event.body);
+    console.log('Payment order request:', requestBody);
+
+    // Validate required fields
+    const requiredFields = [
+      'orderAmount', 'customerName', 'customerEmail',
+      'userId', 'packageId', 'packageType', 'creditsAmount'
+    ];
+
+    for (const field of requiredFields) {
+      if (!requestBody[field]) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({
+            success: false,
+            error: `Missing required field: ${field}`
+          })
+        };
+      }
+    }
+
+    // Generate unique order ID
+    const orderId = `order_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
+
+    // Prepare Cashfree order data
+    const orderData = {
+      order_id: orderId,
+      order_amount: requestBody.orderAmount,
+      order_currency: 'INR',
+      customer_details: {
+        customer_id: requestBody.userId,
+        customer_name: requestBody.customerName,
+        customer_email: requestBody.customerEmail,
+        customer_phone: requestBody.customerPhone || '9999999999'
+      },
+      order_meta: {
+        return_url: `${process.env.VITE_APP_URL}/payment-status?order_id={order_id}&order_token={order_token}`,
+        notify_url: `${process.env.VITE_APP_URL}/.netlify/functions/cashfree-webhook`,
+        payment_methods: 'cc,dc,upi,nb,wallet'
+      },
+      order_note: requestBody.orderNote || `Credit purchase - ${requestBody.packageType}`,
+      order_tags: {
+        package_id: requestBody.packageId,
+        package_type: requestBody.packageType,
+        credits_amount: requestBody.creditsAmount.toString(),
+        user_id: requestBody.userId
+      }
+    };
+
+    console.log('Creating Cashfree order:', orderData);
+
+    // Create order with Cashfree
+    const cashfreeResponse = await fetch(`${CASHFREE_CONFIG.baseUrl}/orders`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-version': '2023-08-01',
+        'x-client-id': CASHFREE_CONFIG.appId,
+        'x-client-secret': CASHFREE_CONFIG.secretKey
+      },
+      body: JSON.stringify(orderData)
+    });
+
+    const cashfreeResult = await cashfreeResponse.json();
+    console.log('Cashfree response:', cashfreeResult);
+
+    if (!cashfreeResponse.ok) {
+      throw new Error(`Cashfree API error: ${JSON.stringify(cashfreeResult)}`);
+    }
+
+    // Store order details in Firestore for webhook processing
+    const orderDoc = {
+      orderId: orderId,
+      userId: requestBody.userId,
+      packageId: requestBody.packageId,
+      packageName: requestBody.packageName || 'Credit Package',
+      packageType: requestBody.packageType,
+      creditsAmount: requestBody.creditsAmount,
+      amount: requestBody.orderAmount,
+      status: 'CREATED',
+      cashfreeOrderId: cashfreeResult.order_id,
+      paymentSessionId: cashfreeResult.payment_session_id,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    };
+
+    await db.collection('paymentOrders').doc(orderId).set(orderDoc);
+    console.log('Order stored in Firestore:', orderId);
+
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({
+        success: true,
+        order_id: orderId,
+        order_token: cashfreeResult.order_token,
+        payment_session_id: cashfreeResult.payment_session_id,
+        message: 'Payment order created successfully'
+      })
+    };
+
+  } catch (error) {
+    console.error('Error creating payment order:', error);
+
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({
+        success: false,
+        error: 'Failed to create payment order',
+        message: error.message
+      })
+    };
+  }
+};
+```
+
+#### Cashfree Webhook Handler Function
+```javascript
+// netlify/functions/cashfree-webhook.js
+const admin = require('firebase-admin');
+const crypto = require('crypto');
+
+// Initialize Firebase Admin SDK
+if (!admin.apps.length) {
+  const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
+    ? JSON.parse(Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_KEY, 'base64').toString())
+    : require('../../firebase-service-account.json');
+
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    projectId: process.env.FIREBASE_PROJECT_ID
+  });
+}
+
+const db = admin.firestore();
+
+// Webhook configuration
+const WEBHOOK_CONFIG = {
+  secret: process.env.CASHFREE_WEBHOOK_SECRET,
+  tolerance: 300 // 5 minutes tolerance for timestamp
+};
+
+// CORS headers
+const headers = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-webhook-signature, x-webhook-timestamp',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Content-Type': 'application/json'
+};
+
+/**
+ * Verify webhook signature
+ */
+function verifyWebhookSignature(payload, signature, timestamp) {
+  try {
+    // Check timestamp tolerance
+    const currentTime = Math.floor(Date.now() / 1000);
+    if (Math.abs(currentTime - parseInt(timestamp)) > WEBHOOK_CONFIG.tolerance) {
+      console.error('Webhook timestamp outside tolerance');
+      return false;
+    }
+
+    // Create signature string
+    const signatureString = `${timestamp}.${payload}`;
+
+    // Generate expected signature
+    const expectedSignature = crypto
+      .createHmac('sha256', WEBHOOK_CONFIG.secret)
+      .update(signatureString)
+      .digest('hex');
+
+    // Compare signatures
+    const providedSignature = signature.replace('v1=', '');
+    const isValid = crypto.timingSafeEqual(
+      Buffer.from(expectedSignature, 'hex'),
+      Buffer.from(providedSignature, 'hex')
+    );
+
+    console.log('Signature verification:', { isValid, expectedSignature, providedSignature });
+    return isValid;
+  } catch (error) {
+    console.error('Signature verification error:', error);
+    return false;
+  }
+}
+
+/**
+ * Process credit allocation after successful payment
+ */
+async function allocateCredits(orderData, paymentData) {
+  const { userId, packageType, creditsAmount, orderId } = orderData;
+
+  try {
+    console.log(`Allocating ${creditsAmount} ${packageType} credits to user ${userId}`);
+
+    // Use Firestore transaction for atomic credit update
+    await db.runTransaction(async (transaction) => {
+      const userRef = db.collection('users').doc(userId);
+      const userDoc = await transaction.get(userRef);
+
+      if (!userDoc.exists) {
+        throw new Error(`User ${userId} not found`);
+      }
+
+      const userData = userDoc.data();
+      const currentWallet = userData.wallet || {};
+
+      // Calculate new balances
+      const walletField = packageType === 'host' ? 'hostCredits' : 'tournamentCredits';
+      const totalField = packageType === 'host' ? 'totalPurchasedHostCredits' : 'totalPurchasedTournamentCredits';
+
+      const currentBalance = currentWallet[walletField] || 0;
+      const newBalance = currentBalance + creditsAmount;
+      const totalPurchased = (currentWallet[totalField] || 0) + creditsAmount;
+
+      // Update wallet
+      const updatedWallet = {
+        ...currentWallet,
+        [walletField]: newBalance,
+        [totalField]: totalPurchased,
+        firstPurchaseCompleted: true
+      };
+
+      // Update user document
+      transaction.update(userRef, { wallet: updatedWallet });
+
+      // Create transaction record
+      const transactionRef = db.collection('creditTransactions').doc();
+      const transactionData = {
+        id: transactionRef.id,
+        userId: userId,
+        type: packageType === 'host' ? 'host_credit_purchase' : 'tournament_credit_purchase',
+        amount: creditsAmount,
+        value: orderData.amount,
+        balanceBefore: currentBalance,
+        balanceAfter: newBalance,
+        walletType: walletField,
+        description: `Purchased ${orderData.packageName}`,
+        transactionDetails: {
+          packageId: orderData.packageId,
+          packageName: orderData.packageName,
+          paymentId: paymentData.payment_id,
+          orderId: orderId
+        },
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
+      };
+
+      transaction.set(transactionRef, transactionData);
+
+      console.log(`Credits allocated successfully: ${currentBalance} -> ${newBalance}`);
+    });
+
+    return { success: true, message: 'Credits allocated successfully' };
+  } catch (error) {
+    console.error('Credit allocation error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update payment order status
+ */
+async function updatePaymentOrderStatus(orderId, status, paymentData = null) {
+  try {
+    const orderRef = db.collection('paymentOrders').doc(orderId);
+    const updateData = {
+      status: status,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    };
+
+    if (paymentData) {
+      updateData.paymentData = paymentData;
+      updateData.completedAt = admin.firestore.FieldValue.serverTimestamp();
+    }
+
+    await orderRef.update(updateData);
+    console.log(`Payment order ${orderId} status updated to ${status}`);
+  } catch (error) {
+    console.error('Error updating payment order status:', error);
+    throw error;
+  }
+}
+
+exports.handler = async (event, context) => {
+  // Handle preflight requests
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers,
+      body: ''
+    };
+  }
+
+  if (event.httpMethod !== 'POST') {
+    return {
+      statusCode: 405,
+      headers,
+      body: JSON.stringify({ error: 'Method not allowed' })
+    };
+  }
+
+  try {
+    const payload = event.body;
+    const signature = event.headers['x-webhook-signature'];
+    const timestamp = event.headers['x-webhook-timestamp'];
+
+    console.log('Webhook received:', {
+      hasSignature: !!signature,
+      hasTimestamp: !!timestamp,
+      payloadLength: payload?.length
+    });
+
+    // Verify webhook signature
+    if (!signature || !timestamp) {
+      console.error('Missing webhook signature or timestamp');
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Missing signature or timestamp' })
+      };
+    }
+
+    if (!verifyWebhookSignature(payload, signature, timestamp)) {
+      console.error('Invalid webhook signature');
+      return {
+        statusCode: 401,
+        headers,
+        body: JSON.stringify({ error: 'Invalid signature' })
+      };
+    }
+
+    // Parse webhook data
+    const webhookData = JSON.parse(payload);
+    console.log('Webhook data:', webhookData);
+
+    const { type, data } = webhookData;
+    const { order, payment } = data;
+
+    if (!order || !order.order_id) {
+      console.error('Invalid webhook data: missing order information');
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Invalid webhook data' })
+      };
+    }
+
+    const orderId = order.order_id;
+
+    // Get order details from Firestore
+    const orderDoc = await db.collection('paymentOrders').doc(orderId).get();
+
+    if (!orderDoc.exists) {
+      console.error(`Order ${orderId} not found in database`);
+      return {
+        statusCode: 404,
+        headers,
+        body: JSON.stringify({ error: 'Order not found' })
+      };
+    }
+
+    const orderData = orderDoc.data();
+
+    // Process webhook based on type
+    switch (type) {
+      case 'PAYMENT_SUCCESS_WEBHOOK':
+        console.log(`Processing successful payment for order ${orderId}`);
+
+        // Allocate credits to user
+        await allocateCredits(orderData, payment);
+
+        // Update order status
+        await updatePaymentOrderStatus(orderId, 'PAID', payment);
+
+        console.log(`Payment ${orderId} processed successfully`);
+        break;
+
+      case 'PAYMENT_FAILED_WEBHOOK':
+        console.log(`Processing failed payment for order ${orderId}`);
+        await updatePaymentOrderStatus(orderId, 'FAILED', payment);
+        break;
+
+      case 'PAYMENT_USER_DROPPED_WEBHOOK':
+        console.log(`Processing cancelled payment for order ${orderId}`);
+        await updatePaymentOrderStatus(orderId, 'CANCELLED', payment);
+        break;
+
+      default:
+        console.log(`Unhandled webhook type: ${type}`);
+        break;
+    }
+
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({ success: true, message: 'Webhook processed successfully' })
+    };
+
+  } catch (error) {
+    console.error('Webhook processing error:', error);
+
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({
+        success: false,
+        error: 'Webhook processing failed',
+        message: error.message
+      })
+    };
+  }
+};
+```
+
+#### Payment Verification Function
+```javascript
+// netlify/functions/verify-payment-status.js
+const admin = require('firebase-admin');
+
+// Initialize Firebase Admin SDK
+if (!admin.apps.length) {
+  const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
+    ? JSON.parse(Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_KEY, 'base64').toString())
+    : require('../../firebase-service-account.json');
+
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    projectId: process.env.FIREBASE_PROJECT_ID
+  });
+}
+
+const db = admin.firestore();
+
+// Cashfree API configuration
+const CASHFREE_CONFIG = {
+  appId: process.env.CASHFREE_APP_ID,
+  secretKey: process.env.CASHFREE_SECRET_KEY,
+  environment: process.env.VITE_CASHFREE_ENVIRONMENT || 'sandbox',
+  baseUrl: process.env.VITE_CASHFREE_ENVIRONMENT === 'production'
+    ? 'https://api.cashfree.com/pg'
+    : 'https://sandbox.cashfree.com/pg'
+};
+
+// CORS headers
+const headers = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Content-Type': 'application/json'
+};
+
+exports.handler = async (event, context) => {
+  // Handle preflight requests
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers,
+      body: ''
+    };
+  }
+
+  if (event.httpMethod !== 'POST') {
+    return {
+      statusCode: 405,
+      headers,
+      body: JSON.stringify({ error: 'Method not allowed' })
+    };
+  }
+
+  try {
+    const { orderId } = JSON.parse(event.body);
+
+    if (!orderId) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          error: 'Order ID is required'
+        })
+      };
+    }
+
+    console.log(`Verifying payment status for order: ${orderId}`);
+
+    // Get order details from Firestore
+    const orderDoc = await db.collection('paymentOrders').doc(orderId).get();
+
+    if (!orderDoc.exists) {
+      return {
+        statusCode: 404,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          error: 'Order not found'
+        })
+      };
+    }
+
+    const orderData = orderDoc.data();
+
+    // Verify payment status with Cashfree
+    const cashfreeResponse = await fetch(
+      `${CASHFREE_CONFIG.baseUrl}/orders/${orderData.cashfreeOrderId}`,
+      {
+        method: 'GET',
+        headers: {
+          'x-api-version': '2023-08-01',
+          'x-client-id': CASHFREE_CONFIG.appId,
+          'x-client-secret': CASHFREE_CONFIG.secretKey
+        }
+      }
+    );
+
+    if (!cashfreeResponse.ok) {
+      throw new Error(`Cashfree API error: ${cashfreeResponse.status}`);
+    }
+
+    const cashfreeData = await cashfreeResponse.json();
+    console.log('Cashfree order status:', cashfreeData);
+
+    // Map Cashfree status to our status
+    const statusMapping = {
+      'PAID': 'success',
+      'ACTIVE': 'pending',
+      'EXPIRED': 'failed',
+      'CANCELLED': 'cancelled',
+      'TERMINATED': 'failed'
+    };
+
+    const paymentStatus = statusMapping[cashfreeData.order_status] || 'pending';
+
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({
+        success: true,
+        paymentStatus: paymentStatus,
+        orderDetails: {
+          orderId: orderData.orderId,
+          amount: orderData.amount,
+          packageName: orderData.packageName,
+          credits: orderData.creditsAmount,
+          status: orderData.status,
+          cashfreeStatus: cashfreeData.order_status
+        }
+      })
+    };
+
+  } catch (error) {
+    console.error('Payment verification error:', error);
+
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({
+        success: false,
+        error: 'Payment verification failed',
+        message: error.message
+      })
+    };
+  }
+};
+```
+
+### Webhook Processing Deep Dive
+
+#### Idempotency and Duplicate Handling
+```javascript
+// Enhanced webhook handler with idempotency
+async function processWebhookWithIdempotency(webhookData, orderId) {
+  const { type, data } = webhookData;
+  const { payment } = data;
+
+  // Create idempotency key
+  const idempotencyKey = `${type}_${orderId}_${payment?.payment_id || 'no_payment'}`;
+
+  try {
+    // Check if webhook already processed
+    const processedWebhookRef = db.collection('processedWebhooks').doc(idempotencyKey);
+    const processedDoc = await processedWebhookRef.get();
+
+    if (processedDoc.exists) {
+      console.log(`Webhook ${idempotencyKey} already processed, skipping`);
+      return { success: true, message: 'Already processed', skipped: true };
+    }
+
+    // Process the webhook
+    let result;
+    switch (type) {
+      case 'PAYMENT_SUCCESS_WEBHOOK':
+        result = await processSuccessfulPayment(orderId, payment);
+        break;
+      case 'PAYMENT_FAILED_WEBHOOK':
+        result = await processFailedPayment(orderId, payment);
+        break;
+      case 'PAYMENT_USER_DROPPED_WEBHOOK':
+        result = await processCancelledPayment(orderId, payment);
+        break;
+      default:
+        result = { success: true, message: `Unhandled webhook type: ${type}` };
+    }
+
+    // Mark webhook as processed
+    await processedWebhookRef.set({
+      webhookType: type,
+      orderId: orderId,
+      paymentId: payment?.payment_id,
+      processedAt: admin.firestore.FieldValue.serverTimestamp(),
+      result: result
+    });
+
+    console.log(`Webhook ${idempotencyKey} processed successfully`);
+    return result;
+
+  } catch (error) {
+    console.error(`Error processing webhook ${idempotencyKey}:`, error);
+    throw error;
+  }
+}
+
+async function processSuccessfulPayment(orderId, paymentData) {
+  try {
+    // Get order details
+    const orderDoc = await db.collection('paymentOrders').doc(orderId).get();
+    if (!orderDoc.exists) {
+      throw new Error(`Order ${orderId} not found`);
+    }
+
+    const orderData = orderDoc.data();
+
+    // Check if already processed
+    if (orderData.status === 'PAID') {
+      console.log(`Order ${orderId} already marked as paid`);
+      return { success: true, message: 'Already processed' };
+    }
+
+    // Allocate credits
+    await allocateCredits(orderData, paymentData);
+
+    // Update order status
+    await updatePaymentOrderStatus(orderId, 'PAID', paymentData);
+
+    return { success: true, message: 'Payment processed successfully' };
+  } catch (error) {
+    console.error(`Error processing successful payment for ${orderId}:`, error);
+    throw error;
+  }
+}
+
+async function processFailedPayment(orderId, paymentData) {
+  try {
+    await updatePaymentOrderStatus(orderId, 'FAILED', paymentData);
+    return { success: true, message: 'Failed payment processed' };
+  } catch (error) {
+    console.error(`Error processing failed payment for ${orderId}:`, error);
+    throw error;
+  }
+}
+
+async function processCancelledPayment(orderId, paymentData) {
+  try {
+    await updatePaymentOrderStatus(orderId, 'CANCELLED', paymentData);
+    return { success: true, message: 'Cancelled payment processed' };
+  } catch (error) {
+    console.error(`Error processing cancelled payment for ${orderId}:`, error);
+    throw error;
+  }
+}
+```
+
+### Credit Allocation After Payment
+
+#### Enhanced Credit Allocation with Validation
+```javascript
+// Enhanced credit allocation with comprehensive validation
+async function allocateCreditsWithValidation(orderData, paymentData) {
+  const { userId, packageType, creditsAmount, orderId, amount } = orderData;
+
+  // Validation checks
+  if (!userId || !packageType || !creditsAmount || creditsAmount <= 0) {
+    throw new Error('Invalid order data for credit allocation');
+  }
+
+  if (!paymentData || !paymentData.payment_id) {
+    throw new Error('Invalid payment data');
+  }
+
+  // Verify payment amount matches order amount
+  if (paymentData.payment_amount !== amount) {
+    console.warn(`Payment amount mismatch: expected ${amount}, received ${paymentData.payment_amount}`);
+  }
+
+  try {
+    console.log(`Allocating ${creditsAmount} ${packageType} credits to user ${userId}`);
+
+    const result = await db.runTransaction(async (transaction) => {
+      // Get user document
+      const userRef = db.collection('users').doc(userId);
+      const userDoc = await transaction.get(userRef);
+
+      if (!userDoc.exists) {
+        throw new Error(`User ${userId} not found`);
+      }
+
+      const userData = userDoc.data();
+      const currentWallet = userData.wallet || {};
+
+      // Determine wallet fields
+      const walletField = packageType === 'host' ? 'hostCredits' : 'tournamentCredits';
+      const totalField = packageType === 'host' ? 'totalPurchasedHostCredits' : 'totalPurchasedTournamentCredits';
+
+      // Calculate new balances
+      const currentBalance = currentWallet[walletField] || 0;
+      const newBalance = currentBalance + creditsAmount;
+      const totalPurchased = (currentWallet[totalField] || 0) + creditsAmount;
+
+      // Update wallet
+      const updatedWallet = {
+        ...currentWallet,
+        [walletField]: newBalance,
+        [totalField]: totalPurchased,
+        firstPurchaseCompleted: true,
+        lastPurchaseAt: admin.firestore.FieldValue.serverTimestamp()
+      };
+
+      // Update user document
+      transaction.update(userRef, {
+        wallet: updatedWallet,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+
+      // Create transaction record
+      const transactionRef = db.collection('creditTransactions').doc();
+      const transactionData = {
+        id: transactionRef.id,
+        userId: userId,
+        type: packageType === 'host' ? 'host_credit_purchase' : 'tournament_credit_purchase',
+        amount: creditsAmount,
+        value: amount,
+        balanceBefore: currentBalance,
+        balanceAfter: newBalance,
+        walletType: walletField,
+        description: `Purchased ${orderData.packageName}`,
+        transactionDetails: {
+          packageId: orderData.packageId,
+          packageName: orderData.packageName,
+          paymentId: paymentData.payment_id,
+          orderId: orderId,
+          paymentMethod: paymentData.payment_method,
+          paymentAmount: paymentData.payment_amount
+        },
+        status: 'COMPLETED',
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
+      };
+
+      transaction.set(transactionRef, transactionData);
+
+      return {
+        previousBalance: currentBalance,
+        newBalance: newBalance,
+        creditsAdded: creditsAmount,
+        transactionId: transactionRef.id
+      };
+    });
+
+    console.log(`Credits allocated successfully:`, result);
+    return { success: true, ...result };
+
+  } catch (error) {
+    console.error('Credit allocation error:', error);
+
+    // Log failed allocation attempt
+    try {
+      await db.collection('failedCreditAllocations').add({
+        orderId: orderId,
+        userId: userId,
+        packageType: packageType,
+        creditsAmount: creditsAmount,
+        error: error.message,
+        orderData: orderData,
+        paymentData: paymentData,
+        timestamp: admin.firestore.FieldValue.serverTimestamp()
+      });
+    } catch (logError) {
+      console.error('Failed to log credit allocation error:', logError);
+    }
+
+    throw error;
+  }
+}
+```
+
+### Error Handling and Retry Logic
+
+#### Comprehensive Error Handling
+```javascript
+// Enhanced error handling for webhook processing
+class WebhookError extends Error {
+  constructor(message, code, retryable = false) {
+    super(message);
+    this.name = 'WebhookError';
+    this.code = code;
+    this.retryable = retryable;
+  }
+}
+
+async function processWebhookWithRetry(webhookData, orderId, maxRetries = 3) {
+  let lastError;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`Processing webhook attempt ${attempt}/${maxRetries} for order ${orderId}`);
+
+      const result = await processWebhookWithIdempotency(webhookData, orderId);
+
+      // Success - log and return
+      console.log(`Webhook processed successfully on attempt ${attempt}`);
+      return result;
+
+    } catch (error) {
+      lastError = error;
+      console.error(`Webhook processing attempt ${attempt} failed:`, error);
+
+      // Check if error is retryable
+      if (!isRetryableError(error) || attempt === maxRetries) {
+        break;
+      }
+
+      // Wait before retry (exponential backoff)
+      const delay = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
+      console.log(`Retrying in ${delay}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+
+  // All retries failed
+  console.error(`All ${maxRetries} webhook processing attempts failed for order ${orderId}`);
+
+  // Log failed webhook for manual review
+  await logFailedWebhook(webhookData, orderId, lastError);
+
+  throw new WebhookError(
+    `Webhook processing failed after ${maxRetries} attempts: ${lastError.message}`,
+    'WEBHOOK_PROCESSING_FAILED',
+    false
+  );
+}
+
+function isRetryableError(error) {
+  // Network errors, timeouts, and temporary service errors are retryable
+  const retryableErrors = [
+    'ECONNRESET',
+    'ENOTFOUND',
+    'ECONNREFUSED',
+    'ETIMEDOUT',
+    'NETWORK_ERROR',
+    'SERVICE_UNAVAILABLE'
+  ];
+
+  return retryableErrors.some(code =>
+    error.code === code ||
+    error.message.includes(code) ||
+    error.message.includes('timeout') ||
+    error.message.includes('network')
+  );
+}
+
+async function logFailedWebhook(webhookData, orderId, error) {
+  try {
+    await db.collection('failedWebhooks').add({
+      webhookData: webhookData,
+      orderId: orderId,
+      error: {
+        message: error.message,
+        code: error.code,
+        stack: error.stack
+      },
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      needsManualReview: true
+    });
+
+    console.log(`Failed webhook logged for manual review: ${orderId}`);
+  } catch (logError) {
+    console.error('Failed to log webhook error:', logError);
+  }
+}
+```
+
+---
+
+## Testing Procedures and Validation
+
+### Overview
+This section provides comprehensive testing procedures for the Cashfree payment integration, including local development testing, automated testing scripts, and manual testing procedures to ensure the payment system works correctly.
+
+### Local Development Testing Setup
+
+#### Test Environment Configuration
+```bash
+# .env.test - Test environment configuration
+VITE_CASHFREE_APP_ID=your_test_app_id_here
+CASHFREE_APP_ID=your_test_app_id_here
+CASHFREE_SECRET_KEY=your_test_secret_key_here
+CASHFREE_WEBHOOK_SECRET=your_test_webhook_secret_here
+VITE_CASHFREE_ENVIRONMENT=sandbox
+
+# Test URLs
+VITE_APP_URL=https://abc123.ngrok.io
+NEXT_PUBLIC_APP_URL=https://abc123.ngrok.io
+
+# Firebase Test Project
+FIREBASE_PROJECT_ID=your-test-project-id
+VITE_FIREBASE_API_KEY=your-test-firebase-api-key
+VITE_FIREBASE_AUTH_DOMAIN=your-test-project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your-test-project-id
+VITE_FIREBASE_STORAGE_BUCKET=your-test-project.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
+VITE_FIREBASE_APP_ID=1:123456789:web:abcdef
+
+# Service Account for Functions
+FIREBASE_SERVICE_ACCOUNT_KEY=base64_encoded_test_service_account_json
+```
+
+#### Test Data Setup
+```typescript
+// src/utils/testData.ts
+export const TEST_CREDIT_PACKAGES = {
+  tournament: [
+    {
+      id: 'test_starter_pack',
+      name: 'Test Starter Pack',
+      credits: 10,
+      price: 1, // Minimum amount for testing
+      features: ['10 Tournament Credits', 'Test package']
+    },
+    {
+      id: 'test_popular_pack',
+      name: 'Test Popular Pack',
+      credits: 50,
+      price: 5,
+      isPopular: true,
+      features: ['50 Tournament Credits', 'Popular test package']
+    }
+  ],
+  host: [
+    {
+      id: 'test_basic_host',
+      name: 'Test Basic Host',
+      credits: 1,
+      price: 1,
+      features: ['1 Tournament Creation', 'Test hosting']
+    },
+    {
+      id: 'test_premium_host',
+      name: 'Test Premium Host',
+      credits: 5,
+      price: 5,
+      features: ['5 Tournament Creations', 'Premium test hosting']
+    }
+  ]
+};
+
+export const TEST_USER_DATA = {
+  uid: 'test_user_123',
+  email: 'test@example.com',
+  displayName: 'Test User',
+  phoneNumber: '9999999999'
+};
+
+export const TEST_PAYMENT_METHODS = {
+  success: {
+    upi: 'testsuccess@gocash',
+    card: {
+      number: '4111111111111111',
+      expiry: '12/25',
+      cvv: '123'
+    }
+  },
+  failure: {
+    upi: 'testfailure@gocash',
+    card: {
+      number: '4000000000000002',
+      expiry: '12/25',
+      cvv: '123'
+    }
+  }
+};
+```
+
+#### Local Testing Script
+```bash
+#!/bin/bash
+# scripts/test-local-setup.sh
+
+echo "🚀 Setting up local testing environment..."
+
+# Check if required tools are installed
+command -v node >/dev/null 2>&1 || { echo "❌ Node.js is required but not installed."; exit 1; }
+command -v ngrok >/dev/null 2>&1 || { echo "❌ ngrok is required but not installed."; exit 1; }
+
+# Start development server
+echo "📦 Starting development server..."
+npm run dev &
+DEV_PID=$!
+
+# Wait for server to start
+sleep 5
+
+# Start ngrok tunnel
+echo "🌐 Starting ngrok tunnel..."
+ngrok http 8080 --log=stdout > ngrok.log &
+NGROK_PID=$!
+
+# Wait for ngrok to start
+sleep 3
+
+# Get ngrok URL
+NGROK_URL=$(curl -s http://localhost:4040/api/tunnels | jq -r '.tunnels[0].public_url')
+echo "🔗 Ngrok URL: $NGROK_URL"
+
+# Update environment variables
+echo "VITE_APP_URL=$NGROK_URL" >> .env.local
+echo "NEXT_PUBLIC_APP_URL=$NGROK_URL" >> .env.local
+
+echo "✅ Local testing environment ready!"
+echo "📝 Update your Cashfree webhook URL to: $NGROK_URL/.netlify/functions/cashfree-webhook"
+echo "🧪 You can now test payments using the test credentials"
+
+# Cleanup function
+cleanup() {
+    echo "🧹 Cleaning up..."
+    kill $DEV_PID 2>/dev/null
+    kill $NGROK_PID 2>/dev/null
+    exit
+}
+
+# Set trap for cleanup
+trap cleanup SIGINT SIGTERM
+
+# Keep script running
+wait
+```
+
+### Comprehensive Testing Checklist
+
+#### Pre-Testing Setup Checklist
+- [ ] **Environment Variables**: All required environment variables are set
+- [ ] **Firebase Project**: Test Firebase project is configured
+- [ ] **Cashfree Account**: Sandbox account is set up and verified
+- [ ] **API Keys**: Test API keys are generated and configured
+- [ ] **Webhook URL**: Ngrok tunnel is running and webhook URL is updated
+- [ ] **Dependencies**: All npm packages are installed
+- [ ] **Database**: Test Firestore database is accessible
+- [ ] **Functions**: Netlify functions are deployed and accessible
+
+#### Payment Flow Testing Checklist
+
+**1. Order Creation Testing**
+- [ ] **Valid Order Creation**: Test with valid package data
+- [ ] **Invalid Data Handling**: Test with missing required fields
+- [ ] **User Authentication**: Test with authenticated and unauthenticated users
+- [ ] **Package Validation**: Test with valid and invalid package IDs
+- [ ] **Amount Validation**: Test with various amount values
+- [ ] **Database Storage**: Verify order is stored in Firestore
+- [ ] **Response Format**: Verify correct response structure
+
+**2. Payment Processing Testing**
+- [ ] **Successful UPI Payment**: Test with `testsuccess@gocash`
+- [ ] **Failed UPI Payment**: Test with `testfailure@gocash`
+- [ ] **Successful Card Payment**: Test with valid test card
+- [ ] **Failed Card Payment**: Test with invalid test card
+- [ ] **Payment Cancellation**: Test user cancelling payment
+- [ ] **Payment Timeout**: Test payment session timeout
+- [ ] **Multiple Payment Attempts**: Test retry scenarios
+
+**3. Webhook Processing Testing**
+- [ ] **Success Webhook**: Verify successful payment webhook processing
+- [ ] **Failure Webhook**: Verify failed payment webhook processing
+- [ ] **Cancel Webhook**: Verify cancelled payment webhook processing
+- [ ] **Duplicate Webhooks**: Test idempotency with duplicate webhooks
+- [ ] **Invalid Signature**: Test webhook with invalid signature
+- [ ] **Missing Data**: Test webhook with missing required data
+- [ ] **Webhook Retry**: Test webhook retry mechanism
+
+**4. Credit Allocation Testing**
+- [ ] **Tournament Credits**: Verify tournament credits are added correctly
+- [ ] **Host Credits**: Verify host credits are added correctly
+- [ ] **Balance Updates**: Verify user wallet balance updates
+- [ ] **Transaction Records**: Verify transaction history is created
+- [ ] **First Purchase Flag**: Verify first purchase flag is set
+- [ ] **Concurrent Payments**: Test multiple simultaneous payments
+- [ ] **Failed Allocation Recovery**: Test recovery from failed allocations
+
+### Automated Testing Scripts
+
+#### Payment Flow Test Suite
+```typescript
+// tests/payment-flow.test.ts
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { CashfreeService } from '@/lib/cashfree-service';
+import { TEST_CREDIT_PACKAGES, TEST_USER_DATA } from '@/utils/testData';
+
+describe('Payment Flow Integration', () => {
+  let cashfreeService: CashfreeService;
+
+  beforeEach(() => {
+    cashfreeService = CashfreeService.getInstance();
+    // Mock user authentication
+    vi.mocked(useAuth).mockReturnValue({
+      currentUser: TEST_USER_DATA,
+      loading: false
+    });
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('Order Creation', () => {
+    it('should create payment order successfully', async () => {
+      const mockResponse = {
+        success: true,
+        order_id: 'test_order_123',
+        payment_session_id: 'test_session_123'
+      };
+
+      global.fetch = vi.fn().mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse
+      });
+
+      const orderParams = {
+        orderAmount: 50,
+        customerName: 'Test User',
+        customerEmail: 'test@example.com',
+        customerPhone: '9999999999',
+        orderNote: 'Test order',
+        userId: 'test_user_123',
+        packageId: 'test_starter_pack',
+        packageType: 'tournament' as const,
+        creditsAmount: 50
+      };
+
+      const result = await cashfreeService.createPaymentOrder(orderParams);
+
+      expect(result.success).toBe(true);
+      expect(result.order_id).toBe('test_order_123');
+      expect(result.payment_session_id).toBe('test_session_123');
+    });
+
+    it('should handle order creation failure', async () => {
+      global.fetch = vi.fn().mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        text: async () => 'Bad Request'
+      });
+
+      const orderParams = {
+        orderAmount: 50,
+        customerName: 'Test User',
+        customerEmail: 'test@example.com',
+        customerPhone: '9999999999',
+        orderNote: 'Test order',
+        userId: 'test_user_123',
+        packageId: 'test_starter_pack',
+        packageType: 'tournament' as const,
+        creditsAmount: 50
+      };
+
+      const result = await cashfreeService.createPaymentOrder(orderParams);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('HTTP 400');
+    });
+  });
+
+  describe('Credit Purchase Component', () => {
+    it('should render package details correctly', () => {
+      const testPackage = TEST_CREDIT_PACKAGES.tournament[0];
+
+      render(
+        <CreditPurchaseButton
+          packageData={testPackage}
+          packageType="tournament"
+        />
+      );
+
+      expect(screen.getByText(`Buy for ₹${testPackage.price}`)).toBeInTheDocument();
+    });
+
+    it('should handle purchase button click', async () => {
+      const testPackage = TEST_CREDIT_PACKAGES.tournament[0];
+      const mockCreateOrder = vi.fn().mockResolvedValue({
+        success: true,
+        payment_session_id: 'test_session'
+      });
+
+      cashfreeService.createPaymentOrder = mockCreateOrder;
+
+      render(
+        <CreditPurchaseButton
+          packageData={testPackage}
+          packageType="tournament"
+        />
+      );
+
+      const buyButton = screen.getByText(`Buy for ₹${testPackage.price}`);
+      fireEvent.click(buyButton);
+
+      await waitFor(() => {
+        expect(mockCreateOrder).toHaveBeenCalledWith(
+          expect.objectContaining({
+            packageId: testPackage.id,
+            packageType: 'tournament',
+            creditsAmount: testPackage.credits
+          })
+        );
+      });
+    });
+  });
+});
+```
+
+#### Webhook Testing Suite
+```typescript
+// tests/webhook.test.ts
+import { describe, it, expect, beforeEach } from 'vitest';
+import { handler } from '../netlify/functions/cashfree-webhook';
+
+describe('Webhook Processing', () => {
+  const mockEvent = {
+    httpMethod: 'POST',
+    headers: {
+      'x-webhook-signature': 'v1=test_signature',
+      'x-webhook-timestamp': Math.floor(Date.now() / 1000).toString()
+    },
+    body: JSON.stringify({
+      type: 'PAYMENT_SUCCESS_WEBHOOK',
+      data: {
+        order: {
+          order_id: 'test_order_123',
+          order_amount: 50,
+          order_status: 'PAID'
+        },
+        payment: {
+          payment_id: 'test_payment_123',
+          payment_status: 'SUCCESS',
+          payment_amount: 50,
+          payment_method: 'upi'
+        }
+      }
+    })
+  };
+
+  beforeEach(() => {
+    // Mock Firebase Admin
+    vi.mock('firebase-admin', () => ({
+      apps: { length: 0 },
+      initializeApp: vi.fn(),
+      credential: {
+        cert: vi.fn()
+      },
+      firestore: vi.fn(() => ({
+        collection: vi.fn(() => ({
+          doc: vi.fn(() => ({
+            get: vi.fn().mockResolvedValue({
+              exists: true,
+              data: () => ({
+                userId: 'test_user_123',
+                packageType: 'tournament',
+                creditsAmount: 50,
+                status: 'CREATED'
+              })
+            }),
+            update: vi.fn()
+          }))
+        })),
+        runTransaction: vi.fn()
+      })),
+      FieldValue: {
+        serverTimestamp: vi.fn()
+      }
+    }));
+  });
+
+  it('should process successful payment webhook', async () => {
+    const result = await handler(mockEvent, {});
+
+    expect(result.statusCode).toBe(200);
+    const body = JSON.parse(result.body);
+    expect(body.success).toBe(true);
+  });
+
+  it('should reject webhook with invalid signature', async () => {
+    const invalidEvent = {
+      ...mockEvent,
+      headers: {
+        ...mockEvent.headers,
+        'x-webhook-signature': 'invalid_signature'
+      }
+    };
+
+    const result = await handler(invalidEvent, {});
+
+    expect(result.statusCode).toBe(401);
+    const body = JSON.parse(result.body);
+    expect(body.error).toBe('Invalid signature');
+  });
+
+  it('should handle missing webhook data', async () => {
+    const invalidEvent = {
+      ...mockEvent,
+      body: JSON.stringify({
+        type: 'PAYMENT_SUCCESS_WEBHOOK',
+        data: {} // Missing order data
+      })
+    };
+
+    const result = await handler(invalidEvent, {});
+
+    expect(result.statusCode).toBe(400);
+    const body = JSON.parse(result.body);
+    expect(body.error).toBe('Invalid webhook data');
+  });
+});
+```
+
+---
   isActive: boolean;
 }
 ```
