@@ -4839,6 +4839,474 @@ const PackageRecommendation = ({ userProfile, packages, onSelectRecommended }: P
 export default PackageRecommendation;
 ```
 
+### Responsive Design Implementation
+
+#### Mobile-First Package Grid
+```typescript
+// src/components/credits/ResponsivePackageGrid.tsx
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ChevronLeft, ChevronRight, Grid, List } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import PackageCard from "./PackageCard";
+
+interface ResponsivePackageGridProps {
+  packages: CreditPackage[];
+  onPurchase: (pkg: CreditPackage) => void;
+  isProcessingPayment: string | null;
+}
+
+const ResponsivePackageGrid = ({ packages, onPurchase, isProcessingPayment }: ResponsivePackageGridProps) => {
+  const [viewMode, setViewMode] = useState<'grid' | 'carousel'>('grid');
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+      setViewMode(window.innerWidth < 768 ? 'carousel' : 'grid');
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  const nextPackage = () => {
+    setCurrentIndex((prev) => (prev + 1) % packages.length);
+  };
+
+  const prevPackage = () => {
+    setCurrentIndex((prev) => (prev - 1 + packages.length) % packages.length);
+  };
+
+  const goToPackage = (index: number) => {
+    setCurrentIndex(index);
+  };
+
+  if (viewMode === 'carousel' && isMobile) {
+    return (
+      <div className="space-y-4">
+        {/* View Mode Toggle */}
+        <div className="flex justify-center gap-2">
+          <Button
+            variant={viewMode === 'carousel' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('carousel')}
+            className="flex items-center gap-2"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Carousel
+          </Button>
+          <Button
+            variant={viewMode === 'grid' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('grid')}
+            className="flex items-center gap-2"
+          >
+            <Grid className="h-4 w-4" />
+            Grid
+          </Button>
+        </div>
+
+        {/* Mobile Carousel */}
+        <div className="relative overflow-hidden">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentIndex}
+              initial={{ opacity: 0, x: 300 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -300 }}
+              transition={{ duration: 0.3, type: "spring", stiffness: 100 }}
+              className="w-full"
+            >
+              <PackageCard
+                package={packages[currentIndex]}
+                onPurchase={onPurchase}
+                isProcessing={isProcessingPayment === packages[currentIndex].id}
+                animationDelay={0}
+              />
+            </motion.div>
+          </AnimatePresence>
+
+          {/* Navigation Buttons */}
+          <div className="flex justify-between items-center mt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={prevPackage}
+              disabled={packages.length <= 1}
+              className="flex items-center gap-2"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Previous
+            </Button>
+
+            {/* Package Indicators */}
+            <div className="flex gap-2">
+              {packages.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => goToPackage(index)}
+                  className={`w-2 h-2 rounded-full transition-all duration-200 ${
+                    index === currentIndex
+                      ? 'bg-gaming-accent w-6'
+                      : 'bg-gaming-muted/50'
+                  }`}
+                />
+              ))}
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={nextPackage}
+              disabled={packages.length <= 1}
+              className="flex items-center gap-2"
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* Package Counter */}
+          <div className="text-center mt-2">
+            <Badge variant="outline" className="text-xs">
+              {currentIndex + 1} of {packages.length}
+            </Badge>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Desktop Grid View
+  return (
+    <div className="space-y-4">
+      {/* View Mode Toggle (Desktop) */}
+      {!isMobile && (
+        <div className="flex justify-end gap-2">
+          <Button
+            variant={viewMode === 'grid' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('grid')}
+            className="flex items-center gap-2"
+          >
+            <Grid className="h-4 w-4" />
+            Grid View
+          </Button>
+          <Button
+            variant={viewMode === 'carousel' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('carousel')}
+            className="flex items-center gap-2"
+          >
+            <List className="h-4 w-4" />
+            List View
+          </Button>
+        </div>
+      )}
+
+      {/* Responsive Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 md:gap-6">
+        {packages.map((pkg, index) => (
+          <PackageCard
+            key={pkg.id}
+            package={pkg}
+            onPurchase={onPurchase}
+            isProcessing={isProcessingPayment === pkg.id}
+            animationDelay={index * 0.1}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default ResponsivePackageGrid;
+```
+
+#### Mobile Package Summary Component
+```typescript
+// src/components/credits/MobilePackageSummary.tsx
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Coins, CreditCard, Star, Crown } from "lucide-react";
+import { motion } from "framer-motion";
+
+interface MobilePackageSummaryProps {
+  packages: CreditPackage[];
+  packageType: 'tournament' | 'host';
+}
+
+const MobilePackageSummary = ({ packages, packageType }: MobilePackageSummaryProps) => {
+  const getPackageIcon = (pkg: CreditPackage) => {
+    if (pkg.isPopular) return <Star className="h-4 w-4 text-gaming-accent" />;
+    if (pkg.isBestValue) return <Crown className="h-4 w-4 text-green-500" />;
+    return packageType === 'tournament'
+      ? <Coins className="h-4 w-4 text-gaming-accent" />
+      : <CreditCard className="h-4 w-4 text-gaming-primary" />;
+  };
+
+  const sortedPackages = [...packages].sort((a, b) => a.price - b.price);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="md:hidden mb-6"
+    >
+      <Card className="bg-gaming-card/30 border-gaming-border">
+        <CardContent className="p-4">
+          <h3 className="font-semibold text-gaming-text mb-3 flex items-center gap-2">
+            {packageType === 'tournament' ? (
+              <>
+                <Coins className="h-5 w-5 text-gaming-accent" />
+                Tournament Credit Packages
+              </>
+            ) : (
+              <>
+                <CreditCard className="h-5 w-5 text-gaming-primary" />
+                Host Credit Packages
+              </>
+            )}
+          </h3>
+
+          <div className="space-y-2">
+            {sortedPackages.map((pkg) => (
+              <div key={pkg.id} className="flex items-center justify-between p-2 bg-gaming-bg/30 rounded-lg">
+                <div className="flex items-center gap-2">
+                  {getPackageIcon(pkg)}
+                  <div>
+                    <span className="text-sm font-medium text-gaming-text">{pkg.name}</span>
+                    {(pkg.isPopular || pkg.isBestValue) && (
+                      <div className="flex gap-1 mt-1">
+                        {pkg.isPopular && (
+                          <Badge className="bg-gaming-accent text-white text-xs px-1 py-0">
+                            Popular
+                          </Badge>
+                        )}
+                        {pkg.isBestValue && (
+                          <Badge className="bg-green-500 text-white text-xs px-1 py-0">
+                            Best Value
+                          </Badge>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <div className="text-sm font-bold text-gaming-text">₹{pkg.price}</div>
+                  <div className="text-xs text-gaming-muted">{pkg.credits} credits</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-3 text-xs text-gaming-muted text-center">
+            Swipe through packages above to see details and purchase
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+};
+
+export default MobilePackageSummary;
+```
+
+### User Experience Enhancements
+
+#### Package Loading Skeleton
+```typescript
+// src/components/credits/PackageLoadingSkeleton.tsx
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+
+interface PackageLoadingSkeletonProps {
+  count?: number;
+}
+
+const PackageLoadingSkeleton = ({ count = 5 }: PackageLoadingSkeletonProps) => {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+      {Array.from({ length: count }).map((_, index) => (
+        <Card key={index} className="bg-gaming-card/30 border-gaming-border">
+          <CardHeader className="text-center pb-4">
+            <div className="flex justify-center mb-3">
+              <Skeleton className="h-12 w-12 rounded-full" />
+            </div>
+            <Skeleton className="h-6 w-24 mx-auto mb-2" />
+            <Skeleton className="h-8 w-16 mx-auto mb-1" />
+            <Skeleton className="h-4 w-20 mx-auto mb-1" />
+            <Skeleton className="h-3 w-32 mx-auto" />
+          </CardHeader>
+
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              {Array.from({ length: 4 }).map((_, featureIndex) => (
+                <div key={featureIndex} className="flex items-center gap-2">
+                  <Skeleton className="h-4 w-4 rounded-full" />
+                  <Skeleton className="h-3 flex-1" />
+                </div>
+              ))}
+            </div>
+            <Skeleton className="h-10 w-full" />
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+};
+
+export default PackageLoadingSkeleton;
+```
+
+#### Package Purchase Success Animation
+```typescript
+// src/components/credits/PurchaseSuccessAnimation.tsx
+import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { CheckCircle, Coins, CreditCard, Sparkles } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+
+interface PurchaseSuccessAnimationProps {
+  isVisible: boolean;
+  packageName: string;
+  credits: number;
+  packageType: 'tournament' | 'host';
+  onComplete: () => void;
+}
+
+const PurchaseSuccessAnimation = ({
+  isVisible,
+  packageName,
+  credits,
+  packageType,
+  onComplete
+}: PurchaseSuccessAnimationProps) => {
+  const [step, setStep] = useState(0);
+
+  useEffect(() => {
+    if (isVisible) {
+      const timer1 = setTimeout(() => setStep(1), 500);
+      const timer2 = setTimeout(() => setStep(2), 1500);
+      const timer3 = setTimeout(() => setStep(3), 2500);
+      const timer4 = setTimeout(() => {
+        onComplete();
+        setStep(0);
+      }, 4000);
+
+      return () => {
+        clearTimeout(timer1);
+        clearTimeout(timer2);
+        clearTimeout(timer3);
+        clearTimeout(timer4);
+      };
+    }
+  }, [isVisible, onComplete]);
+
+  return (
+    <AnimatePresence>
+      {isVisible && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+        >
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.8, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 100 }}
+          >
+            <Card className="bg-gaming-card border-gaming-border max-w-md w-full">
+              <CardContent className="p-8 text-center">
+                {/* Success Icon */}
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: step >= 1 ? 1 : 0 }}
+                  transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
+                  className="mb-6"
+                >
+                  <div className="relative">
+                    <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
+                    <motion.div
+                      initial={{ scale: 0, opacity: 0 }}
+                      animate={{ scale: step >= 2 ? 1 : 0, opacity: step >= 2 ? 1 : 0 }}
+                      transition={{ duration: 0.5 }}
+                      className="absolute -top-2 -right-2"
+                    >
+                      <Sparkles className="h-6 w-6 text-gaming-accent" />
+                    </motion.div>
+                  </div>
+                </motion.div>
+
+                {/* Success Message */}
+                <motion.div
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: step >= 1 ? 0 : 20, opacity: step >= 1 ? 1 : 0 }}
+                  transition={{ delay: 0.5 }}
+                  className="mb-6"
+                >
+                  <h2 className="text-2xl font-bold text-gaming-text mb-2">
+                    Purchase Successful!
+                  </h2>
+                  <p className="text-gaming-muted">
+                    Your {packageName} has been activated
+                  </p>
+                </motion.div>
+
+                {/* Credits Display */}
+                <motion.div
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: step >= 2 ? 0 : 20, opacity: step >= 2 ? 1 : 0 }}
+                  transition={{ delay: 1 }}
+                  className="bg-gaming-bg/50 rounded-lg p-4 mb-6"
+                >
+                  <div className="flex items-center justify-center gap-3">
+                    {packageType === 'tournament' ? (
+                      <Coins className="h-8 w-8 text-gaming-accent" />
+                    ) : (
+                      <CreditCard className="h-8 w-8 text-gaming-primary" />
+                    )}
+                    <div>
+                      <div className="text-2xl font-bold text-gaming-text">
+                        +{credits}
+                      </div>
+                      <div className="text-sm text-gaming-muted">
+                        {packageType === 'tournament' ? 'Tournament' : 'Host'} Credits
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* Celebration Animation */}
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: step >= 3 ? 1 : 0 }}
+                  transition={{ type: "spring", stiffness: 150 }}
+                  className="text-gaming-accent"
+                >
+                  🎉 Ready to game! 🎉
+                </motion.div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
+
+export default PurchaseSuccessAnimation;
+```
+
 ---
 
 ## Converting Existing Rupees System to Credits
