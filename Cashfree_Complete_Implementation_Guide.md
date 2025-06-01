@@ -3848,6 +3848,997 @@ export default LowCreditAlert;
 
 ## Subscription/Packages Page Implementation
 
+### Overview
+The subscription/packages page is the central hub where users can purchase tournament credits and host credits. This implementation provides a modern, responsive, and user-friendly interface with clear pricing, package comparisons, and seamless payment integration.
+
+#### Key Features
+- **Dual Package Types**: Tournament credits and host credits with clear separation
+- **Responsive Design**: Mobile-first approach with optimal viewing on all devices
+- **Interactive UI**: Hover effects, animations, and visual feedback
+- **Payment Integration**: Direct integration with Cashfree payment gateway
+- **User Context**: Shows current credit balance and personalized recommendations
+- **Accessibility**: WCAG compliant with proper ARIA labels and keyboard navigation
+
+### Credits Page Implementation
+
+#### Main Credits Page Component
+```typescript
+// src/pages/Credits.tsx
+import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useCreditBalance } from "@/hooks/useCreditBalance";
+import { CashfreeService } from "@/lib/cashfreeService";
+import NotchHeader from "@/components/NotchHeader";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { toast } from "@/components/ui/use-toast";
+import {
+  Coins,
+  CreditCard,
+  Star,
+  Crown,
+  Zap,
+  Trophy,
+  Users,
+  Loader2,
+  CheckCircle,
+  ArrowRight,
+  Sparkles,
+  Target,
+  Shield
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+
+interface CreditPackage {
+  id: string;
+  name: string;
+  credits: number;
+  price: number;
+  originalPrice?: number; // For showing discounts
+  isPopular?: boolean;
+  isBestValue?: boolean;
+  isSpecialOffer?: boolean;
+  offerType?: 'welcome' | 'weekend' | 'season' | 'referral';
+  features: string[];
+  icon: React.ReactNode;
+  gradient: string;
+  description: string;
+  savings?: string;
+}
+
+const Credits = () => {
+  const { currentUser } = useAuth();
+  const {
+    hostCredits,
+    tournamentCredits,
+    earnings,
+    firstPurchaseCompleted,
+    isLoading: creditsLoading
+  } = useCreditBalance(currentUser?.uid);
+
+  const [isProcessingPayment, setIsProcessingPayment] = useState<string | null>(null);
+  const [selectedPackageType, setSelectedPackageType] = useState<'tournament' | 'host'>('tournament');
+  const [showWelcomeOffer, setShowWelcomeOffer] = useState(false);
+
+  // Check if user is eligible for welcome offer
+  useEffect(() => {
+    if (!firstPurchaseCompleted && !creditsLoading) {
+      setShowWelcomeOffer(true);
+    }
+  }, [firstPurchaseCompleted, creditsLoading]);
+
+  // Tournament Credit Packages (5 packages)
+  const tournamentPackages: CreditPackage[] = [
+    {
+      id: 'starter_pack',
+      name: 'Starter Pack',
+      credits: 50,
+      price: 50,
+      originalPrice: !firstPurchaseCompleted ? 60 : undefined,
+      isSpecialOffer: !firstPurchaseCompleted,
+      offerType: 'welcome',
+      features: [
+        '50 Tournament Credits',
+        'Entry fee up to ₹50',
+        'Perfect for beginners',
+        'Join multiple tournaments',
+        'No expiry date'
+      ],
+      icon: <Target className="h-6 w-6" />,
+      gradient: 'from-blue-500/20 to-cyan-500/20',
+      description: 'Perfect for new players to get started',
+      savings: !firstPurchaseCompleted ? 'Save ₹10' : undefined
+    },
+    {
+      id: 'popular_pack',
+      name: 'Popular Pack',
+      credits: 150,
+      price: 150,
+      originalPrice: !firstPurchaseCompleted ? 180 : undefined,
+      isPopular: true,
+      isSpecialOffer: !firstPurchaseCompleted,
+      offerType: 'welcome',
+      features: [
+        '150 Tournament Credits',
+        'Entry fee up to ₹150',
+        'Most chosen package',
+        'Great value for money',
+        'Join premium tournaments',
+        'No expiry date'
+      ],
+      icon: <Star className="h-6 w-6" />,
+      gradient: 'from-gaming-accent/20 to-orange-500/20',
+      description: 'Most popular choice among players',
+      savings: !firstPurchaseCompleted ? 'Save ₹30' : undefined
+    },
+    {
+      id: 'pro_pack',
+      name: 'Pro Pack',
+      credits: 300,
+      price: 300,
+      originalPrice: !firstPurchaseCompleted ? 360 : undefined,
+      isSpecialOffer: !firstPurchaseCompleted,
+      offerType: 'welcome',
+      features: [
+        '300 Tournament Credits',
+        'Entry fee up to ₹300',
+        'For serious gamers',
+        'High-stakes tournaments',
+        'Premium gaming experience',
+        'Priority support',
+        'No expiry date'
+      ],
+      icon: <Crown className="h-6 w-6" />,
+      gradient: 'from-purple-500/20 to-pink-500/20',
+      description: 'For dedicated tournament players',
+      savings: !firstPurchaseCompleted ? 'Save ₹60' : undefined
+    },
+    {
+      id: 'elite_pack',
+      name: 'Elite Pack',
+      credits: 500,
+      price: 500,
+      originalPrice: !firstPurchaseCompleted ? 600 : undefined,
+      isSpecialOffer: !firstPurchaseCompleted,
+      offerType: 'welcome',
+      features: [
+        '500 Tournament Credits',
+        'Entry fee up to ₹500',
+        'Elite gaming level',
+        'Exclusive tournaments',
+        'VIP player status',
+        'Premium rewards',
+        'Priority support',
+        'No expiry date'
+      ],
+      icon: <Trophy className="h-6 w-6" />,
+      gradient: 'from-yellow-500/20 to-amber-500/20',
+      description: 'Elite level gaming experience',
+      savings: !firstPurchaseCompleted ? 'Save ₹100' : undefined
+    },
+    {
+      id: 'champion_pack',
+      name: 'Champion Pack',
+      credits: 900,
+      price: 900,
+      originalPrice: !firstPurchaseCompleted ? 1080 : undefined,
+      isBestValue: true,
+      isSpecialOffer: !firstPurchaseCompleted,
+      offerType: 'welcome',
+      features: [
+        '900 Tournament Credits',
+        'Entry fee up to ₹900',
+        'Maximum value package',
+        'Champion tier access',
+        'All premium features',
+        'Exclusive rewards',
+        'VIP support',
+        'Special recognition',
+        'No expiry date'
+      ],
+      icon: <Sparkles className="h-6 w-6" />,
+      gradient: 'from-emerald-500/20 to-teal-500/20',
+      description: 'Ultimate gaming package with maximum value',
+      savings: !firstPurchaseCompleted ? 'Save ₹180' : undefined
+    }
+  ];
+
+  // Host Credit Packages (5 packages)
+  const hostPackages: CreditPackage[] = [
+    {
+      id: 'basic_host_pack',
+      name: 'Basic Host Pack',
+      credits: 3,
+      price: 29,
+      features: [
+        '3 Tournament Creations',
+        'Basic tournament tools',
+        'Standard support',
+        'Tournament analytics',
+        'Player management'
+      ],
+      icon: <Users className="h-6 w-6" />,
+      gradient: 'from-gray-500/20 to-slate-500/20',
+      description: 'Perfect for occasional tournament hosting'
+    },
+    {
+      id: 'standard_host_pack',
+      name: 'Standard Host Pack',
+      credits: 5,
+      price: 45,
+      features: [
+        '5 Tournament Creations',
+        'Enhanced tournament tools',
+        'Priority support',
+        'Advanced analytics',
+        'Custom tournament settings',
+        'Player communication tools'
+      ],
+      icon: <CreditCard className="h-6 w-6" />,
+      gradient: 'from-blue-500/20 to-indigo-500/20',
+      description: 'Great for regular tournament organizers'
+    },
+    {
+      id: 'premium_host_pack',
+      name: 'Premium Host Pack',
+      credits: 10,
+      price: 85,
+      isPopular: true,
+      features: [
+        '10 Tournament Creations',
+        'Premium tournament tools',
+        'VIP support',
+        'Detailed analytics',
+        'Custom branding options',
+        'Advanced player management',
+        'Tournament promotion tools'
+      ],
+      icon: <Crown className="h-6 w-6" />,
+      gradient: 'from-gaming-primary/20 to-blue-600/20',
+      description: 'Most popular choice for active hosts'
+    },
+    {
+      id: 'pro_host_pack',
+      name: 'Pro Host Pack',
+      credits: 20,
+      price: 159,
+      features: [
+        '20 Tournament Creations',
+        'Professional tools suite',
+        'Dedicated support',
+        'Comprehensive analytics',
+        'Full customization',
+        'API access',
+        'White-label options',
+        'Revenue sharing program'
+      ],
+      icon: <Zap className="h-6 w-6" />,
+      gradient: 'from-purple-500/20 to-violet-500/20',
+      description: 'Professional tournament management'
+    },
+    {
+      id: 'ultimate_host_pack',
+      name: 'Ultimate Host Pack',
+      credits: 50,
+      price: 375,
+      isBestValue: true,
+      features: [
+        '50 Tournament Creations',
+        'Ultimate tools suite',
+        'Premium dedicated support',
+        'Enterprise analytics',
+        'Complete customization',
+        'Full API access',
+        'Enterprise features',
+        'Revenue optimization',
+        'Marketing support'
+      ],
+      icon: <Shield className="h-6 w-6" />,
+      gradient: 'from-emerald-500/20 to-green-500/20',
+      description: 'Ultimate package for tournament organizers'
+    }
+  ];
+
+  const handlePurchasePackage = async (packageData: CreditPackage) => {
+    if (!currentUser) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to purchase credit packages.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsProcessingPayment(packageData.id);
+
+    try {
+      const paymentData = {
+        amount: packageData.price,
+        currency: 'INR',
+        customer_details: {
+          customer_id: currentUser.uid,
+          customer_email: currentUser.email || '',
+          customer_phone: currentUser.phoneNumber || ''
+        },
+        order_meta: {
+          package_id: packageData.id,
+          package_name: packageData.name,
+          credits: packageData.credits,
+          package_type: selectedPackageType
+        }
+      };
+
+      const paymentSession = await CashfreeService.createPaymentSession(paymentData);
+
+      if (paymentSession.success) {
+        // Redirect to Cashfree payment page
+        window.location.href = paymentSession.payment_session_id;
+      } else {
+        throw new Error(paymentSession.message || 'Failed to create payment session');
+      }
+    } catch (error) {
+      console.error('Payment initiation error:', error);
+      toast({
+        title: "Payment Failed",
+        description: "Failed to initiate payment. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessingPayment(null);
+    }
+  };
+
+  if (creditsLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gaming-bg">
+        <Loader2 className="h-8 w-8 animate-spin text-gaming-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gaming-bg text-gaming-text">
+      <NotchHeader />
+
+      <div className="container mx-auto px-4 py-6 max-w-7xl">
+        {/* Header Section */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="text-center mb-8"
+        >
+          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-gaming-accent to-gaming-primary bg-clip-text text-transparent mb-4">
+            Credit Packages
+          </h1>
+          <p className="text-lg text-gaming-muted max-w-2xl mx-auto">
+            Choose the perfect credit package for your gaming needs. Join tournaments or create your own with our flexible credit system.
+          </p>
+        </motion.div>
+
+        {/* Welcome Offer Banner */}
+        <AnimatePresence>
+          {showWelcomeOffer && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="mb-8"
+            >
+              <Alert className="bg-gradient-to-r from-gaming-accent/10 to-gaming-primary/10 border-gaming-accent/30">
+                <Sparkles className="h-5 w-5 text-gaming-accent" />
+                <AlertDescription className="text-gaming-text">
+                  <span className="font-semibold">Welcome Offer!</span> Get up to 20% off on your first purchase. Limited time offer for new users.
+                </AlertDescription>
+              </Alert>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Current Balance Display */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8"
+        >
+          <Card className="bg-gaming-card/50 border-gaming-border backdrop-blur-sm">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <Coins className="h-8 w-8 text-gaming-accent" />
+                <div>
+                  <p className="text-sm text-gaming-muted">Tournament Credits</p>
+                  <p className="text-2xl font-bold text-gaming-text">{tournamentCredits}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gaming-card/50 border-gaming-border backdrop-blur-sm">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <CreditCard className="h-8 w-8 text-gaming-primary" />
+                <div>
+                  <p className="text-sm text-gaming-muted">Host Credits</p>
+                  <p className="text-2xl font-bold text-gaming-text">{hostCredits}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gaming-card/50 border-gaming-border backdrop-blur-sm">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <Trophy className="h-8 w-8 text-green-500" />
+                <div>
+                  <p className="text-sm text-gaming-muted">Earnings</p>
+                  <p className="text-2xl font-bold text-gaming-text">₹{earnings}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Package Type Tabs */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="mb-8"
+        >
+          <Tabs value={selectedPackageType} onValueChange={(value) => setSelectedPackageType(value as 'tournament' | 'host')} className="w-full">
+            <TabsList className="grid w-full grid-cols-2 bg-gaming-card/50 border border-gaming-border">
+              <TabsTrigger
+                value="tournament"
+                className="data-[state=active]:bg-gaming-accent data-[state=active]:text-white"
+              >
+                <Coins className="h-4 w-4 mr-2" />
+                Tournament Credits
+              </TabsTrigger>
+              <TabsTrigger
+                value="host"
+                className="data-[state=active]:bg-gaming-primary data-[state=active]:text-white"
+              >
+                <CreditCard className="h-4 w-4 mr-2" />
+                Host Credits
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Tournament Credit Packages */}
+            <TabsContent value="tournament" className="mt-8">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+                  {tournamentPackages.map((pkg, index) => (
+                    <PackageCard
+                      key={pkg.id}
+                      package={pkg}
+                      onPurchase={handlePurchasePackage}
+                      isProcessing={isProcessingPayment === pkg.id}
+                      animationDelay={index * 0.1}
+                    />
+                  ))}
+                </div>
+              </motion.div>
+            </TabsContent>
+
+            {/* Host Credit Packages */}
+            <TabsContent value="host" className="mt-8">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+                  {hostPackages.map((pkg, index) => (
+                    <PackageCard
+                      key={pkg.id}
+                      package={pkg}
+                      onPurchase={handlePurchasePackage}
+                      isProcessing={isProcessingPayment === pkg.id}
+                      animationDelay={index * 0.1}
+                    />
+                  ))}
+                </div>
+              </motion.div>
+            </TabsContent>
+          </Tabs>
+        </motion.div>
+
+        {/* FAQ Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+          className="mt-16"
+        >
+          <Card className="bg-gaming-card/30 border-gaming-border backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="text-center text-2xl font-bold text-gaming-text">
+                Frequently Asked Questions
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="font-semibold text-gaming-text mb-2">Do credits expire?</h4>
+                  <p className="text-gaming-muted text-sm">No, your credits never expire. Use them whenever you want to join or create tournaments.</p>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-gaming-text mb-2">Can I get a refund?</h4>
+                  <p className="text-gaming-muted text-sm">Credits are non-refundable once purchased. However, you can use them for any tournaments on our platform.</p>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-gaming-text mb-2">What payment methods are accepted?</h4>
+                  <p className="text-gaming-muted text-sm">We accept UPI, credit/debit cards, net banking, and digital wallets through Cashfree.</p>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-gaming-text mb-2">How do I track my credit usage?</h4>
+                  <p className="text-gaming-muted text-sm">Check your wallet page for detailed transaction history and current balance.</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+    </div>
+  );
+};
+
+export default Credits;
+```
+
+### Credit Package Components
+
+#### Individual Package Card Component
+```typescript
+// src/components/credits/PackageCard.tsx
+import { motion } from "framer-motion";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { CheckCircle, Loader2, ArrowRight } from "lucide-react";
+
+interface PackageCardProps {
+  package: CreditPackage;
+  onPurchase: (pkg: CreditPackage) => void;
+  isProcessing: boolean;
+  animationDelay?: number;
+}
+
+const PackageCard = ({ package: pkg, onPurchase, isProcessing, animationDelay = 0 }: PackageCardProps) => {
+  const hasDiscount = pkg.originalPrice && pkg.originalPrice > pkg.price;
+  const discountPercentage = hasDiscount
+    ? Math.round(((pkg.originalPrice! - pkg.price) / pkg.originalPrice!) * 100)
+    : 0;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{
+        duration: 0.5,
+        delay: animationDelay,
+        type: "spring",
+        stiffness: 100
+      }}
+      whileHover={{
+        scale: 1.02,
+        transition: { duration: 0.2 }
+      }}
+      className="relative"
+    >
+      <Card className={`
+        h-full bg-gradient-to-br ${pkg.gradient}
+        border-gaming-border hover:border-gaming-accent/50
+        transition-all duration-300 backdrop-blur-sm
+        ${pkg.isPopular ? 'ring-2 ring-gaming-accent/50' : ''}
+        ${pkg.isBestValue ? 'ring-2 ring-green-500/50' : ''}
+      `}>
+        {/* Popular/Best Value Badge */}
+        {(pkg.isPopular || pkg.isBestValue) && (
+          <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
+            <Badge className={`
+              px-3 py-1 text-xs font-semibold
+              ${pkg.isPopular ? 'bg-gaming-accent text-white' : ''}
+              ${pkg.isBestValue ? 'bg-green-500 text-white' : ''}
+            `}>
+              {pkg.isPopular ? '🔥 POPULAR' : '💎 BEST VALUE'}
+            </Badge>
+          </div>
+        )}
+
+        {/* Special Offer Badge */}
+        {pkg.isSpecialOffer && (
+          <div className="absolute -top-2 -right-2 z-10">
+            <Badge className="bg-red-500 text-white text-xs px-2 py-1 rounded-full animate-pulse">
+              {discountPercentage}% OFF
+            </Badge>
+          </div>
+        )}
+
+        <CardHeader className="text-center pb-4">
+          <div className="flex justify-center mb-3">
+            <div className="p-3 bg-gaming-bg/50 rounded-full">
+              {pkg.icon}
+            </div>
+          </div>
+
+          <CardTitle className="text-lg font-bold text-gaming-text mb-2">
+            {pkg.name}
+          </CardTitle>
+
+          <div className="space-y-1">
+            {/* Price Display */}
+            <div className="flex items-center justify-center gap-2">
+              {hasDiscount && (
+                <span className="text-sm text-gaming-muted line-through">
+                  ₹{pkg.originalPrice}
+                </span>
+              )}
+              <span className="text-2xl font-bold text-gaming-text">
+                ₹{pkg.price}
+              </span>
+            </div>
+
+            {/* Credits Display */}
+            <div className="text-gaming-accent font-semibold">
+              {pkg.credits} Credits
+            </div>
+
+            {/* Savings Display */}
+            {pkg.savings && (
+              <div className="text-green-500 text-sm font-medium">
+                {pkg.savings}
+              </div>
+            )}
+          </div>
+
+          <p className="text-sm text-gaming-muted mt-2">
+            {pkg.description}
+          </p>
+        </CardHeader>
+
+        <CardContent className="space-y-4">
+          {/* Features List */}
+          <div className="space-y-2">
+            {pkg.features.map((feature, index) => (
+              <div key={index} className="flex items-start gap-2">
+                <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <span className="text-sm text-gaming-muted">{feature}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Purchase Button */}
+          <Button
+            onClick={() => onPurchase(pkg)}
+            disabled={isProcessing}
+            className={`
+              w-full font-semibold transition-all duration-300
+              ${pkg.isPopular
+                ? 'bg-gaming-accent hover:bg-gaming-accent/90 text-white'
+                : pkg.isBestValue
+                ? 'bg-green-500 hover:bg-green-600 text-white'
+                : 'bg-gaming-primary hover:bg-gaming-primary/90 text-white'
+              }
+            `}
+          >
+            {isProcessing ? (
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Processing...
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                Buy Now
+                <ArrowRight className="h-4 w-4" />
+              </div>
+            )}
+          </Button>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+};
+
+export default PackageCard;
+```
+
+### Package Selection and Display
+
+#### Package Comparison Component
+```typescript
+// src/components/credits/PackageComparison.tsx
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { CheckCircle, X, ArrowRight } from "lucide-react";
+import { motion } from "framer-motion";
+
+interface PackageComparisonProps {
+  packages: CreditPackage[];
+  onSelectPackage: (pkg: CreditPackage) => void;
+  selectedPackageId?: string;
+}
+
+const PackageComparison = ({ packages, onSelectPackage, selectedPackageId }: PackageComparisonProps) => {
+  const [hoveredPackage, setHoveredPackage] = useState<string | null>(null);
+
+  // Get all unique features across packages
+  const allFeatures = Array.from(
+    new Set(packages.flatMap(pkg => pkg.features))
+  );
+
+  return (
+    <div className="overflow-x-auto">
+      <div className="min-w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-6 gap-4">
+          {/* Features Column */}
+          <div className="lg:col-span-1">
+            <Card className="h-full bg-gaming-card/30 border-gaming-border">
+              <CardHeader>
+                <CardTitle className="text-sm font-semibold text-gaming-text">
+                  Features
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {allFeatures.map((feature, index) => (
+                  <div key={index} className="text-sm text-gaming-muted py-2 border-b border-gaming-border/30 last:border-b-0">
+                    {feature}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Package Columns */}
+          {packages.map((pkg) => (
+            <motion.div
+              key={pkg.id}
+              className="lg:col-span-1"
+              onHoverStart={() => setHoveredPackage(pkg.id)}
+              onHoverEnd={() => setHoveredPackage(null)}
+              whileHover={{ scale: 1.02 }}
+              transition={{ duration: 0.2 }}
+            >
+              <Card className={`
+                h-full transition-all duration-300
+                ${selectedPackageId === pkg.id ? 'ring-2 ring-gaming-accent' : ''}
+                ${hoveredPackage === pkg.id ? 'border-gaming-accent/50' : 'border-gaming-border'}
+                ${pkg.isPopular ? 'bg-gradient-to-br from-gaming-accent/10 to-orange-500/10' : ''}
+                ${pkg.isBestValue ? 'bg-gradient-to-br from-green-500/10 to-emerald-500/10' : ''}
+              `}>
+                <CardHeader className="text-center">
+                  {/* Package Badges */}
+                  <div className="flex justify-center mb-2">
+                    {pkg.isPopular && (
+                      <Badge className="bg-gaming-accent text-white text-xs">
+                        🔥 POPULAR
+                      </Badge>
+                    )}
+                    {pkg.isBestValue && (
+                      <Badge className="bg-green-500 text-white text-xs">
+                        💎 BEST VALUE
+                      </Badge>
+                    )}
+                  </div>
+
+                  <CardTitle className="text-lg font-bold text-gaming-text">
+                    {pkg.name}
+                  </CardTitle>
+
+                  <div className="space-y-1">
+                    <div className="text-2xl font-bold text-gaming-text">
+                      ₹{pkg.price}
+                    </div>
+                    <div className="text-gaming-accent font-semibold">
+                      {pkg.credits} Credits
+                    </div>
+                  </div>
+
+                  <Button
+                    onClick={() => onSelectPackage(pkg)}
+                    className={`
+                      w-full mt-4 transition-all duration-300
+                      ${selectedPackageId === pkg.id
+                        ? 'bg-gaming-accent text-white'
+                        : 'bg-gaming-primary hover:bg-gaming-primary/90 text-white'
+                      }
+                    `}
+                  >
+                    {selectedPackageId === pkg.id ? (
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4" />
+                        Selected
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        Select Package
+                        <ArrowRight className="h-4 w-4" />
+                      </div>
+                    )}
+                  </Button>
+                </CardHeader>
+
+                <CardContent className="space-y-4">
+                  {allFeatures.map((feature, index) => (
+                    <div key={index} className="flex items-center justify-center py-2 border-b border-gaming-border/30 last:border-b-0">
+                      {pkg.features.includes(feature) ? (
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <X className="h-4 w-4 text-gaming-muted/50" />
+                      )}
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default PackageComparison;
+```
+
+#### Package Recommendation Engine
+```typescript
+// src/components/credits/PackageRecommendation.tsx
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Lightbulb, TrendingUp, Users, Crown } from "lucide-react";
+import { motion } from "framer-motion";
+
+interface PackageRecommendationProps {
+  userProfile: {
+    tournamentCredits: number;
+    hostCredits: number;
+    totalPurchased: number;
+    averageSpending: number;
+    userType: 'new' | 'casual' | 'regular' | 'pro';
+  };
+  packages: CreditPackage[];
+  onSelectRecommended: (pkg: CreditPackage) => void;
+}
+
+const PackageRecommendation = ({ userProfile, packages, onSelectRecommended }: PackageRecommendationProps) => {
+  // Recommendation logic based on user profile
+  const getRecommendedPackage = (): CreditPackage | null => {
+    const { userType, averageSpending, tournamentCredits } = userProfile;
+
+    // Low balance users
+    if (tournamentCredits < 50) {
+      return packages.find(pkg => pkg.id === 'popular_pack') || null;
+    }
+
+    // User type based recommendations
+    switch (userType) {
+      case 'new':
+        return packages.find(pkg => pkg.id === 'starter_pack') || null;
+      case 'casual':
+        return packages.find(pkg => pkg.id === 'popular_pack') || null;
+      case 'regular':
+        return packages.find(pkg => pkg.id === 'pro_pack') || null;
+      case 'pro':
+        return packages.find(pkg => pkg.id === 'champion_pack') || null;
+      default:
+        return packages.find(pkg => pkg.isPopular) || null;
+    }
+  };
+
+  const recommendedPackage = getRecommendedPackage();
+
+  if (!recommendedPackage) return null;
+
+  const getRecommendationReason = (): string => {
+    const { userType, tournamentCredits } = userProfile;
+
+    if (tournamentCredits < 50) {
+      return "Your credit balance is low. This package will keep you in the game!";
+    }
+
+    switch (userType) {
+      case 'new':
+        return "Perfect starter package for new players to explore tournaments.";
+      case 'casual':
+        return "Most popular choice among casual players like you.";
+      case 'regular':
+        return "Ideal for regular players who participate frequently.";
+      case 'pro':
+        return "Maximum value package for serious tournament players.";
+      default:
+        return "Recommended based on your gaming activity.";
+    }
+  };
+
+  const getRecommendationIcon = () => {
+    const { userType } = userProfile;
+    switch (userType) {
+      case 'new': return <Users className="h-5 w-5" />;
+      case 'casual': return <TrendingUp className="h-5 w-5" />;
+      case 'regular': return <Crown className="h-5 w-5" />;
+      case 'pro': return <Crown className="h-5 w-5" />;
+      default: return <Lightbulb className="h-5 w-5" />;
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="mb-8"
+    >
+      <Card className="bg-gradient-to-r from-gaming-accent/10 to-gaming-primary/10 border-gaming-accent/30">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-gaming-text">
+            {getRecommendationIcon()}
+            Recommended for You
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-2">
+                <h3 className="text-xl font-bold text-gaming-text">
+                  {recommendedPackage.name}
+                </h3>
+                <Badge className="bg-gaming-accent text-white">
+                  Recommended
+                </Badge>
+                {recommendedPackage.isPopular && (
+                  <Badge className="bg-orange-500 text-white">
+                    🔥 Popular
+                  </Badge>
+                )}
+              </div>
+
+              <p className="text-gaming-muted mb-3">
+                {getRecommendationReason()}
+              </p>
+
+              <div className="flex items-center gap-4 text-sm">
+                <span className="text-gaming-text">
+                  <span className="font-semibold">{recommendedPackage.credits}</span> Credits
+                </span>
+                <span className="text-gaming-text">
+                  <span className="font-semibold">₹{recommendedPackage.price}</span>
+                </span>
+                {recommendedPackage.savings && (
+                  <span className="text-green-500 font-semibold">
+                    {recommendedPackage.savings}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <Button
+              onClick={() => onSelectRecommended(recommendedPackage)}
+              className="bg-gaming-accent hover:bg-gaming-accent/90 text-white font-semibold px-6"
+            >
+              Get Recommended Package
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+};
+
+export default PackageRecommendation;
+```
+
 ---
 
 ## Converting Existing Rupees System to Credits

@@ -1,9 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import NotchHeader from "@/components/NotchHeader";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreditBalance } from "@/hooks/useCreditBalance";
 import {
@@ -13,11 +11,16 @@ import {
   Zap,
   Gift,
   ShoppingCart,
-  TrendingUp,
   Crown
 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { CashfreeService } from "@/lib/cashfree-service";
+
+// Import new components
+import CreditPackageGrid from "@/components/credits/CreditPackageGrid";
+import CreditBenefits from "@/components/credits/CreditBenefits";
+import CreditFAQ from "@/components/credits/CreditFAQ";
+import CreditBalanceDisplay from "@/components/credits/CreditBalanceDisplay";
 
 // Credit package interfaces
 interface CreditPackage {
@@ -236,217 +239,58 @@ const Credits = () => {
         </motion.div>
 
         {/* Current Balance Display */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8"
-        >
-          <Card className="bg-gradient-to-r from-gaming-accent/10 to-orange-500/10 border-gaming-accent/30">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Coins className="h-8 w-8 text-gaming-accent" />
-                  <div>
-                    <h3 className="font-semibold text-gaming-text">Tournament Credits</h3>
-                    <p className="text-sm text-gaming-muted">For joining tournaments</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-2xl font-bold text-gaming-accent">
-                    {creditsLoading ? "..." : tournamentCredits}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <CreditBalanceDisplay 
+          tournamentCredits={tournamentCredits}
+          hostCredits={hostCredits}
+          isLoading={creditsLoading}
+        />
 
-          <Card className="bg-gradient-to-r from-gaming-primary/10 to-blue-600/10 border-gaming-primary/30">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <CreditCard className="h-8 w-8 text-gaming-primary" />
-                  <div>
-                    <h3 className="font-semibold text-gaming-text">Host Credits</h3>
-                    <p className="text-sm text-gaming-muted">For creating tournaments</p>
+        {/* Special Offer Banner (Optional) */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="mb-8"
+        >
+          <Card className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-purple-500/30 overflow-hidden">
+            <CardContent className="p-6 relative">
+              <div className="absolute top-0 right-0 -mt-4 -mr-4">
+                <Gift className="h-24 w-24 text-purple-500/20" />
+              </div>
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
+                <div className="mb-4 md:mb-0">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Gift className="h-5 w-5 text-pink-500" />
+                    <p className="font-bold text-pink-500">Limited Time Offer</p>
                   </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-2xl font-bold text-gaming-primary">
-                    {creditsLoading ? "..." : hostCredits}
-                  </p>
+                  <h3 className="text-xl font-bold mb-1">Get 20% Extra Credits on First Purchase!</h3>
+                  <p className="text-gaming-muted">New users get bonus credits on their first transaction</p>
                 </div>
               </div>
             </CardContent>
           </Card>
         </motion.div>
 
-        {/* Tournament Credits Section */}
+        {/* Credit Package Grid */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
           className="mb-12"
         >
-          <div className="flex items-center gap-3 mb-6">
-            <Coins className="h-6 w-6 text-gaming-accent" />
-            <h2 className="text-2xl font-bold text-gaming-text">Tournament Credits</h2>
-            <Badge variant="secondary" className="bg-gaming-accent/20 text-gaming-accent">
-              Join Tournaments
-            </Badge>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-            {tournamentPackages.map((pkg, index) => (
-              <motion.div
-                key={pkg.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.3 + index * 0.1 }}
-                className="relative"
-              >
-                <Card className={`h-full bg-gradient-to-br ${pkg.gradient} border-gaming-border hover:border-gaming-accent/50 transition-all duration-300 hover:scale-105`}>
-                  {pkg.isPopular && (
-                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                      <Badge className="bg-gaming-accent text-white px-3 py-1">
-                        Most Popular
-                      </Badge>
-                    </div>
-                  )}
-                  {pkg.isSpecialOffer && (
-                    <div className="absolute -top-3 right-4">
-                      <Badge className="bg-green-500 text-white px-3 py-1">
-                        Limited Offer
-                      </Badge>
-                    </div>
-                  )}
-
-                  <CardHeader className="text-center pb-4">
-                    <div className="flex justify-center mb-3">
-                      <div className="p-3 bg-gaming-card rounded-full">
-                        {pkg.icon}
-                      </div>
-                    </div>
-                    <CardTitle className="text-xl text-gaming-text">{pkg.name}</CardTitle>
-                    <div className="space-y-1">
-                      <p className="text-3xl font-bold text-gaming-accent">₹{pkg.price}</p>
-                      <p className="text-lg font-semibold text-gaming-text">{pkg.credits} Credits</p>
-                    </div>
-                  </CardHeader>
-
-                  <CardContent className="pt-0">
-                    <ul className="space-y-2 mb-6">
-                      {pkg.features.map((feature, idx) => (
-                        <li key={idx} className="flex items-center gap-2 text-sm text-gaming-muted">
-                          <div className="w-1.5 h-1.5 bg-gaming-accent rounded-full"></div>
-                          {feature}
-                        </li>
-                      ))}
-                    </ul>
-
-                    <Button
-                      onClick={() => handlePurchase(pkg, 'tournament')}
-                      disabled={isProcessingPayment === pkg.id}
-                      className="w-full bg-gaming-accent hover:bg-gaming-accent/90 text-white font-semibold"
-                    >
-                      {isProcessingPayment === pkg.id ? (
-                        <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                          Processing...
-                        </div>
-                      ) : (
-                        `Buy for ₹${pkg.price}`
-                      )}
-                    </Button>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
+          <CreditPackageGrid
+            tournamentPackages={tournamentPackages}
+            hostPackages={hostPackages}
+            onPurchase={handlePurchase}
+            processingPackageId={isProcessingPayment}
+          />
         </motion.div>
 
-        {/* Host Credits Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.6 }}
-        >
-          <div className="flex items-center gap-3 mb-6">
-            <CreditCard className="h-6 w-6 text-gaming-primary" />
-            <h2 className="text-2xl font-bold text-gaming-text">Host Credits</h2>
-            <Badge variant="secondary" className="bg-gaming-primary/20 text-gaming-primary">
-              Create Tournaments
-            </Badge>
-          </div>
+        {/* Credit Benefits Section */}
+        <CreditBenefits />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-            {hostPackages.map((pkg, index) => (
-              <motion.div
-                key={pkg.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.7 + index * 0.1 }}
-                className="relative"
-              >
-                <Card className={`h-full bg-gradient-to-br ${pkg.gradient} border-gaming-border hover:border-gaming-primary/50 transition-all duration-300 hover:scale-105`}>
-                  {pkg.isPopular && (
-                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                      <Badge className="bg-gaming-primary text-white px-3 py-1">
-                        Most Popular
-                      </Badge>
-                    </div>
-                  )}
-                  {pkg.isSpecialOffer && (
-                    <div className="absolute -top-3 right-4">
-                      <Badge className="bg-green-500 text-white px-3 py-1">
-                        Limited Offer
-                      </Badge>
-                    </div>
-                  )}
-
-                  <CardHeader className="text-center pb-4">
-                    <div className="flex justify-center mb-3">
-                      <div className="p-3 bg-gaming-card rounded-full">
-                        {pkg.icon}
-                      </div>
-                    </div>
-                    <CardTitle className="text-xl text-gaming-text">{pkg.name}</CardTitle>
-                    <div className="space-y-1">
-                      <p className="text-3xl font-bold text-gaming-primary">₹{pkg.price}</p>
-                      <p className="text-lg font-semibold text-gaming-text">{pkg.credits} Credits</p>
-                    </div>
-                  </CardHeader>
-
-                  <CardContent className="pt-0">
-                    <ul className="space-y-2 mb-6">
-                      {pkg.features.map((feature, idx) => (
-                        <li key={idx} className="flex items-center gap-2 text-sm text-gaming-muted">
-                          <div className="w-1.5 h-1.5 bg-gaming-primary rounded-full"></div>
-                          {feature}
-                        </li>
-                      ))}
-                    </ul>
-
-                    <Button
-                      onClick={() => handlePurchase(pkg, 'host')}
-                      disabled={isProcessingPayment === pkg.id}
-                      className="w-full bg-gaming-primary hover:bg-gaming-primary/90 text-white font-semibold"
-                    >
-                      {isProcessingPayment === pkg.id ? (
-                        <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                          Processing...
-                        </div>
-                      ) : (
-                        `Buy for ₹${pkg.price}`
-                      )}
-                    </Button>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
+        {/* FAQ Section */}
+        <CreditFAQ />
       </div>
     </div>
   );
