@@ -12,6 +12,24 @@ import PrizeDistributionDialog from "./PrizeDistributionDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
+// Extend the Tournament type to include prizePool
+declare module "@/lib/tournamentService" {
+  interface Tournament {
+    prizePool?: {
+      totalPrizeCredits: number;
+      prizeDistribution: { first: number; second: number; third: number };
+      isDistributed: boolean;
+      distributedAt?: any;
+      distributedBy?: string;
+      winners?: {
+        first?: { uid: string; username: string; prizeCredits: number };
+        second?: { uid: string; username: string; prizeCredits: number };
+        third?: { uid: string; username: string; prizeCredits: number };
+      };
+    };
+  }
+}
+
 const TournamentDetailsContent: React.FC<TournamentProps> = ({
   id,
   tournament,
@@ -276,7 +294,11 @@ const TournamentDetailsContent: React.FC<TournamentProps> = ({
         </Link>
 
         {/* Tournament Header */}
-        <TournamentHeader tournament={tournament} />
+        <TournamentHeader 
+          tournament={tournament} 
+          isHost={isHost}
+          onSetRoomDetails={() => setShowSetRoomModal(true)}
+        />
 
         {/* Main content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
@@ -284,11 +306,9 @@ const TournamentDetailsContent: React.FC<TournamentProps> = ({
           <div className="lg:col-span-1">
             <TournamentSidebar 
               tournament={tournament} 
-              isHost={isHost}
-              currentUser={currentUser}
-              onJoinTournament={handleJoinTournament}
-              isJoining={isJoining}
-              onSetRoomDetails={() => setShowSetRoomModal(true)}
+              progressPercentage={progressPercentage}
+              spotsLeft={spotsLeft}
+              onJoin={handleJoinTournament}
             />
 
             {/* Prize Pool Card - Show if tournament has prize pool */}
@@ -349,28 +369,38 @@ const TournamentDetailsContent: React.FC<TournamentProps> = ({
 
           {/* Main content area */}
           <div className="lg:col-span-2">
-            <TournamentTabs tournament={tournament} isHost={isHost} />
+            <TournamentTabs 
+              tournament={tournament} 
+              isHost={isHost} 
+              onSetRoomDetails={() => setShowSetRoomModal(true)}
+              onCopy={handleCopy}
+            />
           </div>
         </div>
 
         {/* Room Details Dialog */}
         <RoomDetailsDialog
-          open={showSetRoomModal}
-          onOpenChange={setShowSetRoomModal}
+          isOpen={showSetRoomModal}
+          setIsOpen={setShowSetRoomModal}
           roomId={roomIdInput}
+          setRoomId={setRoomIdInput}
           roomPassword={roomPasswordInput}
-          onRoomIdChange={setRoomIdInput}
-          onRoomPasswordChange={setRoomPasswordInput}
+          setRoomPassword={setRoomPasswordInput}
           onSave={handleSetRoomDetails}
           isSaving={isSavingRoomDetails}
         />
 
         {/* Prize Distribution Dialog */}
-        {tournament && (
+        {tournament && tournament.prizePool && (
           <PrizeDistributionDialog
             open={showPrizeDistributionModal}
             onOpenChange={setShowPrizeDistributionModal}
-            tournament={tournament}
+            tournament={{
+              id: id,
+              name: tournament.name,
+              prizePool: tournament.prizePool,
+              participants: tournament.participants
+            }}
             hostUid={currentUser?.uid || ''}
             onSuccess={onRefresh}
           />
