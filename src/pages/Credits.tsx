@@ -174,12 +174,15 @@ const Credits = () => {
       // Create payment order
       const response = await cashfreeService.createPaymentOrder(paymentParams);
 
-      if (!response.success || !response.order_token) {
+      if (!response.success || (!response.payment_session_id && !response.order_token)) {
         throw new Error(response.error || 'Failed to create payment order');
       }
 
-      // Initialize Cashfree checkout
-      await cashfreeService.initializeDropIn(response.order_token, {
+      // Use payment_session_id if available, fallback to order_token for backward compatibility
+      const sessionId = response.payment_session_id || response.order_token;
+
+      // Initialize Cashfree checkout with latest API
+      await cashfreeService.initializeCheckout(sessionId, {
         onSuccess: (data: any) => {
           console.log('Payment successful:', data);
           toast({

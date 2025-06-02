@@ -120,9 +120,9 @@ exports.handler = async (event, context) => {
       }
     };
     
-    // Prepare headers
+    // Prepare headers with latest API version
     const headers = {
-      'x-api-version': '2022-09-01',
+      'x-api-version': '2025-01-01', // Updated to latest version
       'x-client-id': appId,
       'x-client-secret': secretKey,
       'Content-Type': 'application/json'
@@ -147,7 +147,8 @@ exports.handler = async (event, context) => {
       statusCode: 200,
       body: JSON.stringify({
         success: true,
-        order_token: response.data.order_token,
+        order_token: response.data.order_token, // Keep for backward compatibility
+        payment_session_id: response.data.payment_session_id, // Latest API field
         order_id: response.data.order_id,
         order_status: response.data.order_status,
         payment_link: response.data.payment_link

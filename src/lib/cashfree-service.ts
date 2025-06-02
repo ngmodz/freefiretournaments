@@ -29,7 +29,8 @@ export interface CreditPaymentOrderParams extends PaymentOrderParams {
  */
 export interface PaymentOrderResponse {
   success: boolean;
-  order_token?: string;
+  order_token?: string; // Keep for backward compatibility
+  payment_session_id?: string; // Latest Cashfree API uses this
   order_id?: string;
   order_status?: string;
   payment_link?: string;
@@ -165,9 +166,9 @@ export class CashfreeService {
   }
 
   /**
-   * Initialize Cashfree Drop-in checkout
+   * Initialize Cashfree checkout (Updated to match latest API)
    */
-  public async initializeDropIn(orderToken: string, options: any): Promise<void> {
+  public async initializeCheckout(paymentSessionId: string, options: any = {}): Promise<void> {
     try {
       // Ensure Cashfree.js is loaded
       if (!this.cashfreeJs) {
@@ -180,35 +181,43 @@ export class CashfreeService {
         throw new Error('Cashfree.js not loaded');
       }
 
-      console.log('Initializing Cashfree checkout with token:', orderToken);
-      
+      console.log('Initializing Cashfree checkout with payment session ID:', paymentSessionId);
+
       // Get environment from import.meta if available
       const appId = import.meta.env?.VITE_CASHFREE_APP_ID || '';
       const isSandbox = appId.startsWith('TEST');
-      
+
       console.log('Cashfree mode:', isSandbox ? 'sandbox' : 'production');
-      
-      // Initialize Cashfree Drop-in checkout
+
+      // Initialize Cashfree according to latest documentation
       const cashfree = new this.cashfreeJs({
         mode: isSandbox ? 'sandbox' : 'production'
       });
 
-      // Function to render the drop-in checkout UI
-      const renderDropIn = () => {
-        console.log('Rendering Cashfree drop-in checkout...');
-        cashfree.checkout({
-          paymentSessionId: orderToken,
-          redirectTarget: '_self',
-          ...options
-        });
+      // Default checkout options
+      const checkoutOptions = {
+        paymentSessionId: paymentSessionId,
+        redirectTarget: '_self', // Open in same tab
+        ...options
       };
 
-      // Render the drop-in checkout
-      renderDropIn();
+      console.log('Opening Cashfree checkout with options:', checkoutOptions);
+
+      // Open checkout using latest API
+      cashfree.checkout(checkoutOptions);
+
     } catch (error) {
-      console.error('Error initializing Cashfree drop-in:', error);
+      console.error('Error initializing Cashfree checkout:', error);
       throw error;
     }
+  }
+
+  /**
+   * Legacy method for backward compatibility
+   */
+  public async initializeDropIn(orderToken: string, options: any): Promise<void> {
+    console.warn('initializeDropIn is deprecated, use initializeCheckout instead');
+    return this.initializeCheckout(orderToken, options);
   }
 
   /**

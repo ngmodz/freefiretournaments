@@ -12,6 +12,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "cleanup:tournaments": "node --experimental-json-modules scripts/delete-mock-tournaments.js",
+    "test:cashfree": "node --experimental-json-modules scripts/test-cashfree-integration.js",
     "netlify": "node --no-warnings netlify.js"
   },
   "dependencies": {

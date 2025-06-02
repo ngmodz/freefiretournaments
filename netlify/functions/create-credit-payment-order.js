@@ -82,10 +82,10 @@ const createCashfreeOrder = async (params) => {
 
     console.log("Order payload:", JSON.stringify(payload, null, 2));
 
-    // Make API request to Cashfree
+    // Make API request to Cashfree with latest API version
     const response = await axios.post(apiUrl, payload, {
       headers: {
-        "x-api-version": "2022-09-01",
+        "x-api-version": "2025-01-01", // Updated to latest version
         "Content-Type": "application/json",
         "x-client-id": appId,
         "x-client-secret": secretKey,
@@ -109,7 +109,8 @@ const createCashfreeOrder = async (params) => {
 
     return {
       success: true,
-      order_token: response.data.order_token,
+      order_token: response.data.order_token, // Keep for backward compatibility
+      payment_session_id: response.data.payment_session_id, // Latest API field
       order_id: response.data.order_id,
       order_status: response.data.order_status,
     };

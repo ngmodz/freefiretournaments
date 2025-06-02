@@ -22,19 +22,30 @@ if (!admin.apps.length && serviceAccount) {
 const db = app ? admin.firestore() : null;
 
 /**
- * Verify webhook signature from Cashfree
+ * Verify webhook signature from Cashfree (Updated for API v2025-01-01)
  * @param {string} signature - Signature from webhook header
  * @param {string} body - Raw request body
  * @param {string} secretKey - Cashfree webhook secret key
+ * @param {string} timestamp - Timestamp from webhook header
  * @returns {boolean} - Whether signature is valid
  */
-const verifyWebhookSignature = (signature, body, secretKey) => {
+const verifyWebhookSignature = (signature, body, secretKey, timestamp) => {
   try {
+    // For API version 2025-01-01, signature includes timestamp
+    const signaturePayload = timestamp ? `${timestamp}.${body}` : body;
     const expectedSignature = crypto
       .createHmac("sha256", secretKey)
-      .update(body)
+      .update(signaturePayload, 'utf8')
       .digest("base64");
-    
+
+    console.log('Webhook signature verification:', {
+      received: signature,
+      expected: expectedSignature,
+      timestamp: timestamp,
+      payloadLength: body.length,
+      hasTimestamp: !!timestamp
+    });
+
     return signature === expectedSignature;
   } catch (error) {
     console.error("Error verifying webhook signature:", error);
@@ -188,9 +199,22 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    // Get signature from header
-    const signature = event.headers['x-webhook-signature'] || 
+    // Get headers (case-insensitive)
+    const signature = event.headers['x-webhook-signature'] ||
                       event.headers['X-Webhook-Signature'];
+    const timestamp = event.headers['x-webhook-timestamp'] ||
+                      event.headers['X-Webhook-Timestamp'];
+    const webhookVersion = event.headers['x-webhook-version'] ||
+                           event.headers['X-Webhook-Version'];
+    const idempotencyKey = event.headers['x-idempotency-key'] ||
+                           event.headers['X-Idempotency-Key'];
+
+    console.log('Webhook headers:', {
+      hasSignature: !!signature,
+      hasTimestamp: !!timestamp,
+      version: webhookVersion,
+      idempotencyKey: idempotencyKey
+    });
 
     if (!signature) {
       console.error('Missing webhook signature');
@@ -207,7 +231,7 @@ exports.handler = async (event, context) => {
       return { statusCode: 500, body: JSON.stringify({ error: 'API secret key (CASHFREE_WEBHOOK_SECRET) not configured for webhook verification' }) };
     }
 
-    if (!verifyWebhookSignature(signature, event.body, webhookSecret)) {
+    if (!verifyWebhookSignature(signature, event.body, webhookSecret, timestamp)) {
       console.error('Invalid webhook signature');
       return {
         statusCode: 401,
@@ -219,11 +243,17 @@ exports.handler = async (event, context) => {
     const webhookData = JSON.parse(event.body);
     console.log('Received Cashfree webhook:', webhookData.type);
 
-    // Process different event types
+    // Process different event types based on latest documentation
     const eventType = webhookData.type;
-    
-    // We're mainly interested in successful payments
-    if (eventType === 'PAYMENT_SUCCESS_WEBHOOK' || eventType === 'ORDER_PAID_WEBHOOK') {
+
+    console.log('Processing webhook event:', {
+      type: eventType,
+      orderId: webhookData.data?.order?.order_id,
+      paymentStatus: webhookData.data?.payment?.payment_status
+    });
+
+    // Handle successful payments
+    if (eventType === 'PAYMENT_SUCCESS_WEBHOOK') {
       const orderId = webhookData.data.order.order_id;
       const orderAmount = parseFloat(webhookData.data.order.order_amount);
       const paymentId = webhookData.data.payment?.payment_id;
@@ -301,23 +331,54 @@ exports.handler = async (event, context) => {
       }
     } else if (eventType === 'PAYMENT_FAILED_WEBHOOK') {
       const orderId = webhookData.data.order.order_id;
-      
+      const errorDetails = webhookData.data.error_details;
+
+      console.log(`Processing failed payment for order ${orderId}:`, {
+        errorCode: errorDetails?.error_code,
+        errorReason: errorDetails?.error_reason,
+        errorDescription: errorDetails?.error_description
+      });
+
       try {
         // Update order status if it's a credit order
         const creditOrderDoc = await db.collection('creditOrders').doc(orderId).get();
-        
+
         if (creditOrderDoc.exists) {
           await db.collection('creditOrders').doc(orderId).update({
             status: 'FAILED',
             failedAt: admin.firestore.FieldValue.serverTimestamp(),
+            errorDetails: errorDetails,
             webhookData: webhookData
           });
-          
+
           console.log(`Updated failed credit order ${orderId}`);
         }
       } catch (error) {
         console.error(`Error updating failed credit order ${orderId}:`, error);
       }
+    } else if (eventType === 'PAYMENT_USER_DROPPED_WEBHOOK') {
+      const orderId = webhookData.data.order.order_id;
+
+      console.log(`Processing user dropped payment for order ${orderId}`);
+
+      try {
+        // Update order status if it's a credit order
+        const creditOrderDoc = await db.collection('creditOrders').doc(orderId).get();
+
+        if (creditOrderDoc.exists) {
+          await db.collection('creditOrders').doc(orderId).update({
+            status: 'USER_DROPPED',
+            droppedAt: admin.firestore.FieldValue.serverTimestamp(),
+            webhookData: webhookData
+          });
+
+          console.log(`Updated user dropped credit order ${orderId}`);
+        }
+      } catch (error) {
+        console.error(`Error updating user dropped credit order ${orderId}:`, error);
+      }
+    } else {
+      console.log(`Unhandled webhook event type: ${eventType}`);
     }
     
     // Always acknowledge webhook receipt with 200 status
