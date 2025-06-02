@@ -14,9 +14,14 @@ import { Slider } from "@/components/ui/slider";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { ChevronRight, ChevronLeft, AlertCircle } from "lucide-react";
+import { ChevronRight, ChevronLeft, AlertCircle, Trophy } from "lucide-react";
 import { TournamentFormData } from "@/pages/TournamentCreate";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { PrizeDistributionService } from "@/lib/prizeDistributionService";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 // Validation schema
 const formSchema = z.object({
@@ -37,6 +42,22 @@ const formSchema = z.object({
     message: "Prize distribution must total exactly 100%",
     path: [],
   }),
+  // Add new prize pool fields
+  enablePrizePool: z.boolean().default(true),
+  totalPrizeCredits: z.number()
+    .int("Prize credits must be a whole number")
+    .min(0, "Prize credits cannot be negative"),
+  prizeDistributionPercentage: z.object({
+    first: z.number().min(0).max(100),
+    second: z.number().min(0).max(100),
+    third: z.number().min(0).max(100),
+  }).refine(data => {
+    const total = data.first + data.second + data.third;
+    return total === 100;
+  }, {
+    message: "Prize distribution must total exactly 100%",
+    path: [],
+  }),
 });
 
 interface EntryAndPrizesFormProps {
@@ -48,6 +69,7 @@ interface EntryAndPrizesFormProps {
 
 const EntryAndPrizesForm = ({ formData, updateFormData, nextStep, prevStep }: EntryAndPrizesFormProps) => {
   const [prizeDistTotal, setPrizeDistTotal] = useState(100);
+  const [prizeCreditDistTotal, setPrizeCreditDistTotal] = useState(100);
   
   // Extract prize distribution with default values
   const defaultPrizeDistribution = {
@@ -57,12 +79,27 @@ const EntryAndPrizesForm = ({ formData, updateFormData, nextStep, prevStep }: En
     "4th": formData.prize_distribution["4th"] || 0,
     "5th": formData.prize_distribution["5th"] || 0,
   };
+
+  // Default prize pool values
+  const defaultPrizePool = formData.prizePool || {
+    enablePrizePool: true,
+    totalPrizeCredits: formData.entry_fee * 10, // Default to 10x entry fee
+    prizeDistributionPercentage: {
+      first: 50,
+      second: 30,
+      third: 20
+    }
+  };
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       entry_fee: formData.entry_fee,
       prize_distribution: defaultPrizeDistribution,
+      // Prize pool fields
+      enablePrizePool: defaultPrizePool.enablePrizePool,
+      totalPrizeCredits: defaultPrizePool.totalPrizeCredits,
+      prizeDistributionPercentage: defaultPrizePool.prizeDistributionPercentage
     },
   });
 
@@ -73,16 +110,48 @@ const EntryAndPrizesForm = ({ formData, updateFormData, nextStep, prevStep }: En
   const getPrizeAmount = (percentage: number) => {
     return Math.round((percentage / 100) * totalPrizePool);
   };
+
+  // Calculate prize credit distribution
+  const totalPrizeCredits = form.watch("totalPrizeCredits");
+  const prizeDistributionPercentage = form.watch("prizeDistributionPercentage");
+  const enablePrizePool = form.watch("enablePrizePool");
+  
+  const prizeDistribution = PrizeDistributionService.calculatePrizeDistribution(
+    totalPrizeCredits,
+    prizeDistributionPercentage
+  );
   
   // Recalculate total percentage whenever prize distribution changes
   useEffect(() => {
     const prizeDistribution = form.watch("prize_distribution");
     const total = Object.values(prizeDistribution).reduce((sum, value) => sum + (value || 0), 0);
     setPrizeDistTotal(total);
-  }, [form.watch("prize_distribution")]);
+    
+    // Also calculate prize credit distribution total
+    const prizeCreditDist = form.watch("prizeDistributionPercentage");
+    const creditTotal = prizeCreditDist.first + prizeCreditDist.second + prizeCreditDist.third;
+    setPrizeCreditDistTotal(creditTotal);
+  }, [form.watch("prize_distribution"), form.watch("prizeDistributionPercentage")]);
   
   const onSubmit = (values: z.infer<typeof formSchema>) => {
-    updateFormData(values);
+    // Calculate actual prize distribution amounts
+    const calculatedPrizeDistribution = PrizeDistributionService.calculatePrizeDistribution(
+      values.totalPrizeCredits,
+      values.prizeDistributionPercentage
+    );
+    
+    // Update form data with prize pool information
+    updateFormData({
+      entry_fee: values.entry_fee,
+      prize_distribution: values.prize_distribution,
+      prizePool: {
+        enablePrizePool: values.enablePrizePool,
+        totalPrizeCredits: values.totalPrizeCredits,
+        prizeDistribution: calculatedPrizeDistribution,
+        distributionPercentage: values.prizeDistributionPercentage,
+        isDistributed: false
+      }
+    });
     nextStep();
   };
 
@@ -132,6 +201,56 @@ const EntryAndPrizesForm = ({ formData, updateFormData, nextStep, prevStep }: En
     });
     
     form.setValue("prize_distribution", updatedValues as any);
+  };
+
+  // Helper to adjust prize credit distribution percentages
+  const adjustPrizeCreditDistribution = (position: 'first' | 'second' | 'third', newValue: number) => {
+    const currentValues = { ...form.watch("prizeDistributionPercentage") };
+    const otherPositions = ['first', 'second', 'third'].filter(pos => pos !== position) as Array<'first' | 'second' | 'third'>;
+    
+    // Set the new value for the changed position
+    currentValues[position] = newValue;
+    
+    // Calculate the total and needed adjustment
+    const currentTotal = currentValues.first + currentValues.second + currentValues.third;
+    const adjustment = 100 - currentTotal;
+    
+    if (adjustment === 0) {
+      // No adjustment needed
+      form.setValue("prizeDistributionPercentage", currentValues);
+      return;
+    }
+    
+    // Get adjustable positions (positions with non-zero values)
+    const adjustablePositions = otherPositions.filter(pos => currentValues[pos] > 0);
+    
+    if (adjustablePositions.length === 0) {
+      // No positions to adjust
+      return;
+    }
+    
+    // Calculate current total of adjustable positions
+    const adjustableTotal = adjustablePositions.reduce((sum, pos) => sum + currentValues[pos], 0);
+    
+    // Distribute adjustment proportionally
+    adjustablePositions.forEach((pos, index) => {
+      const isLast = index === adjustablePositions.length - 1;
+      const proportion = currentValues[pos] / adjustableTotal;
+      
+      if (isLast) {
+        // Make sure the last position makes the total exactly 100%
+        const totalExceptLast = ['first', 'second', 'third']
+          .filter(p => p !== pos)
+          .reduce((sum, p) => sum + currentValues[p as 'first' | 'second' | 'third'], 0);
+        
+        currentValues[pos] = Math.max(0, 100 - totalExceptLast);
+      } else {
+        // Adjust proportionally
+        currentValues[pos] = Math.max(0, Math.round(currentValues[pos] + (adjustment * proportion)));
+      }
+    });
+    
+    form.setValue("prizeDistributionPercentage", currentValues);
   };
 
   return (
@@ -236,6 +355,224 @@ const EntryAndPrizesForm = ({ formData, updateFormData, nextStep, prevStep }: En
               })}
             </div>
           </div>
+
+          {/* Prize Pool Section */}
+          <Card className="bg-gaming-card border-gaming-border">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Trophy className="h-5 w-5 text-yellow-500" />
+                Prize Pool Configuration
+              </CardTitle>
+              <FormDescription>
+                Set up tournament credit prizes for winners
+              </FormDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <FormField
+                control={form.control}
+                name="enablePrizePool"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-base">Enable Prize Pool</FormLabel>
+                      <FormDescription>
+                        Award tournament credits to winners
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              {enablePrizePool && (
+                <>
+                  <FormField
+                    control={form.control}
+                    name="totalPrizeCredits"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Total Prize Credits</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            className="bg-gaming-card text-white"
+                            {...field}
+                            onChange={(e) => field.onChange(Number(e.target.value))}
+                            value={field.value}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Total credits to be distributed among winners
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <h4 className="font-medium">Credit Prize Distribution</h4>
+                      <span className={prizeCreditDistTotal === 100 ? "text-green-500" : "text-red-500"}>
+                        Total: {prizeCreditDistTotal}%
+                      </span>
+                    </div>
+
+                    {prizeCreditDistTotal !== 100 && (
+                      <Alert variant="destructive">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>
+                          Prize distribution must total exactly 100%
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
+                    {/* First Place */}
+                    <FormField
+                      control={form.control}
+                      name="prizeDistributionPercentage.first"
+                      render={({ field }) => (
+                        <FormItem>
+                          <div className="flex justify-between items-center mb-2">
+                            <FormLabel className="text-base font-medium">1st Place</FormLabel>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-gaming-accent font-semibold">{field.value}%</span>
+                              <span className="text-gaming-muted text-sm">
+                                {prizeDistribution.first} credits
+                              </span>
+                            </div>
+                          </div>
+                          <FormControl>
+                            <div className="flex items-center space-x-2">
+                              <Slider
+                                defaultValue={[field.value]}
+                                max={100}
+                                step={1}
+                                className="flex-1 accent-gaming-primary"
+                                onValueChange={(vals) => {
+                                  const newValue = vals[0];
+                                  field.onChange(newValue);
+                                  adjustPrizeCreditDistribution('first', newValue);
+                                }}
+                              />
+                              <Input
+                                type="number"
+                                className="bg-gaming-card text-white w-16"
+                                min={0}
+                                max={100}
+                                value={field.value}
+                                onChange={(e) => {
+                                  const newValue = Number(e.target.value);
+                                  field.onChange(newValue);
+                                  adjustPrizeCreditDistribution('first', newValue);
+                                }}
+                              />
+                            </div>
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Second Place */}
+                    <FormField
+                      control={form.control}
+                      name="prizeDistributionPercentage.second"
+                      render={({ field }) => (
+                        <FormItem>
+                          <div className="flex justify-between items-center mb-2">
+                            <FormLabel className="text-base font-medium">2nd Place</FormLabel>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-gaming-accent font-semibold">{field.value}%</span>
+                              <span className="text-gaming-muted text-sm">
+                                {prizeDistribution.second} credits
+                              </span>
+                            </div>
+                          </div>
+                          <FormControl>
+                            <div className="flex items-center space-x-2">
+                              <Slider
+                                defaultValue={[field.value]}
+                                max={100}
+                                step={1}
+                                className="flex-1 accent-gaming-primary"
+                                onValueChange={(vals) => {
+                                  const newValue = vals[0];
+                                  field.onChange(newValue);
+                                  adjustPrizeCreditDistribution('second', newValue);
+                                }}
+                              />
+                              <Input
+                                type="number"
+                                className="bg-gaming-card text-white w-16"
+                                min={0}
+                                max={100}
+                                value={field.value}
+                                onChange={(e) => {
+                                  const newValue = Number(e.target.value);
+                                  field.onChange(newValue);
+                                  adjustPrizeCreditDistribution('second', newValue);
+                                }}
+                              />
+                            </div>
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Third Place */}
+                    <FormField
+                      control={form.control}
+                      name="prizeDistributionPercentage.third"
+                      render={({ field }) => (
+                        <FormItem>
+                          <div className="flex justify-between items-center mb-2">
+                            <FormLabel className="text-base font-medium">3rd Place</FormLabel>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-gaming-accent font-semibold">{field.value}%</span>
+                              <span className="text-gaming-muted text-sm">
+                                {prizeDistribution.third} credits
+                              </span>
+                            </div>
+                          </div>
+                          <FormControl>
+                            <div className="flex items-center space-x-2">
+                              <Slider
+                                defaultValue={[field.value]}
+                                max={100}
+                                step={1}
+                                className="flex-1 accent-gaming-primary"
+                                onValueChange={(vals) => {
+                                  const newValue = vals[0];
+                                  field.onChange(newValue);
+                                  adjustPrizeCreditDistribution('third', newValue);
+                                }}
+                              />
+                              <Input
+                                type="number"
+                                className="bg-gaming-card text-white w-16"
+                                min={0}
+                                max={100}
+                                value={field.value}
+                                onChange={(e) => {
+                                  const newValue = Number(e.target.value);
+                                  field.onChange(newValue);
+                                  adjustPrizeCreditDistribution('third', newValue);
+                                }}
+                              />
+                            </div>
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
           
           <div className="flex flex-col sm:flex-row gap-3 sm:justify-between mt-8">
             <Button 
@@ -248,8 +585,7 @@ const EntryAndPrizesForm = ({ formData, updateFormData, nextStep, prevStep }: En
             </Button>
             <Button 
               type="submit" 
-              disabled={prizeDistTotal !== 100}
-              className="bg-gaming-primary hover:bg-gaming-primary-dark w-full sm:w-auto order-1 sm:order-2 py-6 sm:py-2 rounded-xl sm:rounded-md text-base font-medium"
+              className="bg-gaming-primary hover:bg-gaming-primary/90 w-full sm:w-auto order-1 sm:order-2 py-6 sm:py-2 rounded-xl sm:rounded-md text-base"
             >
               Next <ChevronRight size={18} className="ml-2" />
             </Button>

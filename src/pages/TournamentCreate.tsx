@@ -36,6 +36,30 @@ export type TournamentFormData = {
   prize_distribution: {
     [key: string]: number; // e.g., "1st": 70
   };
+  
+  // Prize Pool
+  prizePool?: {
+    enablePrizePool: boolean;
+    totalPrizeCredits: number;
+    prizeDistribution: {
+      first: number;
+      second: number;
+      third: number;
+    };
+    distributionPercentage: {
+      first: number;
+      second: number;
+      third: number;
+    };
+    isDistributed: boolean;
+    distributedAt?: any;
+    distributedBy?: string;
+    winners?: {
+      first?: { uid: string; username: string; prizeCredits: number };
+      second?: { uid: string; username: string; prizeCredits: number };
+      third?: { uid: string; username: string; prizeCredits: number };
+    };
+  };
 
   // Step 4: Rules & Media
   rules: string;
@@ -60,6 +84,21 @@ const TournamentCreate = () => {
       "1st": 70,
       "2nd": 20,
       "3rd": 10,
+    },
+    prizePool: {
+      enablePrizePool: true,
+      totalPrizeCredits: 500,
+      prizeDistribution: {
+        first: 250,
+        second: 150,
+        third: 100
+      },
+      distributionPercentage: {
+        first: 50,
+        second: 30,
+        third: 20
+      },
+      isDistributed: false
     },
     rules: "",
   });

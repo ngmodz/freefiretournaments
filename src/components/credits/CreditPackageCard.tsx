@@ -1,7 +1,6 @@
 import React from "react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { CheckCircle, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -43,24 +42,17 @@ const CreditPackageCard: React.FC<CreditPackageProps> = ({
       className="h-full"
     >
       <Card className={cn(
-        "h-full flex flex-col bg-gradient-to-b border-gaming-border/50 overflow-hidden",
+        "h-full flex flex-col bg-gradient-to-b border-gaming-border/50 overflow-hidden relative",
         gradient,
         isPopular && "ring-2 ring-gaming-accent shadow-lg shadow-gaming-accent/20"
       )}>
-        {/* Popular/Special Badge */}
-        {(isPopular || isSpecialOffer) && (
+        {isPopular && (
           <div className="absolute top-0 right-0">
-            <Badge
-              className={cn(
-                "m-2 px-3 py-1 text-xs font-medium rounded-full",
-                isPopular ? "bg-gaming-accent text-black" : "bg-green-500 text-white"
-              )}
-            >
-              {isPopular ? "MOST POPULAR" : "SPECIAL OFFER"}
-            </Badge>
+            <div className="bg-gaming-accent text-white text-xs font-bold py-1 px-3 rounded-bl-md shadow-md">
+              MOST POPULAR
+            </div>
           </div>
         )}
-
         <CardContent className="p-6 flex-grow">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 rounded-full bg-gaming-bg/30">
@@ -106,7 +98,12 @@ const CreditPackageCard: React.FC<CreditPackageProps> = ({
           <Button
             onClick={onPurchase}
             disabled={isProcessing}
-            className="w-full bg-gaming-primary hover:bg-gaming-primary/90"
+            className={cn(
+              "w-full",
+              isPopular 
+                ? "bg-gaming-accent hover:bg-gaming-accent/90" 
+                : "bg-gaming-primary hover:bg-gaming-primary/90"
+            )}
           >
             {isProcessing ? (
               <div className="flex items-center gap-2">

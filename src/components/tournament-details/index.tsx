@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Loader2, AlertCircle } from "lucide-react";
+import { ArrowLeft, Loader2, AlertCircle, Trophy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { updateTournamentRoomDetails, joinTournament } from "@/lib/tournamentService";
 import { TournamentProps } from "./types";
@@ -8,6 +8,9 @@ import TournamentHeader from "./TournamentHeader";
 import TournamentTabs from "./TournamentTabs";
 import TournamentSidebar from "./TournamentSidebar";
 import RoomDetailsDialog from "./RoomDetailsDialog";
+import PrizeDistributionDialog from "./PrizeDistributionDialog";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 const TournamentDetailsContent: React.FC<TournamentProps> = ({
   id,
@@ -20,6 +23,7 @@ const TournamentDetailsContent: React.FC<TournamentProps> = ({
   const { toast } = useToast();
   const navigate = useNavigate();
   const [showSetRoomModal, setShowSetRoomModal] = useState(false);
+  const [showPrizeDistributionModal, setShowPrizeDistributionModal] = useState(false);
   const [roomIdInput, setRoomIdInput] = useState(tournament?.room_id || "");
   const [roomPasswordInput, setRoomPasswordInput] = useState(tournament?.room_password || "");
   const [isSavingRoomDetails, setIsSavingRoomDetails] = useState(false);
@@ -199,6 +203,24 @@ const TournamentDetailsContent: React.FC<TournamentProps> = ({
     navigate('/tournaments');
   };
 
+  // Check if tournament is completed and has prize pool
+  const canDistributePrizes = () => {
+    return (
+      isHost && 
+      tournament?.status === 'completed' && 
+      tournament?.prizePool && 
+      !tournament?.prizePool?.isDistributed
+    );
+  };
+
+  // Check if tournament has a prize pool
+  const hasPrizePool = () => {
+    return (
+      tournament?.prizePool && 
+      tournament?.prizePool?.totalPrizeCredits > 0
+    );
+  };
+
   try {
     if (loading) {
       return (
@@ -247,46 +269,113 @@ const TournamentDetailsContent: React.FC<TournamentProps> = ({
     }
 
     return (
-      <>
+      <div className="container mx-auto py-6 px-4 max-w-7xl">
+        {/* Back button */}
         <Link to="/tournaments" className="inline-flex items-center text-gaming-muted hover:text-gaming-text mb-4">
           <ArrowLeft size={18} className="mr-1" /> Back to tournaments
         </Link>
-        
-        <TournamentHeader 
-          tournament={tournament} 
-          isHost={isHost} 
-          onSetRoomDetails={() => setShowSetRoomModal(true)} 
-        />
-        
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <TournamentTabs 
-              tournament={tournament}
+
+        {/* Tournament Header */}
+        <TournamentHeader tournament={tournament} />
+
+        {/* Main content */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+          {/* Left sidebar */}
+          <div className="lg:col-span-1">
+            <TournamentSidebar 
+              tournament={tournament} 
               isHost={isHost}
+              currentUser={currentUser}
+              onJoinTournament={handleJoinTournament}
+              isJoining={isJoining}
               onSetRoomDetails={() => setShowSetRoomModal(true)}
-              onCopy={handleCopy}
             />
+
+            {/* Prize Pool Card - Show if tournament has prize pool */}
+            {hasPrizePool() && (
+              <Card className="bg-gaming-card border-gaming-border mt-6">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Trophy className="h-5 w-5 text-yellow-500" />
+                    Prize Pool
+                  </CardTitle>
+                  <CardDescription>
+                    Tournament credit prizes
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="bg-gaming-bg/50 p-3 rounded-md">
+                      <h4 className="font-medium mb-2">Total: {tournament?.prizePool?.totalPrizeCredits} Credits</h4>
+                      <div className="grid grid-cols-3 gap-2 text-sm">
+                        <div className="flex items-center gap-1">
+                          <Trophy className="h-4 w-4 text-yellow-500" />
+                          <span>1st: {tournament?.prizePool?.prizeDistribution?.first}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Trophy className="h-4 w-4 text-gray-300" />
+                          <span>2nd: {tournament?.prizePool?.prizeDistribution?.second}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Trophy className="h-4 w-4 text-amber-700" />
+                          <span>3rd: {tournament?.prizePool?.prizeDistribution?.third}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Show prize distribution button for host if tournament is completed */}
+                    {canDistributePrizes() && (
+                      <Button
+                        onClick={() => setShowPrizeDistributionModal(true)}
+                        className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-medium"
+                      >
+                        <Trophy className="h-4 w-4 mr-2" />
+                        Distribute Prizes
+                      </Button>
+                    )}
+
+                    {/* Show if prizes have been distributed */}
+                    {tournament?.prizePool?.isDistributed && (
+                      <div className="flex items-center gap-2 text-green-500 text-sm">
+                        <Trophy className="h-4 w-4" />
+                        <span>Prizes have been distributed</span>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
-          
-          <TournamentSidebar 
-            tournament={tournament} 
-            progressPercentage={progressPercentage}
-            spotsLeft={spotsLeft}
-            onJoin={handleJoinTournament}
-          />
+
+          {/* Main content area */}
+          <div className="lg:col-span-2">
+            <TournamentTabs tournament={tournament} isHost={isHost} />
+          </div>
         </div>
 
-        <RoomDetailsDialog 
-          isOpen={showSetRoomModal}
-          setIsOpen={setShowSetRoomModal}
+        {/* Room Details Dialog */}
+        <RoomDetailsDialog
+          open={showSetRoomModal}
+          onOpenChange={setShowSetRoomModal}
           roomId={roomIdInput}
-          setRoomId={setRoomIdInput}
           roomPassword={roomPasswordInput}
-          setRoomPassword={setRoomPasswordInput}
+          onRoomIdChange={setRoomIdInput}
+          onRoomPasswordChange={setRoomPasswordInput}
           onSave={handleSetRoomDetails}
           isSaving={isSavingRoomDetails}
         />
-      </>
+
+        {/* Prize Distribution Dialog */}
+        {tournament && (
+          <PrizeDistributionDialog
+            open={showPrizeDistributionModal}
+            onOpenChange={setShowPrizeDistributionModal}
+            tournament={tournament}
+            hostUid={currentUser?.uid || ''}
+            onSuccess={onRefresh}
+          />
+        )}
+      </div>
     );
   } catch (error) {
     console.error("Unexpected error in TournamentDetailsContent:", error);

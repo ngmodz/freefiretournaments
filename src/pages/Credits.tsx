@@ -31,8 +31,6 @@ interface CreditPackage {
   originalPrice?: number;
   discountPercentage?: number;
   isPopular?: boolean;
-  isSpecialOffer?: boolean;
-  offerType?: 'welcome' | 'weekend' | 'season' | 'referral';
   features: string[];
   icon: React.ReactNode;
   gradient: string;
@@ -87,8 +85,6 @@ const Credits = () => {
       name: 'Champion Pack',
       credits: 900,
       price: 900,
-      isSpecialOffer: true,
-      offerType: 'season',
       features: ['900 Tournament Credits', 'Entry fee up to ₹900', 'Champion level access', 'Maximum value'],
       icon: <Crown size={24} />,
       gradient: 'from-yellow-500/20 to-orange-600/20'
@@ -139,8 +135,6 @@ const Credits = () => {
       name: 'Ultimate Host Pack',
       credits: 50,
       price: 375,
-      isSpecialOffer: true,
-      offerType: 'season',
       features: ['Create 50 tournaments', 'Ultimate host suite', 'Premium analytics', 'Best value package'],
       icon: <Zap size={24} />,
       gradient: 'from-yellow-500/20 to-orange-600/20'
@@ -244,32 +238,6 @@ const Credits = () => {
           hostCredits={hostCredits}
           isLoading={creditsLoading}
         />
-
-        {/* Special Offer Banner (Optional) */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="mb-8"
-        >
-          <Card className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-purple-500/30 overflow-hidden">
-            <CardContent className="p-6 relative">
-              <div className="absolute top-0 right-0 -mt-4 -mr-4">
-                <Gift className="h-24 w-24 text-purple-500/20" />
-              </div>
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
-                <div className="mb-4 md:mb-0">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Gift className="h-5 w-5 text-pink-500" />
-                    <p className="font-bold text-pink-500">Limited Time Offer</p>
-                  </div>
-                  <h3 className="text-xl font-bold mb-1">Get 20% Extra Credits on First Purchase!</h3>
-                  <p className="text-gaming-muted">New users get bonus credits on their first transaction</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
 
         {/* Credit Package Grid */}
         <motion.div
