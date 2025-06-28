@@ -14,7 +14,7 @@ import {
   Crown
 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
-import { CashfreeService } from "@/lib/cashfree-service";
+import { PaymentService } from "@/lib/paymentService";
 
 // Import new components
 import CreditPackageGrid from "@/components/credits/CreditPackageGrid";
@@ -154,51 +154,32 @@ const Credits = () => {
     setIsProcessingPayment(packageData.id);
 
     try {
-      const cashfreeService = new CashfreeService();
-
+      // Get payment service instance
+      const paymentService = PaymentService.getInstance();
+      
       // Prepare payment parameters
       const paymentParams = {
-        orderAmount: packageData.price,
-        customerName: currentUser.displayName || currentUser.email?.split('@')[0] || 'User',
-        customerEmail: currentUser.email || 'user@example.com',
-        customerPhone: currentUser.phoneNumber || '9999999999',
-        orderNote: `${packageType === 'host' ? 'Host' : 'Tournament'} Credits - ${packageData.name}`,
+        amount: packageData.price,
         userId: currentUser.uid,
+        userName: currentUser.displayName || currentUser.email?.split('@')[0] || 'User',
+        userEmail: currentUser.email || '',
+        paymentType: 'credit_purchase',
         packageId: packageData.id,
+        packageName: packageData.name,
         packageType: packageType,
         creditsAmount: packageData.credits
       };
-
+      
+      // Log the payment initiation
       console.log(`Initiating payment for ${packageData.name}:`, paymentParams);
-
-      // Create payment order
-      const response = await cashfreeService.createPaymentOrder(paymentParams);
-
-      if (!response.success || (!response.payment_session_id && !response.order_token)) {
-        throw new Error(response.error || 'Failed to create payment order');
-      }
-
-      // Use payment_session_id if available, fallback to order_token for backward compatibility
-      const sessionId = response.payment_session_id || response.order_token;
-
-      // Initialize Cashfree checkout with latest API
-      await cashfreeService.initializeCheckout(sessionId, {
-        onSuccess: (data: any) => {
-          console.log('Payment successful:', data);
-          toast({
-            title: "Payment Successful!",
-            description: `${packageData.credits} ${packageType} credits will be added to your account shortly.`,
-          });
-        },
-        onFailure: (data: any) => {
-          console.log('Payment failed:', data);
-          toast({
-            title: "Payment Failed",
-            description: "Your payment could not be processed. Please try again.",
-            variant: "destructive"
-          });
-        }
+      
+      toast({
+        title: "Redirecting to Payment",
+        description: "You will be redirected to the payment page.",
       });
+      
+      // Redirect to payment form
+      paymentService.redirectToPaymentForm(paymentParams);
 
     } catch (error) {
       console.error('Payment error:', error);
@@ -249,19 +230,32 @@ const Credits = () => {
           transition={{ duration: 0.5, delay: 0.3 }}
           className="mb-12"
         >
-          <CreditPackageGrid
+          <CreditPackageGrid 
             tournamentPackages={tournamentPackages}
             hostPackages={hostPackages}
             onPurchase={handlePurchase}
-            processingPackageId={isProcessingPayment}
+            isProcessingPayment={isProcessingPayment}
           />
         </motion.div>
 
-        {/* Credit Benefits Section */}
-        <CreditBenefits />
+        {/* Credit Benefits */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+          className="mb-12"
+        >
+          <CreditBenefits />
+        </motion.div>
 
         {/* FAQ Section */}
-        <CreditFAQ />
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.5 }}
+        >
+          <CreditFAQ />
+        </motion.div>
       </div>
     </div>
   );

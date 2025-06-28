@@ -1,122 +1,103 @@
-# Freefire Tournaments App
+# Cashfree Payment Forms Integration
 
-A modern web application for browsing, joining, and managing Freefire gaming tournaments. This platform connects gamers, allowing them to participate in tournaments, track their progress, and engage with the Freefire gaming community.
+This project demonstrates how to integrate Cashfree Payment Forms into a React application. The integration allows you to accept payments without needing a business account, using Cashfree's payment form feature.
 
-## 🎮 Features
+## Features
 
-- **Tournament Listings**: Browse and search for upcoming Freefire tournaments
-- **Tournament Details**: View comprehensive information about each tournament including rules, prizes, and schedules
-- **User Authentication**: Secure login/signup system with email and password
-- **User Profiles**: Customizable user profiles with gaming history and statistics
-- **Settings Management**: User preferences and account settings
-- **Responsive Design**: Optimized for both desktop and mobile devices
-- **Progressive Web App (PWA)**: Install and use as a native app on mobile devices
+- Redirect to Cashfree Payment Forms for processing payments
+- Handle payment callbacks and webhooks
+- Process wallet top-ups and credit purchases
+- Verify payment status
 
-## 🛠️ Technology Stack
+## Setup
 
-- **Frontend Framework**: React 18 with TypeScript
-- **Build Tool**: Vite
-- **UI Components**: Shadcn UI
-- **Styling**: Tailwind CSS with custom gaming theme
-- **Routing**: React Router DOM
-- **Form Handling**: React Hook Form with Zod validation
-- **State Management**: React Query for server state
-- **Authentication & Database**: Firebase
-- **Icons**: Lucide React
-- **Animation**: Framer Motion
-- **Date Handling**: date-fns
-- **Charts & Visualizations**: Recharts
+1. Follow the detailed setup instructions in [CASHFREE_PAYMENT_SETUP.md](./CASHFREE_PAYMENT_SETUP.md)
+2. Configure environment variables as specified
+3. Set up the webhook URL in your Cashfree dashboard
 
-## 📋 Prerequisites
+## Usage
 
-- Node.js (v16 or higher)
-- npm or yarn or bun package manager
+### Basic Payment Flow
 
-## 🚀 Getting Started
-
-1. Clone the repository:
-   ```bash
-   git clone <repository-url>
-   cd freefire-tournaments
-   ```
-
-2. Install dependencies:
-   ```bash
-   npm install
-   # or
-   yarn install
-   # or
-   bun install
-   ```
-
-3. Start the development server:
-   ```bash
-   npm run dev
-   # or
-   yarn dev
-   # or
-   bun dev
-   ```
-
-4. Open your browser and navigate to `http://localhost:5173`
-
-## 📦 Building for Production
-
-```bash
-npm run build
-# or
-yarn build
-# or
-bun build
+1. Import the PaymentService:
+```typescript
+import { PaymentService } from '@/lib/paymentService';
 ```
 
-The build artifacts will be generated in the `dist/` folder.
-
-## 📱 PWA Support
-
-This application is configured as a Progressive Web App (PWA), which means users can install it on their mobile devices and use it like a native app. PWA features include:
-
-- Offline support
-- Home screen installation
-- Native-like experience on mobile devices
-
-## 🧩 Project Structure
-
-```
-src/
-├── components/        # UI components
-│   ├── ui/            # Base UI components from Shadcn
-│   ├── settings/      # Settings-related components
-│   ├── profile/       # Profile-related components
-│   └── auth/          # Authentication components
-├── pages/             # Application pages/routes
-├── hooks/             # Custom React hooks
-├── lib/               # Utility functions and service configurations
-├── App.tsx            # Main application component with routes
-└── main.tsx           # Application entry point
+2. Create payment parameters:
+```typescript
+const paymentParams = {
+  amount: 100, // Amount in INR
+  userId: 'user123',
+  userName: 'John Doe',
+  userEmail: 'john@example.com',
+  paymentType: 'wallet_topup', // or 'credit_purchase'
+  // Optional parameters for credit purchases
+  packageId: 'premium_pack',
+  packageName: 'Premium Pack',
+  packageType: 'tournament', // or 'host'
+  creditsAmount: 500
+};
 ```
 
-## 🔧 Configuration
-
-The application uses environment variables for configuration. Create a `.env` file in the root directory with the following variables:
-
-```
-VITE_FIREBASE_API_KEY=your_firebase_api_key
-VITE_FIREBASE_AUTH_DOMAIN=your_firebase_auth_domain
-VITE_FIREBASE_PROJECT_ID=your_firebase_project_id
-VITE_FIREBASE_STORAGE_BUCKET=your_firebase_storage_bucket
-VITE_FIREBASE_MESSAGING_SENDER_ID=your_firebase_messaging_sender_id
-VITE_FIREBASE_APP_ID=your_firebase_app_id
+3. Redirect to payment form:
+```typescript
+const paymentService = PaymentService.getInstance();
+paymentService.redirectToPaymentForm(paymentParams);
 ```
 
-## 🤝 Contributing
+### Example Components
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+- `BuyCreditsButton`: A simple button component that redirects to the credits page
+- `AddFundsDialog`: A dialog for adding funds to wallet
+- `BuyCreditsExample`: An example component showing a complete payment flow
 
-## 📄 License
+### Payment Status Page
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+The `PaymentStatusPage` component handles the redirect from Cashfree Payment Forms and displays the payment status to the user.
 
-## 📞 Contact
+## Testing
 
-For questions, feedback, or support, please use the Contact Developer form in the app settings, or reach out to the repository owner.
+For testing in development mode, the payment service includes a mock payment flow that simulates a successful payment without actually redirecting to Cashfree.
+
+## Webhook Handling
+
+The `payment-webhook.js` Netlify function handles webhook notifications from Cashfree and updates the user's wallet or credits based on the payment type.
+
+## Folder Structure
+
+```
+├── netlify/
+│   └── functions/
+│       ├── payment-webhook.js     # Webhook handler
+│       └── verify-payment.js      # Payment verification endpoint
+├── src/
+│   ├── components/
+│   │   ├── payment/
+│   │   │   ├── BuyCreditsButton.tsx  # Button component
+│   │   │   └── index.ts              # Export components
+│   │   └── wallet/
+│   │       └── AddFundsDialog.tsx    # Dialog for adding funds
+│   ├── lib/
+│   │   └── paymentService.ts      # Payment service implementation
+│   └── pages/
+│       └── PaymentStatusPage.tsx  # Payment status display
+└── CASHFREE_PAYMENT_SETUP.md      # Setup instructions
+```
+
+## Environment Variables
+
+```
+VITE_PAYMENT_FORM_URL=your_cashfree_payment_form_url
+VITE_PAYMENT_FORM_WEBHOOK_SECRET=your_cashfree_webhook_secret
+```
+
+## Credits
+
+- [Cashfree Payments](https://www.cashfree.com/)
+- [React](https://reactjs.org/)
+- [Netlify Functions](https://www.netlify.com/products/functions/)
+
+## License
+
+MIT 

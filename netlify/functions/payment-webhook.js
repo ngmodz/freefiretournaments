@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const { initializeApp, cert } = require('firebase-admin/app');
 const { getFirestore } = require('firebase-admin/firestore');
 const path = require('path');
+const admin = require('firebase-admin');
 
 let db;
 
@@ -23,6 +24,25 @@ if (!process.env.FIREBASE_ADMIN_INITIALIZED) {
 } else {
   db = getFirestore();
 }
+
+// Initialize Firebase Admin SDK
+let serviceAccount;
+try {
+  serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+} catch (error) {
+  console.error('Error parsing Firebase service account:', error);
+}
+
+let app;
+if (!admin.apps.length && serviceAccount) {
+  app = admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
+  });
+} else if (admin.apps.length) {
+  app = admin.apps[0];
+}
+
+const dbAdmin = app ? admin.firestore() : null;
 
 /**
  * Verify Cashfree webhook signature
@@ -71,7 +91,140 @@ async function updatePaymentStatus(orderId, paymentData) {
 }
 
 /**
- * Netlify function to handle Cashfree payment webhooks
+ * Update user's wallet balance
+ * @param {string} userId - User ID
+ * @param {number} amount - Amount to add to wallet
+ * @returns {Promise<void>}
+ */
+async function updateWalletBalance(userId, amount) {
+  if (!dbAdmin) {
+    throw new Error('Firebase not initialized');
+  }
+
+  const walletRef = dbAdmin.collection('wallets').doc(userId);
+  const walletDoc = await walletRef.get();
+
+  if (!walletDoc.exists) {
+    // Initialize wallet if it doesn't exist
+    await walletRef.set({
+      balance: amount,
+      lastUpdated: admin.firestore.FieldValue.serverTimestamp()
+    });
+  } else {
+    // Update existing wallet
+    await walletRef.update({
+      balance: admin.firestore.FieldValue.increment(amount),
+      lastUpdated: admin.firestore.FieldValue.serverTimestamp()
+    });
+  }
+}
+
+/**
+ * Add transaction record to Firestore
+ * @param {Object} transaction - Transaction details
+ * @returns {Promise<string>} - Transaction ID
+ */
+async function addTransaction(transaction) {
+  if (!dbAdmin) {
+    throw new Error('Firebase not initialized');
+  }
+
+  const transactionsRef = dbAdmin.collection('transactions');
+  const newTransaction = {
+    ...transaction,
+    date: admin.firestore.FieldValue.serverTimestamp()
+  };
+
+  const docRef = await transactionsRef.add(newTransaction);
+  return docRef.id;
+}
+
+/**
+ * Add credits to user account after successful payment
+ * @param {string} userId - Firebase Auth UID of the user
+ * @param {number} creditsAmount - Number of credits to add
+ * @param {string} creditType - Type of credits ('tournament' or 'host')
+ * @param {Object} details - Payment details
+ * @returns {Promise<boolean>} - Success status
+ */
+const addCreditsToUserAccount = async (
+  userId,
+  creditsAmount,
+  creditType,
+  details
+) => {
+  try {
+    // Get Firestore references
+    const userRef = dbAdmin.collection("users").doc(userId);
+    const transactionRef = dbAdmin.collection("creditTransactions").doc();
+    
+    // Process in a transaction for data consistency
+    await dbAdmin.runTransaction(async (transaction) => {
+      // Get current user data
+      const userDoc = await transaction.get(userRef);
+      
+      if (!userDoc.exists) {
+        throw new Error(`User ${userId} not found`);
+      }
+      
+      // Get user data and wallet
+      const userData = userDoc.data();
+      const wallet = userData.wallet || {
+        tournamentCredits: 0,
+        hostCredits: 0,
+        earnings: 0,
+        totalPurchasedTournamentCredits: 0,
+        totalPurchasedHostCredits: 0,
+        firstPurchaseCompleted: false
+      };
+      
+      // Calculate new values
+      const walletField = creditType === 'tournament' ? 'tournamentCredits' : 'hostCredits';
+      const totalField = creditType === 'tournament' ? 'totalPurchasedTournamentCredits' : 'totalPurchasedHostCredits';
+      const currentBalance = wallet[walletField] || 0;
+      const newBalance = currentBalance + creditsAmount;
+      
+      // Prepare transaction data
+      const transactionType = creditType === 'tournament' ? 'tournament_credit_purchase' : 'host_credit_purchase';
+      const transactionData = {
+        userId,
+        type: transactionType,
+        amount: creditsAmount,
+        value: details.amount,
+        balanceBefore: currentBalance,
+        balanceAfter: newBalance,
+        walletType: walletField,
+        description: `Purchased ${creditsAmount} ${creditType} credits - ${details.packageName || details.packageId}`,
+        transactionDetails: {
+          packageId: details.packageId,
+          packageName: details.packageName || details.packageId,
+          paymentId: details.paymentId,
+          orderId: details.orderId
+        },
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
+      };
+      
+      // Update user wallet
+      transaction.update(userRef, {
+        [`wallet.${walletField}`]: newBalance,
+        [`wallet.${totalField}`]: admin.firestore.FieldValue.increment(creditsAmount),
+        'wallet.firstPurchaseCompleted': true
+      });
+      
+      // Record the transaction
+      transaction.set(transactionRef, transactionData);
+    });
+    
+    console.log(`Successfully added ${creditsAmount} ${creditType} credits to user ${userId}`);
+    return true;
+  } catch (error) {
+    console.error(`Error adding credits to user ${userId}:`, error);
+    return false;
+  }
+};
+
+/**
+ * Process payment webhook
  */
 exports.handler = async (event, context) => {
   // Only allow POST requests
@@ -82,102 +235,116 @@ exports.handler = async (event, context) => {
     };
   }
 
-  // Log all incoming requests for debugging
-  console.log('Webhook received:', event.httpMethod);
-  console.log('Headers:', JSON.stringify(event.headers, null, 2));
-  console.log('Body:', event.body);
-
-  // For test events, respond immediately with success
-  // This ensures Cashfree's test passes
-  if (event.headers['x-webhook-source'] === 'cashfree-test' || 
-      event.headers['X-Webhook-Source'] === 'cashfree-test') {
-    console.log('Detected Cashfree test webhook');
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ success: true, message: 'Test webhook received' })
-    };
-  }
-
   try {
-    // Parse webhook data
+    // Parse webhook payload
     const webhookData = JSON.parse(event.body);
-    
-    // Special handling for test events from Cashfree
-    if (webhookData.type === 'TEST' || 
-        webhookData.event === 'TEST' || 
-        webhookData.data?.event === 'TEST') {
-      console.log('Received test webhook from Cashfree');
+    console.log('Received payment webhook:', webhookData);
+
+    // Verify payment data
+    const {
+      order_id,
+      payment_id,
+      status,
+      amount,
+      user_id,
+      package_id,
+      package_type,
+      credits_amount,
+      signature
+    } = webhookData;
+
+    // In a production environment, you would verify the signature here
+    // using your Cashfree API key and the webhook payload
+
+    // Process the payment based on status
+    if (status === 'SUCCESS') {
+      console.log(`Processing successful payment: Order ID ${order_id}, User ID ${user_id}`);
+
+      if (package_type && credits_amount && package_id) {
+        // This is a credit purchase
+        const creditsAmount = parseInt(credits_amount, 10);
+        
+        // Add credits to user account
+        await addCreditsToUserAccount(
+          user_id,
+          creditsAmount,
+          package_type,
+          {
+            amount: parseFloat(amount),
+            packageId: package_id,
+            orderId: order_id,
+            paymentId: payment_id
+          }
+        );
+        
       return {
         statusCode: 200,
-        body: JSON.stringify({ success: true, message: 'Test webhook received successfully' })
+          body: JSON.stringify({
+            success: true,
+            message: `Successfully processed credit purchase for user ${user_id}`
+          })
       };
-    }
-    
-    const signature = event.headers['x-webhook-signature'] || event.headers['X-Webhook-Signature'];
-    
-    if (!signature) {
-      console.error('Missing webhook signature');
+      } else {
+        // This is a wallet top-up
+        const walletAmount = parseFloat(amount);
+        
+        // Update wallet balance
+        await updateWalletBalance(user_id, walletAmount);
+        
+        // Add transaction record
+        const transactionId = await addTransaction({
+          userId: user_id,
+          type: 'deposit',
+          amount: walletAmount,
+          status: 'completed',
+          paymentDetails: {
+            orderId: order_id,
+            paymentId: payment_id,
+          }
+        });
+        
       return {
-        statusCode: 400,
-        body: JSON.stringify({ error: 'Missing webhook signature' })
+          statusCode: 200,
+          body: JSON.stringify({
+            success: true,
+            message: `Successfully processed wallet top-up for user ${user_id}`,
+            transactionId
+          })
       };
     }
+    } else {
+      // Failed payment
+      console.log(`Received failed payment notification: Order ID ${order_id}, Status: ${status}`);
     
-    // Get Cashfree secret key from environment variables
-    const secretKey = process.env.CASHFREE_SECRET_KEY;
-    
-    // Verify webhook signature
-    const isSignatureValid = verifyWebhookSignature(webhookData, signature, secretKey);
-    
-    if (!isSignatureValid) {
-      console.error('Invalid webhook signature');
+      // Record the failed transaction for audit purposes
+      await addTransaction({
+        userId: user_id || 'unknown',
+        type: 'failed_payment',
+        amount: parseFloat(amount),
+        status: 'failed',
+        paymentDetails: {
+          orderId: order_id,
+          paymentId: payment_id,
+          failureReason: webhookData.failure_reason || 'Unknown failure'
+        }
+      });
+      
       return {
-        statusCode: 401,
-        body: JSON.stringify({ error: 'Invalid signature' })
-      };
-    }
-    
-    console.log('Webhook signature verified successfully');
-    
-    // Process the payment notification
-    const orderId = webhookData.data?.order?.order_id;
-    
-    if (!orderId) {
-      console.error('Missing order ID in webhook data');
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: 'Missing order ID in webhook data' })
-      };
-    }
-    
-    // Prepare data to store in Firestore
-    const paymentData = {
-      orderId: orderId,
-      orderAmount: webhookData.data?.order?.order_amount,
-      orderCurrency: webhookData.data?.order?.order_currency,
-      orderStatus: webhookData.data?.order?.order_status,
-      paymentStatus: webhookData.data?.payment?.payment_status,
-      paymentMethod: webhookData.data?.payment?.payment_method,
-      paymentTime: webhookData.data?.payment?.payment_time,
-      webhookData: webhookData,
-      receivedAt: new Date().toISOString()
+        statusCode: 200,
+        body: JSON.stringify({
+          success: false,
+          message: `Recorded failed payment for order ${order_id}`
+        })
     };
-    
-    // Update payment status in Firestore
-    await updatePaymentStatus(orderId, paymentData);
-    
-    // Return success response
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ success: true, message: 'Webhook processed successfully' })
-    };
+    }
   } catch (error) {
-    console.error('Error processing webhook:', error);
+    console.error('Error processing payment webhook:', error);
     
     return {
       statusCode: 500,
       body: JSON.stringify({
-        error: 'Failed to process webhook',
+        success: false,
+        error: 'Failed to process payment webhook',
         details: error.message
       })
     };

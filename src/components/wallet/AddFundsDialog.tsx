@@ -20,9 +20,8 @@ import { Wallet as WalletType } from "@/lib/walletService";
 import { motion, AnimatePresence } from "framer-motion";
 import React from "react";
 import TransactionSuccessDialog from "./TransactionSuccessDialog";
-import { CashfreeCheckout } from "@/components/payment/CashfreeCheckout";
-import { CashfreeService, PaymentOrderResponse } from "@/lib/cashfree-service";
 import { useNavigate } from "react-router-dom";
+import { PaymentService } from "@/lib/paymentService";
 
 // Minimum amount that can be added
 const MIN_AMOUNT = 100;
@@ -101,73 +100,44 @@ const AddFundsDialog = ({ open, onOpenChange }: AddFundsDialogProps) => {
       setIsLoading(true);
       setError(null);
 
-      console.log(`Initiating Cashfree payment: ₹${numAmount} for user ${currentUser.uid}`);
+      console.log(`Initiating payment: ₹${numAmount} for user ${currentUser.uid}`);
+      
+      // Get payment service instance
+      const paymentService = PaymentService.getInstance();
       
       // Get user display name or email as a fallback
       const customerName = currentUser.displayName || currentUser.email?.split('@')[0] || 'User';
       const customerEmail = currentUser.email || '';
-      const customerPhone = currentUser.phoneNumber || '';
       
-      // Create payment order parameters
+      // Prepare payment parameters
       const paymentParams = {
-        orderAmount: numAmount,
-        customerName: customerName,
-        customerEmail: customerEmail || 'user@example.com', // Cashfree requires an email
-        customerPhone: customerPhone || '9999999999', // Cashfree requires a phone number
-        orderNote: `Wallet funds - ${new Date().toISOString()}`,
-        userId: currentUser.uid
+        amount: numAmount,
+        userId: currentUser.uid,
+        userName: customerName,
+        userEmail: customerEmail,
+        paymentType: 'wallet_topup' as const
       };
       
-      console.log("Creating Cashfree payment order:", paymentParams);
+      console.log("Creating payment with params:", paymentParams);
       
-      // Get Cashfree service instance
-      const cashfreeService = CashfreeService.getInstance();
-      
-      // Create payment order
-      const response = await cashfreeService.createPaymentOrder(paymentParams);
-      
-      // DEVELOPMENT FALLBACK: If we don't have order_token due to missing API keys, use a mock token
-      if (!response.success || !response.order_token) {
-        console.warn("Payment order creation failed or missing token:", response);
-        
-        // For development/testing only - create a mock transaction record
-        if (import.meta.env.DEV || import.meta.env.MODE === 'development') {
-          console.log("DEV MODE: Using mock payment flow");
-          
-          // Close dialog
-          setIsLoading(false);
-          onOpenChange(false);
-          
-          // Show success dialog with mock transaction
-          setTransactionId(`mock_${Date.now()}`);
-          setConfirmedAmount(numAmount);
-          setShowSuccessDialog(true);
-          
-          return;
-        }
-        
-        // Show specific error from API if available
-        if (response.details?.error) {
-          throw new Error(`Payment error: ${response.details.error}`);
-        } else if (response.error) {
-          throw new Error(response.error);
-        } else {
-          throw new Error('Failed to create payment order or missing order_token');
-        }
-      }
-      
-      // Success - close dialog before launching Cashfree
+      // Close dialog before redirecting
       setIsLoading(false);
       onOpenChange(false);
       
-      console.log("Payment order created successfully:", response);
-      console.log("Initializing Cashfree Drop-in with order_token:", response.order_token);
+      // For development/testing only - create a mock transaction record
+      if (import.meta.env.DEV || import.meta.env.MODE === 'development') {
+        console.log("DEV MODE: Using mock payment flow");
+        
+        // Show success dialog with mock transaction
+        setTransactionId(`mock_${Date.now()}`);
+        setConfirmedAmount(numAmount);
+        setShowSuccessDialog(true);
+        
+        return;
+      }
       
-      // Initialize Cashfree Drop-in checkout
-      await cashfreeService.initializeDropIn(response.order_token, {
-        // You can add more options here if needed, e.g., for styling or specific payment modes
-        // Example: components: ["upi", "card"]
-      });
+      // Redirect to payment form
+      paymentService.redirectToPaymentForm(paymentParams);
       
     } catch (error) {
       console.error("Payment initiation error:", error);
@@ -248,102 +218,95 @@ const AddFundsDialog = ({ open, onOpenChange }: AddFundsDialogProps) => {
                     className="flex space-x-4"
                   >
                     <div className="flex items-center space-x-2">
-                      <RadioGroupItem 
-                        value="upi" 
-                        id="upi" 
-                        className="border-gaming-primary text-gaming-primary focus:ring-offset-gaming-bg"
-                      />
-                      <Label htmlFor="upi" className="text-gaming-text cursor-pointer">UPI</Label>
+                      <RadioGroupItem value="upi" id="upi" />
+                      <Label htmlFor="upi" className="cursor-pointer flex items-center gap-2">
+                        <div className="bg-blue-100 p-1.5 rounded-full">
+                          <Wallet className="h-4 w-4 text-blue-600" />
+                        </div>
+                        UPI
+                      </Label>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <RadioGroupItem 
-                        value="card" 
-                        id="card" 
-                        className="border-gaming-primary text-gaming-primary focus:ring-offset-gaming-bg" 
-                      />
-                      <Label htmlFor="card" className="text-gaming-text cursor-pointer">Credit/Debit Card</Label>
+                      <RadioGroupItem value="card" id="card" />
+                      <Label htmlFor="card" className="cursor-pointer flex items-center gap-2">
+                        <div className="bg-purple-100 p-1.5 rounded-full">
+                          <CreditCard className="h-4 w-4 text-purple-600" />
+                        </div>
+                        Card
+                      </Label>
                     </div>
                   </RadioGroup>
                 </motion.div>
 
-                {paymentMethod === "card" && (
-                  <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.3 }}
-                    className="bg-gaming-bg/80 p-4 rounded-lg border border-gaming-primary/10 text-center"
-                  >
-                    <p className="text-gaming-muted">Credit/Debit card payment is currently under development.</p>
-                    <p className="text-gaming-muted text-sm">Please use UPI for now.</p>
-                  </motion.div>
-                )}
-
-                <motion.div 
+                <motion.div
                   initial={{ y: 10, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.2 }}
                   className="space-y-2"
                 >
-                  <Label htmlFor="amount" className="text-gaming-text text-sm">Amount (₹)</Label>
+                  <Label htmlFor="amount" className="text-gaming-text text-sm">
+                    Amount (₹)
+                  </Label>
                   <Input
                     id="amount"
                     type="text"
-                    placeholder="Enter amount to add"
                     value={amount}
                     onChange={handleAmountChange}
-                    className="bg-gaming-bg/70 text-gaming-text border-gaming-border/50 focus:border-gaming-primary focus:ring-gaming-primary/20"
+                    placeholder={`Minimum ₹${MIN_AMOUNT}`}
+                    className="bg-gaming-bg/60 border-gaming-border/30 focus:border-gaming-accent/50 focus:ring-gaming-accent/20"
+                    disabled={isLoading}
                   />
-                  <AnimatePresence>
-                    {error && (
-                      <motion.p 
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="text-destructive text-sm mt-1"
-                      >
-                        {error}
-                      </motion.p>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
-              </div>
-
-              <DialogFooter className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-between">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => onOpenChange(false)}
-                  className="border-gaming-border text-gaming-text hover:bg-gaming-bg/50 hover:text-gaming-text"
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  type="button" 
-                  onClick={handleSubmit}
-                  disabled={isLoading}
-                  className="bg-gaming-primary hover:bg-gaming-primary/90 text-white"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    'Add Funds'
+                  {error && (
+                    <p className="text-red-500 text-xs mt-1">{error}</p>
                   )}
-                </Button>
-              </DialogFooter>
+                </motion.div>
+
+                <motion.div
+                  initial={{ y: 10, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.25 }}
+                  className="pt-2"
+                >
+                  <Button
+                    onClick={handleSubmit}
+                    className="w-full bg-gaming-accent hover:bg-gaming-accent/90"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        Add Funds
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </>
+                    )}
+                  </Button>
+                </motion.div>
+
+                <div className="text-center pt-2">
+                  <Button
+                    variant="link"
+                    className="text-gaming-accent hover:text-gaming-accent/80"
+                    onClick={handleBuyCredits}
+                  >
+                    <Coins className="mr-2 h-4 w-4" />
+                    View Credit Packages
+                  </Button>
+                </div>
+              </div>
             </div>
           </DialogPrimitive.Content>
         </DialogPortal>
       </Dialog>
-      
+
       <TransactionSuccessDialog
-        isOpen={showSuccessDialog}
-        onClose={() => setShowSuccessDialog(false)}
-        transactionType="deposit"
-        amount={confirmedAmount}
+        open={showSuccessDialog}
+        onOpenChange={setShowSuccessDialog}
         transactionId={transactionId}
+        amount={confirmedAmount}
       />
     </>
   );
