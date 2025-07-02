@@ -1,1 +1,5 @@
-export { default as BuyCreditsButton } from './BuyCreditsButton'; 
+import BuyCreditsButton from './BuyCreditsButton';
+
+export {
+  BuyCreditsButton
+}; 

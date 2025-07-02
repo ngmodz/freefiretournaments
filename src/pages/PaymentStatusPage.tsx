@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Loader2, CheckCircle, XCircle, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { PaymentService } from '@/lib/paymentService';
 
 const PaymentStatusPage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -18,6 +19,7 @@ const PaymentStatusPage: React.FC = () => {
   const status = searchParams.get('status');
   const amount = searchParams.get('amount');
   const paymentType = searchParams.get('payment_type');
+  const paymentId = searchParams.get('payment_id');
   
   useEffect(() => {
     // If no user is logged in, redirect to login
@@ -50,17 +52,17 @@ const PaymentStatusPage: React.FC = () => {
         }
         
         // If status is not in URL or is pending, verify with our backend
-        const response = await fetch(`/.netlify/functions/verify-payment?orderId=${orderId}`);
-        const data = await response.json();
+        const paymentService = PaymentService.getInstance();
+        const verificationResult = await paymentService.verifyPayment(orderId, paymentId || undefined);
         
-        if (data.status === 'PAID' || data.status === 'SUCCESS') {
+        if (verificationResult.verified) {
           setPaymentStatus('success');
           setOrderDetails({
-            orderAmount: data.amount || amount,
-            paymentId: data.paymentId,
-            paymentTime: data.paymentTime
+            orderAmount: verificationResult.amount || amount,
+            paymentId: verificationResult.paymentId,
+            orderId: verificationResult.orderId
           });
-        } else if (data.status === 'FAILED') {
+        } else if (verificationResult.error) {
           setPaymentStatus('failed');
         } else {
           setPaymentStatus('pending');
@@ -81,7 +83,7 @@ const PaymentStatusPage: React.FC = () => {
     };
     
     checkPaymentStatus();
-  }, [orderId, status, amount, paymentType, currentUser, navigate]);
+  }, [orderId, status, amount, paymentType, paymentId, currentUser, navigate]);
   
   const handleContinue = () => {
     // Redirect to appropriate page based on payment type

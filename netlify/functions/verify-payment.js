@@ -24,7 +24,7 @@ if (!process.env.FIREBASE_ADMIN_INITIALIZED) {
 }
 
 /**
- * Verify payment status from Cashfree
+ * Verify payment status from payment provider
  */
 exports.handler = async function(event, context) {
   // Only allow GET requests
@@ -65,7 +65,7 @@ exports.handler = async function(event, context) {
       };
     }
 
-    // If we don't have a record, check with Cashfree API
+    // If we don't have a record, check with payment provider API
     // Note: For payment forms, we rely on webhooks to update our database
     // This is a fallback mechanism if the webhook hasn't been processed yet
     

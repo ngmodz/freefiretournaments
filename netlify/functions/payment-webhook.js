@@ -45,7 +45,7 @@ if (!admin.apps.length && serviceAccount) {
 const dbAdmin = app ? admin.firestore() : null;
 
 /**
- * Verify Cashfree webhook signature
+ * Verify payment webhook signature
  */
 function verifyWebhookSignature(payload, signature, secretKey) {
   try {
@@ -254,7 +254,7 @@ exports.handler = async (event, context) => {
     } = webhookData;
 
     // In a production environment, you would verify the signature here
-    // using your Cashfree API key and the webhook payload
+    // using your payment provider API key and the webhook payload
 
     // Process the payment based on status
     if (status === 'SUCCESS') {

@@ -28,7 +28,7 @@ const CreditBenefits: React.FC = () => {
     {
       icon: <Shield className="h-6 w-6 text-purple-500" />,
       title: "Secure Transactions",
-      description: "Safe payment processing via Cashfree"
+      description: "Safe payment processing with encryption"
     },
     {
       icon: <Sparkles className="h-6 w-6 text-pink-500" />,

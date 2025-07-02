@@ -234,7 +234,7 @@ const Credits = () => {
             tournamentPackages={tournamentPackages}
             hostPackages={hostPackages}
             onPurchase={handlePurchase}
-            isProcessingPayment={isProcessingPayment}
+            processingPackageId={isProcessingPayment}
           />
         </motion.div>
 

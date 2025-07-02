@@ -147,7 +147,7 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // In a real implementation, we would call Cashfree Payout API here
+    // In a real implementation, we would call Payout API here
     // const payoutResponse = await initiatePayout(userId, amount, withdrawalMethod, upiId);
 
     // Create a transfer ID

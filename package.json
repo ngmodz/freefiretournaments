@@ -12,7 +12,6 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "cleanup:tournaments": "node --experimental-json-modules scripts/delete-mock-tournaments.js",
-    "test:cashfree": "node --experimental-json-modules scripts/test-cashfree-integration.js",
     "netlify": "node --no-warnings netlify.js"
   },
   "dependencies": {
@@ -47,7 +46,6 @@
     "@tanstack/react-query": "^5.56.2",
     "@types/uuid": "^10.0.0",
     "axios": "^1.9.0",
-    "cashfree-pg": "^5.0.8",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",

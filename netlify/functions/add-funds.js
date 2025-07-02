@@ -1,4 +1,4 @@
-// Netlify serverless function to initiate payment with Cashfree
+// Netlify serverless function to initiate payment
 const admin = require('firebase-admin');
 
 // Initialize Firebase Admin SDK
@@ -21,10 +21,10 @@ if (!admin.apps.length && serviceAccount) {
 const db = app ? admin.firestore() : null;
 
 /**
- * Serverless function to initiate payment with Cashfree
+ * Serverless function to initiate payment
  * In a real implementation, this would:
  * 1. Validate the request
- * 2. Call Cashfree API to create an order
+ * 2. Call payment provider API to create an order
  * 3. Return the order token for the frontend to initialize the payment
  */
 exports.handler = async (event, context) => {
@@ -49,8 +49,8 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // In a real implementation, we would call Cashfree API here
-    // const cashfreeResponse = await initiatePayment(userId, amount, name, email, phone);
+    // In a real implementation, we would call payment API here
+    // const paymentResponse = await initiatePayment(userId, amount, name, email, phone);
 
     // For demonstration, we'll create a mock response
     const orderId = `deposit_${userId}_${Date.now()}`;
@@ -64,7 +64,7 @@ exports.handler = async (event, context) => {
         orderId: orderId,
         amount: amount,
         paymentLink: mockPaymentLink,
-        token: 'mock_token_123', // Cashfree would provide this
+        token: 'mock_token_123', // Payment provider would provide this
         expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString() // 30 min expiry
       })
     };

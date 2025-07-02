@@ -1,4 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
+import { db } from './firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 /**
  * Interface for payment form parameters
@@ -17,15 +19,37 @@ export interface PaymentFormParams {
 }
 
 /**
- * Service for handling payment integration with Cashfree payment forms
+ * Interface for payment verification response
+ */
+export interface PaymentVerificationResponse {
+  success: boolean;
+  verified: boolean;
+  orderId: string;
+  amount?: number;
+  paymentId?: string;
+  error?: string;
+  message?: string;
+}
+
+/**
+ * Service for handling payment integration
  */
 export class PaymentService {
   private static instance: PaymentService;
   private paymentFormUrl: string;
+  private apiBaseUrl: string;
 
   constructor() {
-    // Get the payment form URL from environment variables or use a default
-    this.paymentFormUrl = import.meta.env?.VITE_PAYMENT_FORM_URL || 'https://your-cashfree-payment-form-url';
+    // Get the payment form URL from environment variables
+    this.paymentFormUrl = import.meta.env?.VITE_PAYMENT_FORM_URL || '';
+    
+    // Get the API base URL (Netlify functions)
+    this.apiBaseUrl = import.meta.env?.VITE_API_URL || '';
+    
+    // If no API URL is set, use the current origin
+    if (!this.apiBaseUrl) {
+      this.apiBaseUrl = `${window.location.origin}/.netlify/functions`;
+    }
   }
 
   /**
@@ -87,12 +111,86 @@ export class PaymentService {
         return;
       }
       
+      // Determine which payment form URL to use
+      let paymentFormUrl = this.paymentFormUrl;
+      
+      // Use the configured payment form URL
+      if (!paymentFormUrl) {
+        throw new Error('Payment form URL not configured');
+      }
+      
       // Redirect to payment form
-      window.location.href = `${this.paymentFormUrl}?${urlParams.toString()}`;
+      window.location.href = `${paymentFormUrl}?${urlParams.toString()}`;
       
     } catch (error) {
       console.error('Error redirecting to payment form:', error);
       throw error;
+    }
+  }
+  
+  /**
+   * Verify a payment using the server-side verification function
+   * @param orderId The order ID to verify
+   * @param paymentId Optional payment ID from payment provider
+   */
+  public async verifyPayment(orderId: string, paymentId?: string): Promise<PaymentVerificationResponse> {
+    try {
+      // Prepare the request URL and parameters
+      const url = `${this.apiBaseUrl}/verify-payment`;
+      const params: Record<string, string> = { order_id: orderId };
+      
+      // Add payment ID if provided
+      if (paymentId) {
+        params.payment_id = paymentId;
+      }
+      
+      // Build query string
+      const queryString = new URLSearchParams(params).toString();
+      
+      // For development/testing, simulate a successful verification
+      if (import.meta.env.DEV || import.meta.env.MODE === 'development') {
+        console.log('DEV MODE: Simulating payment verification');
+        
+        // Return a mock successful response
+        return {
+          success: true,
+          verified: true,
+          orderId: orderId,
+          amount: 100, // Mock amount
+          paymentId: paymentId || `mock_payment_${Date.now()}`,
+          message: 'Payment verified successfully (DEV MODE)'
+        };
+      }
+      
+      // Make the API call to verify payment
+      const response = await fetch(`${url}?${queryString}`);
+      const data = await response.json();
+      
+      // Log the verification response
+      console.log('Payment verification response:', data);
+      
+      // Return the verification result
+      return {
+        success: response.ok,
+        verified: data.verified || false,
+        orderId: orderId,
+        amount: data.amount,
+        paymentId: data.payment_id || paymentId,
+        error: data.error,
+        message: data.message
+      };
+      
+    } catch (error) {
+      console.error('Error verifying payment:', error);
+      
+      // Return error response
+      return {
+        success: false,
+        verified: false,
+        orderId: orderId,
+        error: error.message || 'An error occurred while verifying the payment',
+        message: 'Payment verification failed'
+      };
     }
   }
 }

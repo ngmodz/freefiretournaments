@@ -21,7 +21,7 @@
   status = 200
 
 [[redirects]]
-  from = "/webhooks/cashfree"
+  from = "/webhooks/payment"
   to = "/.netlify/functions/payment-webhook"
   status = 200
 

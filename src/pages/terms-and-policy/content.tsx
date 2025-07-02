@@ -82,7 +82,7 @@ export const sections = [
         title: "2.2 Joining Tournaments",
         content: (
           <ul className="list-disc pl-6 space-y-2">
-            <li>Participants must pay the entry fee via Cashfree to join a tournament.</li>
+            <li>Participants must pay the entry fee via secure payment processing to join a tournament.</li>
             <li>Entry fees are non-refundable.</li>
             <li>Participants must join the custom room using the provided Room ID and password at the scheduled time. Failure to join may result in forfeiture without refund.</li>
           </ul>
@@ -94,7 +94,7 @@ export const sections = [
           <ul className="list-disc pl-6 space-y-2">
             <li>Prizes are distributed based on the host's specified distribution (e.g., 70% to 1st, 20% to 2nd, 10% to 3rd) and credited to winners' in-app wallets.</li>
             <li>Winners must provide accurate payment details for withdrawals (if applicable).</li>
-            <li>Freefire Tournaments is not responsible for delays caused by third-party payment providers (e.g., Cashfree).</li>
+            <li>Freefire Tournaments is not responsible for delays caused by third-party payment providers.</li>
           </ul>
         )
       },
@@ -116,9 +116,9 @@ export const sections = [
         title: "3.1 Payment Processing",
         content: (
           <ul className="list-disc pl-6 space-y-2">
-            <li>All payments (entry fees, deposits, withdrawals) are processed via Cashfree, a third-party payment provider.</li>
-            <li>Users must comply with Cashfree's terms and provide valid payment information.</li>
-            <li>Freefire Tournaments is not liable for errors or delays caused by Cashfree.</li>
+            <li>All payments (entry fees, deposits, withdrawals) are processed via secure third-party payment providers.</li>
+            <li>Users must provide valid payment information and comply with payment provider terms.</li>
+            <li>Freefire Tournaments is not liable for errors or delays caused by payment providers.</li>
           </ul>
         )
       },
