@@ -93,6 +93,39 @@ service cloud.firestore {
       allow delete: if request.auth != null && request.auth.token.admin == true;
     }
     
+    // Credit rules - allow users to access only their own wallet in user document
+    match /users/{userId} {
+      // Already covered by the rules above, but adding this clarification for credit-related operations
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Tournament credit and host credit transactions
+    match /creditTransactions/{transactionId} {
+      // Allow reading any credit transaction if the user ID matches the authenticated user
+      allow read: if request.auth != null && (
+        resource.data.userId == request.auth.uid
+      );
+      
+      // Allow creating credit transactions if userID matches authenticated user
+      allow create: if request.auth != null && (
+        request.resource.data.userId == request.auth.uid
+      );
+      
+      // No updates or deletions for credit transactions
+      allow update: if false;
+      allow delete: if false;
+    }
+    
+    // Important: Allow users to list their own credit transactions
+    match /creditTransactions {
+      allow list: if request.auth != null && request.query.limit <= 100 && 
+                  request.query.where.size() > 0 && 
+                  request.query.where[0][0] == 'userId' && 
+                  request.query.where[0][1] == '==' && 
+                  request.query.where[0][2] == request.auth.uid;
+    }
+    
+    // Legacy wallet and transaction rules - keeping for backward compatibility
     // Wallet rules - allow users to access only their own wallet
     match /wallets/{userId} {
       allow read: if request.auth != null && request.auth.uid == userId;
@@ -118,34 +151,8 @@ service cloud.firestore {
       allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
     
-    // Credit transaction rules
-    match /creditTransactions/{transactionId} {
-      // Allow reading any credit transaction if the user ID matches the authenticated user
-      allow read: if request.auth != null && (
-        resource.data.userId == request.auth.uid
-      );
-      
-      // Allow creating credit transactions if userID matches authenticated user
-      allow create: if request.auth != null && (
-        request.resource.data.userId == request.auth.uid
-      );
-      
-      // No updates or deletions for credit transactions
-      allow update: if false;
-      allow delete: if false;
-    }
-    
     // Important: Allow users to list their own transactions
     match /transactions {
-      allow list: if request.auth != null && request.query.limit <= 100 && 
-                  request.query.where.size() > 0 && 
-                  request.query.where[0][0] == 'userId' && 
-                  request.query.where[0][1] == '==' && 
-                  request.query.where[0][2] == request.auth.uid;
-    }
-    
-    // Important: Allow users to list their own credit transactions
-    match /creditTransactions {
       allow list: if request.auth != null && request.query.limit <= 100 && 
                   request.query.where.size() > 0 && 
                   request.query.where[0][0] == 'userId' && 

@@ -2,9 +2,11 @@ import crypto from 'crypto';
 
 // CashFree API configuration
 const getCashFreeConfig = () => {
-  const environment = process.env.VITE_CASHFREE_ENVIRONMENT || 'SANDBOX';
+  // Use dedicated serverside environment variables
+  // IMPORTANT: These need to be defined in your deployment environment
+  const environment = process.env.CASHFREE_ENVIRONMENT || 'SANDBOX';
   return {
-    appId: process.env.VITE_CASHFREE_APP_ID,
+    appId: process.env.CASHFREE_APP_ID,
     secretKey: process.env.CASHFREE_SECRET_KEY,
     environment: environment,
     baseUrl: environment === 'PRODUCTION' 
@@ -44,7 +46,12 @@ export default async function handler(req, res) {
     const config = getCashFreeConfig();
     
     if (!config.appId || !config.secretKey) {
-      throw new Error('CashFree credentials not configured');
+      console.error('Missing Cashfree credentials:', {
+        appId: config.appId ? 'present' : 'missing',
+        secretKey: config.secretKey ? 'present' : 'missing',
+        environment: config.environment
+      });
+      throw new Error('CashFree credentials not configured. Please set CASHFREE_APP_ID and CASHFREE_SECRET_KEY environment variables.');
     }
 
     const {
@@ -70,6 +77,13 @@ export default async function handler(req, res) {
     const timestamp = Date.now().toString().slice(-8); // Last 8 digits of timestamp
     const orderId = `${(packageType || 'credits').substring(0, 4)}_${shortUserId}_${timestamp}`;
 
+    // Get application URLs
+    const appUrl = process.env.APP_URL || 'http://localhost:5173';
+    const apiUrl = process.env.API_URL || 
+                  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+
+    console.log('Using application URLs:', { appUrl, apiUrl });
+
     // Prepare CashFree order data
     const orderData = {
       order_id: orderId,
@@ -82,8 +96,8 @@ export default async function handler(req, res) {
         customer_phone: userPhone || '9999999999'
       },
       order_meta: {
-        return_url: `${process.env.VITE_APP_URL || 'http://localhost:5173'}/payment-status?orderId=${orderId}`,
-        notify_url: `${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'}/api/payment-webhook`
+        return_url: `${appUrl}/payment-status?orderId=${orderId}`,
+        notify_url: `${apiUrl}/api/payment-webhook`
       },
       order_note: `Credit purchase: ${packageName || 'Credits'}`,
       order_tags: {
@@ -94,7 +108,12 @@ export default async function handler(req, res) {
       }
     };
 
-    console.log('Creating CashFree order:', orderId);
+    console.log('Creating CashFree order with config:', {
+      environment: config.environment,
+      baseUrl: config.baseUrl,
+      appId: config.appId ? config.appId.substring(0, 4) + '...' : 'missing',
+      orderId: orderId
+    });
 
     // Call CashFree API
     const response = await fetch(`${config.baseUrl}/orders`, {
@@ -107,7 +126,7 @@ export default async function handler(req, res) {
 
     if (!response.ok) {
       console.error('CashFree API error:', responseData);
-      throw new Error(responseData.message || 'Failed to create order');
+      throw new Error(responseData.message || `Failed to create order: ${response.status} ${response.statusText}`);
     }
 
     console.log('CashFree API raw response:', JSON.stringify(responseData));

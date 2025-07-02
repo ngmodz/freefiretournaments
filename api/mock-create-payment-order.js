@@ -1,5 +1,9 @@
 // Simple development mock for CashFree API
 // This provides a working endpoint while you set up the full API
+// 
+// IMPORTANT: When this endpoint returns a session ID with "mock_" prefix,
+// the cashfreeService.ts will automatically detect it and use the mock payment flow
+// instead of trying to use the real CashFree SDK, which prevents the 400 error.
 
 export default function mockPaymentEndpoint(req, res) {
   // Set CORS headers
@@ -28,16 +32,18 @@ export default function mockPaymentEndpoint(req, res) {
     }
 
     // Generate mock response (for development only)
-    const orderId = `dev_${packageType || 'credits'}_${userId}_${Date.now()}`;
-    const mockPaymentSessionId = `mock_session_${Date.now()}`;
+    const timestamp = Date.now();
+    const orderId = `dev_mock_${timestamp}`;
+    const mockPaymentSessionId = `mock_session_${timestamp}`; // This mock prefix will be detected
 
     console.log(`📝 Mock order created: ${orderId} for ₹${amount}`);
+    console.log(`📝 Using mock session ID: ${mockPaymentSessionId} (will trigger mock payment flow)`);
 
     // Return mock success response
     return res.status(200).json({
       success: true,
       data: {
-        cfOrderId: `cf_${Date.now()}`,
+        cfOrderId: `cf_mock_${timestamp}`,
         orderId: orderId,
         paymentSessionId: mockPaymentSessionId,
         orderStatus: 'ACTIVE',

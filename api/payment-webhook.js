@@ -53,90 +53,98 @@ function verifyCashFreeSignature(rawBody, signature, timestamp) {
 }
 
 /**
- * Process successful payment
+ * Update user's wallet with credits after successful payment
  */
-async function processSuccessfulPayment(orderData, webhookData) {
+async function updateUserWallet(userId, packageType, amount) {
   try {
-    const { userId, amount, orderTags } = orderData;
-    const { packageType, packageId, packageName } = orderTags || {};
-
-    console.log('Processing successful payment for user:', userId);
-
     // Get user document
     const userRef = db.collection('users').doc(userId);
     const userDoc = await userRef.get();
-
+    
     if (!userDoc.exists) {
       throw new Error(`User not found: ${userId}`);
     }
 
     const userData = userDoc.data();
+    const wallet = userData.wallet || {
+      tournamentCredits: 0,
+      hostCredits: 0,
+      earnings: 0,
+      totalPurchasedTournamentCredits: 0,
+      totalPurchasedHostCredits: 0,
+      firstPurchaseCompleted: false
+    };
 
-    // Calculate credits to add based on package
-    let creditsToAdd = 0;
-    let hostCreditsToAdd = 0;
-    let walletType = 'tournamentCredits';
-
-    if (packageType === 'tournament') {
-      creditsToAdd = amount;
-      walletType = 'tournamentCredits';
-    } else if (packageType === 'host') {
-      hostCreditsToAdd = amount;
-      walletType = 'hostCredits';
+    // Update based on package type
+    if (packageType === 'host') {
+      // Add host credits
+      return userRef.update({
+        'wallet.hostCredits': admin.firestore.FieldValue.increment(amount),
+        'wallet.totalPurchasedHostCredits': admin.firestore.FieldValue.increment(amount),
+        'wallet.firstPurchaseCompleted': true,
+        'wallet.lastUpdated': admin.firestore.FieldValue.serverTimestamp()
+      });
     } else {
-      creditsToAdd = amount;
-      walletType = 'tournamentCredits';
+      // Default: Add tournament credits
+      return userRef.update({
+        'wallet.tournamentCredits': admin.firestore.FieldValue.increment(amount),
+        'wallet.totalPurchasedTournamentCredits': admin.firestore.FieldValue.increment(amount),
+        'wallet.firstPurchaseCompleted': true,
+        'wallet.lastUpdated': admin.firestore.FieldValue.serverTimestamp()
+      });
+    }
+  } catch (error) {
+    console.error('Error updating user wallet:', error);
+    throw error;
+  }
+}
+
+/**
+ * Process successful payment
+ */
+async function processSuccessfulPayment(orderData, webhookData) {
+  try {
+    const { userId, order_amount } = webhookData?.data?.order || {};
+    const { packageType, packageId, packageName } = webhookData?.data?.order?.order_tags || {};
+    
+    if (!userId) {
+      throw new Error('User ID not found in webhook data');
     }
 
-    // Update user credits using transaction
-    await db.runTransaction(async (transaction) => {
-      const userSnapshot = await transaction.get(userRef);
-      
-      if (!userSnapshot.exists) {
-        throw new Error('User not found during transaction');
-      }
-
-      const currentUserData = userSnapshot.data();
-      const updates = {};
-
-      if (creditsToAdd > 0) {
-        updates.tournamentCredits = (currentUserData.tournamentCredits || 0) + creditsToAdd;
-      }
-      
-      if (hostCreditsToAdd > 0) {
-        updates.hostCredits = (currentUserData.hostCredits || 0) + hostCreditsToAdd;
-      }
-
-      updates.updatedAt = admin.firestore.FieldValue.serverTimestamp();
-
-      transaction.update(userRef, updates);
-
-      // Log credit transaction
-      const creditTransactionRef = db.collection('creditTransactions').doc();
-      const creditTransaction = {
-        userId,
-        type: packageType === 'host' ? 'host_credit_purchase' : 'tournament_credit_purchase',
-        amount: creditsToAdd || hostCreditsToAdd,
-        value: amount,
-        balanceBefore: walletType === 'hostCredits' ? (currentUserData.hostCredits || 0) : (currentUserData.tournamentCredits || 0),
-        balanceAfter: walletType === 'hostCredits' ? ((currentUserData.hostCredits || 0) + hostCreditsToAdd) : ((currentUserData.tournamentCredits || 0) + creditsToAdd),
-        walletType,
-        description: `Credit purchase via CashFree: ${packageName || 'Credits'}`,
-        transactionDetails: {
-          packageId,
-          packageName,
-          paymentId: webhookData.payment_id || webhookData.cf_payment_id,
-          orderId: webhookData.order_id,
-          status: 'completed'
-        },
-        createdAt: admin.firestore.FieldValue.serverTimestamp()
-      };
-
-      transaction.set(creditTransactionRef, creditTransaction);
+    const amount = parseInt(order_amount || 0);
+    if (isNaN(amount) || amount <= 0) {
+      throw new Error('Invalid order amount');
+    }
+    
+    console.log(`Processing payment for user ${userId}, package type: ${packageType}, amount: ${amount}`);
+    
+    // Update user's wallet with credits
+    await updateUserWallet(userId, packageType, amount);
+    
+    // Create a transaction record
+    const walletType = packageType === 'host' ? 'hostCredits' : 'tournamentCredits';
+    const txType = packageType === 'host' ? 'host_credit_purchase' : 'tournament_credit_purchase';
+    
+    // Add credit transaction
+    await db.collection('creditTransactions').add({
+      userId,
+      type: txType,
+      amount: amount,
+      value: amount,
+      walletType,
+      description: `Purchase of ${packageType} credits`,
+      transactionDetails: {
+        packageId: packageId || '',
+        packageName: packageName || 'Credits',
+        orderId: webhookData?.data?.order?.order_id || '',
+        paymentId: webhookData?.data?.payment?.cf_payment_id || '',
+        status: 'completed'
+      },
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
     });
-
-    console.log(`✅ Credits added successfully: ${creditsToAdd || hostCreditsToAdd} ${walletType} for user ${userId}`);
-
+    
+    console.log(`✅ Credits added successfully: ${amount} ${walletType} for user ${userId}`);
+    return { success: true, userId, amount, packageType };
   } catch (error) {
     console.error('Error processing successful payment:', error);
     throw error;
@@ -148,61 +156,41 @@ async function processSuccessfulPayment(orderData, webhookData) {
  */
 async function processPaymentWebhook(webhookData) {
   try {
-    console.log('Processing payment webhook:', webhookData);
+    console.log('Processing payment webhook:', JSON.stringify(webhookData));
 
-    const {
-      order_id: orderId,
-      cf_order_id: cfOrderId,
-      order_amount: orderAmount,
-      order_currency: orderCurrency,
-      order_status: orderStatus,
-      payment_session_id: paymentSessionId,
-      payment_amount: paymentAmount,
-      payment_currency: paymentCurrency,
-      payment_time: paymentTime,
-      payment_method: paymentMethod,
-      payment_status: paymentStatus,
-      payment_message: paymentMessage,
-      payment_id: paymentId
-    } = webhookData.data || webhookData;
-
+    // Initialize Firebase
     if (!db) {
-      throw new Error('Firebase not initialized');
+      db = initializeFirebase();
+      if (!db) {
+        throw new Error('Failed to initialize Firebase');
+      }
     }
 
-    // Update payment order status
-    const orderRef = db.collection('paymentOrders').doc(orderId);
-    const orderDoc = await orderRef.get();
-
-    if (!orderDoc.exists) {
-      console.error('Payment order not found:', orderId);
-      throw new Error('Payment order not found');
+    // Validate webhook data structure
+    if (!webhookData?.data?.order?.order_id) {
+      throw new Error('Invalid webhook data: missing order ID');
     }
 
-    const orderData = orderDoc.data();
+    const orderId = webhookData.data.order.order_id;
+    const paymentStatus = webhookData.data.payment.payment_status || 'FAILED';
+    
+    console.log(`Processing payment webhook for order ${orderId}, status: ${paymentStatus}`);
 
-    // Update order with payment details
-    await orderRef.update({
-      orderStatus,
-      paymentStatus,
-      paymentAmount: paymentAmount || orderAmount,
-      paymentCurrency: paymentCurrency || orderCurrency,
-      paymentTime,
-      paymentMethod,
-      paymentMessage,
-      paymentId,
-      cfOrderId,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      webhookProcessedAt: admin.firestore.FieldValue.serverTimestamp()
+    // Store webhook data in Firestore for reference
+    const webhookRef = db.collection('paymentWebhooks').doc();
+    await webhookRef.set({
+      webhookData,
+      receivedAt: admin.firestore.FieldValue.serverTimestamp(),
+      orderId
     });
 
-    // If payment is successful, add credits to user account
-    if (paymentStatus === 'SUCCESS' || orderStatus === 'PAID') {
-      await processSuccessfulPayment(orderData, webhookData.data || webhookData);
+    // If payment is successful, process the payment
+    if (paymentStatus === 'SUCCESS') {
+      await processSuccessfulPayment(null, webhookData);
     }
 
     console.log('✅ Webhook processed successfully for order:', orderId);
-    return { success: true, orderId };
+    return { success: true, orderId, paymentStatus };
 
   } catch (error) {
     console.error('Error processing payment webhook:', error);
@@ -215,7 +203,7 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, x-webhook-signature, x-webhook-timestamp');
 
   if (req.method === 'OPTIONS') {
     res.status(200).end();
@@ -227,19 +215,20 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Initialize Firebase
-    const database = initializeFirebase();
-    if (!database) {
-      throw new Error('Firebase not initialized');
-    }
-
-    // Get raw body for signature verification
+    // Get raw body and headers for signature verification
     const rawBody = JSON.stringify(req.body);
     const signature = req.headers['x-webhook-signature'];
     const timestamp = req.headers['x-webhook-timestamp'];
 
-    // Verify webhook signature
-    if (signature && timestamp) {
+    // Log the webhook received
+    console.log('Cashfree webhook received:', { 
+      timestamp, 
+      hasSignature: !!signature,
+      body: typeof req.body === 'object' ? '(object)' : rawBody.substring(0, 100) + '...'
+    });
+
+    // Verify webhook signature in production
+    if (process.env.NODE_ENV === 'production' && signature && timestamp) {
       const isValidSignature = verifyCashFreeSignature(rawBody, signature, timestamp);
       if (!isValidSignature) {
         console.error('Invalid webhook signature');
@@ -247,23 +236,24 @@ export default async function handler(req, res) {
       }
       console.log('✅ Webhook signature verified');
     } else {
-      console.warn('⚠️ Webhook signature headers missing');
+      console.warn('⚠️ Webhook signature verification skipped (development mode or missing headers)');
     }
 
-    // Process the webhook
+    // Process the webhook data
     const result = await processPaymentWebhook(req.body);
     
-    res.status(200).json({
-      success: true,
-      message: 'Webhook processed successfully',
-      orderId: result.orderId
-    });
+    // Return success response
+    return res.status(200).json({ success: true, message: 'Webhook processed successfully', data: result });
 
   } catch (error) {
     console.error('Webhook processing error:', error);
-    res.status(500).json({
-      error: error.message || 'Internal server error',
-      success: false
+    
+    // Always return 200 to Cashfree to prevent retries
+    // But include the error in the response
+    return res.status(200).json({ 
+      success: false, 
+      error: error.message || 'Error processing webhook',
+      message: 'Webhook received but failed to process' 
     });
   }
 }

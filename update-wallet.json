@@ -1,0 +1,10 @@
+{
+  "wallet": {
+    "tournamentCredits": 100,
+    "hostCredits": 10,
+    "earnings": 0,
+    "totalPurchasedTournamentCredits": 100,
+    "totalPurchasedHostCredits": 10,
+    "firstPurchaseCompleted": true
+  }
+} 

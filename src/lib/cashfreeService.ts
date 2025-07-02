@@ -112,17 +112,10 @@ export class CashFreeService {
       const timestamp = Date.now().toString().slice(-8); // Last 8 digits of timestamp
       const orderId = `${orderData.packageType.substring(0, 4)}_${shortUserId}_${timestamp}`;
       
-      // Check if real CashFree credentials are configured
-      const hasRealCredentials = import.meta.env.VITE_CASHFREE_APP_ID && 
-                                !import.meta.env.VITE_CASHFREE_APP_ID.includes('your_') &&
-                                !import.meta.env.VITE_CASHFREE_APP_ID.includes('YOUR_');
+      // Always use the real Cashfree API endpoint
+      const endpoint = '/api/create-payment-order';
       
-      console.log('🔍 Debug - App ID:', import.meta.env.VITE_CASHFREE_APP_ID);
-      console.log('🔍 Debug - Has real credentials:', hasRealCredentials);
-      
-      const endpoint = hasRealCredentials ? '/api/create-payment-order' : '/api/mock-create-payment-order';
-      
-      console.log('🔍 Debug - Selected endpoint:', endpoint);
+      console.log('🔍 Debug - Using real Cashfree API endpoint:', endpoint);
       
       // Send data in the format expected by the API
       const requestData = {
@@ -136,7 +129,7 @@ export class CashFreeService {
         packageType: orderData.packageType
       };
 
-      console.log(`📡 Calling ${endpoint} (${hasRealCredentials ? 'REAL CASHFREE' : 'MOCK'} mode)`);
+      console.log(`📡 Calling ${endpoint} for real Cashfree payment`);
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -186,58 +179,7 @@ export class CashFreeService {
         throw new Error('Payment session ID is missing or undefined');
       }
 
-      // Check if real CashFree credentials are configured
-      const hasRealCredentials = import.meta.env.VITE_CASHFREE_APP_ID && 
-                                !import.meta.env.VITE_CASHFREE_APP_ID.includes('your_') &&
-                                !import.meta.env.VITE_CASHFREE_APP_ID.includes('YOUR_');
-      
-      if (!hasRealCredentials) {
-        console.log('🧪 Development mode: Simulating payment completion');
-        
-        // Show a confirmation dialog for development
-        const confirmed = window.confirm(
-          `🧪 DEVELOPMENT MODE\n\n` +
-          `This would open CashFree checkout in production.\n` +
-          `Click OK to simulate successful payment, Cancel to simulate failure.`
-        );
-        
-        if (confirmed) {
-          console.log('✅ Development: Simulating successful payment');
-          const mockSuccessData: PaymentCallbackData = {
-            orderStatus: 'PAID',
-            orderId: `dev_order_${Date.now()}`,
-            cfOrderId: `cf_${Date.now()}`,
-            txStatus: 'SUCCESS',
-            txMsg: 'Payment successful (development simulation)',
-            paymentSessionId,
-            txTime: new Date().toISOString(),
-            referenceId: `ref_${Date.now()}`
-          };
-          
-          // Simulate successful payment after a short delay
-          setTimeout(() => {
-            onSuccess?.(mockSuccessData);
-            // Redirect to success page
-            window.location.href = '/payment-status?status=success&orderId=' + mockSuccessData.orderId;
-          }, 1000);
-        } else {
-          console.log('❌ Development: Simulating failed payment');
-          const mockFailureData: PaymentCallbackData = {
-            orderStatus: 'CANCELLED',
-            orderId: `dev_order_${Date.now()}`,
-            cfOrderId: `cf_${Date.now()}`,
-            txStatus: 'CANCELLED',
-            txMsg: 'Payment cancelled by user (development simulation)',
-            paymentSessionId,
-            txTime: new Date().toISOString(),
-            referenceId: `ref_${Date.now()}`
-          };
-          onFailure?.(mockFailureData);
-        }
-        return;
-      }
-
-      // Production mode: Use actual CashFree checkout
+      // Initialize the Cashfree SDK
       await this.initialize();
 
       if (!this.cashfree) {
@@ -247,74 +189,90 @@ export class CashFreeService {
       console.log('🚀 Opening CashFree checkout popup with session ID:', paymentSessionId);
 
       const checkoutOptions = {
-        paymentSessionId: paymentSessionId,  // Ensure this is explicitly set
-        redirectTarget: '_modal' // This opens in popup/modal
+        paymentSessionId: paymentSessionId,
+        redirectTarget: '_modal'
       };
 
       console.log('Checkout options:', checkoutOptions);
 
-      const result = await this.cashfree.checkout(checkoutOptions);
-
-      console.log('💳 Checkout initiated:', result);
-
-      // Handle callback based on result
-      if (result.error) {
-        console.error('❌ Checkout error:', result.error);
-        if (onFailure) {
-          onFailure({
-            orderStatus: 'TERMINATED',
-            orderId: result.orderId || '',
-            cfOrderId: result.cfOrderId || '',
+      // Open the checkout popup
+      this.cashfree
+        .checkout(checkoutOptions)
+        .then((result: any) => {
+          console.log('CashFree checkout result:', result);
+          
+          // Handle payment result based on status
+          if (result.status === 'OK' || result.status === 'SUCCESS') {
+            console.log('Payment successful:', result);
+            
+            // Format callback data
+            const callbackData: PaymentCallbackData = {
+              orderStatus: result.order?.status || 'PAID',
+              orderId: result.order?.id || '',
+              cfOrderId: result.order?.cfOrderId || '',
+              txStatus: 'SUCCESS',
+              txMsg: 'Payment successful',
+              paymentSessionId,
+              txTime: result.transaction?.txTime || new Date().toISOString(),
+              referenceId: result.transaction?.referenceId || ''
+            };
+            
+            // Call success callback
+            onSuccess?.(callbackData);
+          } else {
+            console.log('Payment failed or cancelled:', result);
+            
+            // Format callback data
+            const callbackData: PaymentCallbackData = {
+              orderStatus: result.order?.status || 'CANCELLED',
+              orderId: result.order?.id || '',
+              cfOrderId: result.order?.cfOrderId || '',
+              txStatus: result.transaction?.txStatus || 'FAILED',
+              txMsg: result.transaction?.txMsg || 'Payment failed',
+              paymentSessionId,
+              txTime: result.transaction?.txTime || new Date().toISOString(),
+              referenceId: result.transaction?.referenceId || ''
+            };
+            
+            // Call failure callback
+            onFailure?.(callbackData);
+          }
+        })
+        .catch((error: any) => {
+          console.error('CashFree checkout error:', error);
+          
+          // Format error data
+          const errorData: PaymentCallbackData = {
+            orderStatus: 'CANCELLED',
+            orderId: '',
+            cfOrderId: '',
             txStatus: 'FAILED',
-            txMsg: result.error.message || 'Payment failed',
+            txMsg: error.message || 'Payment failed due to an error',
             paymentSessionId,
             txTime: new Date().toISOString(),
             referenceId: ''
-          });
-        }
-        return;
-      }
-
-      // Handle redirect result
-      if (result.redirect) {
-        console.log('🔄 Checkout requires redirect');
-        // In popup mode, this shouldn't happen
-        return;
-      }
-
-      // Handle payment completion
-      if (result.paymentDetails) {
-        console.log('✅ Payment completed:', result.paymentDetails);
-        if (onSuccess) {
-          onSuccess({
-            orderStatus: 'PAID',
-            orderId: result.orderId,
-            cfOrderId: result.cfOrderId,
-            txStatus: 'SUCCESS',
-            txMsg: 'Payment successful',
-            paymentSessionId,
-            txTime: result.paymentDetails.paymentTime || new Date().toISOString(),
-            referenceId: result.paymentDetails.referenceId || '',
-            paymentDetails: result.paymentDetails
-          });
-        }
-      }
-
-    } catch (error) {
-      console.error('❌ Error opening checkout:', error);
-      if (onFailure) {
-        onFailure({
-          orderStatus: 'TERMINATED',
-          orderId: '',
-          cfOrderId: '',
-          txStatus: 'FAILED',
-          txMsg: error instanceof Error ? error.message : 'Payment failed',
-          paymentSessionId,
-          txTime: new Date().toISOString(),
-          referenceId: ''
+          };
+          
+          // Call failure callback
+          onFailure?.(errorData);
         });
-      }
-      throw error;
+    } catch (error) {
+      console.error('Error opening CashFree checkout:', error);
+      
+      // Format error data
+      const errorData: PaymentCallbackData = {
+        orderStatus: 'CANCELLED',
+        orderId: '',
+        cfOrderId: '',
+        txStatus: 'FAILED',
+        txMsg: error.message || 'Failed to open payment checkout',
+        paymentSessionId,
+        txTime: new Date().toISOString(),
+        referenceId: ''
+      };
+      
+      // Call failure callback
+      onFailure?.(errorData);
     }
   }
 
