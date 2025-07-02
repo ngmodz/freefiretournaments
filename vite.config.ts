@@ -11,11 +11,53 @@ export default defineConfig(({ mode }) => ({
     headers: {
       'Cache-Control': 'no-store',
     },
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        rewrite: (path) => {
+          console.log('API proxy request:', path);
+          return path;
+        },
+        configure: (proxy, _options) => {
+          proxy.on('error', (err, req, res) => {
+            console.log('❌ API Proxy error:', err.message);
+            // Return mock response on proxy error
+            if (req.url?.includes('/api/mock-create-payment-order') || req.url?.includes('/api/create-payment-order')) {
+              res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+              res.end(JSON.stringify({
+                success: true,
+                data: {
+                  cfOrderId: `cf_mock_${Date.now()}`,
+                  orderId: `dev_mock_${Date.now()}`,
+                  paymentSessionId: `mock_session_${Date.now()}`,
+                  orderStatus: 'ACTIVE',
+                  orderAmount: 100,
+                  orderCurrency: 'INR',
+                  orderExpiryTime: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+                  createdAt: new Date().toISOString(),
+                  orderMeta: {
+                    returnUrl: 'http://localhost:8083/payment-status'
+                  }
+                }
+              }));
+            }
+          });
+          proxy.on('proxyReq', (proxyReq, req, _res) => {
+            console.log('📤 Proxying:', req.method, req.url);
+          });
+          proxy.on('proxyRes', (proxyRes, req, _res) => {
+            console.log('📥 Response:', proxyRes.statusCode, req.url);
+          });
+        },
+      }
+    }
   },
   plugins: [
     react(),
     mode === 'development' &&
     componentTagger(),
+    // Note: Dev API middleware removed - using real API server via proxy
   ].filter(Boolean),
   resolve: {
     alias: {

@@ -163,7 +163,7 @@ const Credits = () => {
         userId: currentUser.uid,
         userName: currentUser.displayName || currentUser.email?.split('@')[0] || 'User',
         userEmail: currentUser.email || '',
-        paymentType: 'credit_purchase',
+        paymentType: 'credit_purchase' as const,
         packageId: packageData.id,
         packageName: packageData.name,
         packageType: packageType,
@@ -171,15 +171,15 @@ const Credits = () => {
       };
       
       // Log the payment initiation
-      console.log(`Initiating payment for ${packageData.name}:`, paymentParams);
+      console.log(`Initiating CashFree payment for ${packageData.name}:`, paymentParams);
       
       toast({
-        title: "Redirecting to Payment",
-        description: "You will be redirected to the payment page.",
+        title: "Opening Payment Gateway",
+        description: "Please complete your payment in the popup window.",
       });
       
-      // Redirect to payment form
-      paymentService.redirectToPaymentForm(paymentParams);
+      // Use CashFree popup checkout instead of redirect
+      await paymentService.initiateCashFreeCheckout(paymentParams);
 
     } catch (error) {
       console.error('Payment error:', error);

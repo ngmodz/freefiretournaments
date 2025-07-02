@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { db } from './firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { CashFreeService } from './cashfreeService';
 
 /**
  * Interface for payment form parameters
@@ -43,12 +44,12 @@ export class PaymentService {
     // Get the payment form URL from environment variables
     this.paymentFormUrl = import.meta.env?.VITE_PAYMENT_FORM_URL || '';
     
-    // Get the API base URL (Netlify functions)
+    // Get the API base URL (Vercel functions)
     this.apiBaseUrl = import.meta.env?.VITE_API_URL || '';
     
-    // If no API URL is set, use the current origin
+    // If no API URL is set, use the current origin for Vercel
     if (!this.apiBaseUrl) {
-      this.apiBaseUrl = `${window.location.origin}/.netlify/functions`;
+      this.apiBaseUrl = `${window.location.origin}/api`;
     }
   }
 
@@ -193,6 +194,64 @@ export class PaymentService {
       };
     }
   }
+
+  /**
+   * Initialize CashFree popup checkout for credit purchase
+   */
+  public async initiateCashFreeCheckout(params: PaymentFormParams): Promise<void> {
+    try {
+      // Prepare CashFree order data using the correct interface
+      const orderData = {
+        amount: params.amount,
+        userId: params.userId,
+        userName: params.userName,
+        userEmail: params.userEmail,
+        userPhone: '9999999999', // You might want to collect this from user
+        packageId: params.packageId || '',
+        packageName: params.packageName || '',
+        packageType: params.packageType || 'tournament' as 'tournament' | 'host'
+      };
+
+      console.log('Creating CashFree order:', orderData);
+
+      // Create order via CashFree service
+      const orderResponse = await CashFreeService.createOrder(orderData);
+      
+      console.log('CashFree order created with response:', orderResponse);
+      
+      // Validate the response
+      if (!orderResponse) {
+        throw new Error('No response received from the order creation API');
+      }
+
+      // Check if payment session ID exists
+      if (!orderResponse.paymentSessionId) {
+        console.error('Payment session ID missing in order response:', orderResponse);
+        throw new Error('Payment session ID not received from the API. Please check server logs.');
+      }
+      
+      console.log('Initiating checkout with session ID:', orderResponse.paymentSessionId);
+
+      // Initialize popup checkout
+      await CashFreeService.openCheckout(
+        orderResponse.paymentSessionId,
+        (data) => {
+          console.log('Payment successful:', data);
+          // Redirect to success page
+          window.location.href = `/payment-status?status=success&orderId=${data.orderId}`;
+        },
+        (data) => {
+          console.log('Payment failed:', data);
+          // Redirect to failure page
+          window.location.href = `/payment-status?status=failed&orderId=${data.orderId}&message=${encodeURIComponent(data.txMsg)}`;
+        }
+      );
+      
+    } catch (error) {
+      console.error('CashFree checkout error:', error);
+      throw error;
+    }
+  }
 }
 
-export default PaymentService; 
+export default PaymentService;

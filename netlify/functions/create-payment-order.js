@@ -1,26 +1,5 @@
-// Netlify serverless function to create CashFree payment order
-const admin = require('firebase-admin');
+// Netlify function to create CashFree payment orders
 const axios = require('axios');
-const crypto = require('crypto');
-
-// Initialize Firebase Admin SDK
-let serviceAccount;
-try {
-  serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-} catch (error) {
-  console.error('Error parsing Firebase service account:', error);
-}
-
-let app;
-if (!admin.apps.length && serviceAccount) {
-  app = admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
-  });
-} else if (admin.apps.length) {
-  app = admin.apps[0];
-}
-
-const db = app ? admin.firestore() : null;
 
 // CashFree Configuration
 const CASHFREE_CONFIG = {
@@ -78,40 +57,6 @@ async function createCashFreeOrder(orderData) {
   } catch (error) {
     console.error('Error creating CashFree order:', error.response?.data || error.message);
     throw error;
-  }
-}
-
-/**
- * Store order in Firebase for tracking
- */
-async function storeOrderInFirebase(orderData, cashfreeResponse) {
-  if (!db) {
-    console.warn('Firebase not initialized, skipping order storage');
-    return;
-  }
-
-  try {
-    const orderDoc = {
-      orderId: orderData.orderId,
-      cfOrderId: cashfreeResponse.cf_order_id,
-      userId: orderData.customerDetails.customerId,
-      amount: orderData.amount,
-      currency: orderData.currency || 'INR',
-      status: 'ACTIVE',
-      paymentSessionId: cashfreeResponse.payment_session_id,
-      customerDetails: orderData.customerDetails,
-      orderMeta: orderData.orderMeta,
-      orderNote: orderData.orderNote,
-      orderTags: orderData.orderTags,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
-    };
-
-    await db.collection('paymentOrders').doc(orderData.orderId).set(orderDoc);
-    console.log('Order stored in Firebase:', orderData.orderId);
-  } catch (error) {
-    console.error('Error storing order in Firebase:', error);
-    // Don't throw error here as it's not critical for payment flow
   }
 }
 
@@ -202,9 +147,6 @@ exports.handler = async (event, context) => {
     // Create CashFree order
     const cashfreeResponse = await createCashFreeOrder(orderData);
 
-    // Store order in Firebase for tracking
-    await storeOrderInFirebase(orderData, cashfreeResponse);
-
     // Return success response with payment session ID
     return {
       statusCode: 200,
@@ -259,4 +201,4 @@ exports.handler = async (event, context) => {
       })
     };
   }
-}; 
+};

@@ -1,0 +1,38 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/**/*.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ],
+  "functions": {
+    "api/**/*.js": {
+      "maxDuration": 30
+    }
+  },
+  "env": {
+    "VITE_CASHFREE_APP_ID": "@vite_cashfree_app_id",
+    "CASHFREE_SECRET_KEY": "@cashfree_secret_key",
+    "CASHFREE_WEBHOOK_SECRET": "@cashfree_webhook_secret",
+    "VITE_CASHFREE_ENVIRONMENT": "@vite_cashfree_environment",
+    "FIREBASE_SERVICE_ACCOUNT": "@firebase_service_account"
+  }
+}
