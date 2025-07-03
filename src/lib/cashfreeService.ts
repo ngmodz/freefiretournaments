@@ -103,6 +103,7 @@ export class CashFreeService {
     packageId?: string;
     packageName?: string;
     packageType: 'tournament' | 'host';
+    creditsAmount?: number;
   }): Promise<CashFreeOrderResponse> {
     try {
       console.log('📝 Creating payment order:', orderData);
@@ -126,7 +127,8 @@ export class CashFreeService {
         userPhone: orderData.userPhone,
         packageId: orderData.packageId || '',
         packageName: orderData.packageName || '',
-        packageType: orderData.packageType
+        packageType: orderData.packageType,
+        creditsAmount: orderData.creditsAmount
       };
 
       console.log(`📡 Calling ${endpoint} for real Cashfree payment`);

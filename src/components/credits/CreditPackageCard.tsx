@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { PaymentService } from "@/lib/paymentService";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "../ui/use-toast";
 
 export interface CreditPackageProps {
   id: string;
@@ -20,9 +23,12 @@ export interface CreditPackageProps {
   gradient: string;
   onPurchase: () => void;
   isProcessing?: boolean;
+  description: string;
+  packageType: 'tournament' | 'host';
 }
 
 const CreditPackageCard: React.FC<CreditPackageProps> = ({
+  id,
   name,
   credits,
   price,
@@ -34,8 +40,102 @@ const CreditPackageCard: React.FC<CreditPackageProps> = ({
   icon,
   gradient,
   onPurchase,
-  isProcessing
+  isProcessing,
+  description,
+  packageType
 }) => {
+  const { currentUser } = useAuth();
+  const isTestEnvironment = import.meta.env?.VITE_CASHFREE_ENVIRONMENT === 'SANDBOX' || 
+                           import.meta.env?.MODE === 'development';
+
+  const handlePurchase = async () => {
+    if (!currentUser) {
+      toast({
+        title: "Login Required",
+        description: "Please login to purchase credits",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const paymentService = PaymentService.getInstance();
+      
+      await paymentService.initiateCashFreeCheckout({
+        amount: price,
+        userId: currentUser.uid,
+        userName: currentUser.displayName || 'User',
+        userEmail: currentUser.email || '',
+        paymentType: 'credit_purchase',
+        packageId: id,
+        packageName: name,
+        packageType: packageType,
+        creditsAmount: credits
+      });
+    } catch (error) {
+      console.error('Error initiating payment:', error);
+      toast({
+        title: "Payment Error",
+        description: "There was an error initiating the payment. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Function to handle test payments in sandbox/development mode
+  const handleTestPurchase = async () => {
+    if (!currentUser) {
+      toast({
+        title: "Login Required",
+        description: "Please login to test purchase credits",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      toast({
+        title: "Test Payment",
+        description: "Processing test payment...",
+      });
+
+      const paymentService = PaymentService.getInstance();
+      const orderId = paymentService.generateOrderId(packageType);
+      
+      // Force verify the test payment
+      const result = await paymentService.forceVerifyTestPayment(
+        orderId,
+        currentUser.uid,
+        price,
+        packageType,
+        credits
+      );
+      
+      if (result.success && result.verified) {
+        toast({
+          title: "Test Payment Successful",
+          description: `${credits} ${packageType} credits have been added to your account.`,
+        });
+        
+        // Redirect to payment status page
+        window.location.href = `/payment-status?orderId=${orderId}&status=success&amount=${price}&packageType=${packageType}`;
+      } else {
+        toast({
+          title: "Test Payment Failed",
+          description: result.message || "There was an error processing the test payment.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error with test payment:', error);
+      toast({
+        title: "Test Payment Error",
+        description: "There was an error with the test payment. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <motion.div
       whileHover={{ y: -5, transition: { duration: 0.2 } }}
@@ -96,7 +196,7 @@ const CreditPackageCard: React.FC<CreditPackageProps> = ({
 
         <CardFooter className="p-4 pt-0">
           <Button
-            onClick={onPurchase}
+            onClick={handlePurchase}
             disabled={isProcessing}
             className={cn(
               "w-full",
@@ -114,6 +214,16 @@ const CreditPackageCard: React.FC<CreditPackageProps> = ({
               "Purchase"
             )}
           </Button>
+          
+          {isTestEnvironment && (
+            <Button 
+              onClick={handleTestPurchase} 
+              variant="outline" 
+              className="w-full mt-2 border-dashed border-yellow-500 text-yellow-600 hover:bg-yellow-50"
+            >
+              Test Purchase
+            </Button>
+          )}
         </CardFooter>
       </Card>
     </motion.div>

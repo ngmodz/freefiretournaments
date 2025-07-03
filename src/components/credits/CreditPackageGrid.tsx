@@ -46,6 +46,7 @@ const CreditPackageGrid: React.FC<CreditPackageGridProps> = ({
             >
               <CreditPackageCard
                 {...pkg}
+                packageType="tournament"
                 onPurchase={() => onPurchase(pkg, "tournament")}
                 isProcessing={processingPackageId === pkg.id}
               />
@@ -65,6 +66,7 @@ const CreditPackageGrid: React.FC<CreditPackageGridProps> = ({
             >
               <CreditPackageCard
                 {...pkg}
+                packageType="host"
                 onPurchase={() => onPurchase(pkg, "host")}
                 isProcessing={processingPackageId === pkg.id}
               />

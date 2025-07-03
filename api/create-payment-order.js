@@ -62,7 +62,8 @@ export default async function handler(req, res) {
       userPhone,
       packageId,
       packageName,
-      packageType
+      packageType,
+      creditsAmount
     } = req.body;
 
     // Validate required fields
@@ -104,7 +105,8 @@ export default async function handler(req, res) {
         packageId: packageId || '',
         packageName: packageName || '',
         packageType: packageType || 'tournament',
-        userId: userId
+        userId: userId,
+        creditsAmount: creditsAmount ? creditsAmount.toString() : ''
       }
     };
 

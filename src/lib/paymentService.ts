@@ -30,6 +30,7 @@ export interface PaymentVerificationResponse {
   paymentId?: string;
   error?: string;
   message?: string;
+  testPayment?: boolean;
 }
 
 /**
@@ -39,6 +40,7 @@ export class PaymentService {
   private static instance: PaymentService;
   private paymentFormUrl: string;
   private apiBaseUrl: string;
+  private isTestEnvironment: boolean;
 
   constructor() {
     // Get the payment form URL from environment variables
@@ -51,6 +53,10 @@ export class PaymentService {
     if (!this.apiBaseUrl) {
       this.apiBaseUrl = `${window.location.origin}/api`;
     }
+
+    // Check if we're in test environment
+    this.isTestEnvironment = import.meta.env?.VITE_CASHFREE_ENVIRONMENT === 'SANDBOX' || 
+                            import.meta.env?.MODE === 'development';
   }
 
   /**
@@ -133,6 +139,7 @@ export class PaymentService {
    * Verify a payment using the server-side verification function
    * @param orderId The order ID to verify
    * @param paymentId Optional payment ID from payment provider
+   * @param skipCreditUpdate Whether to skip credit update (default: false)
    */
   public async verifyPayment(orderId: string, paymentId?: string, skipCreditUpdate = false): Promise<PaymentVerificationResponse> {
     try {
@@ -196,7 +203,8 @@ export class PaymentService {
         amount: data.amount || data.orderAmount,
         paymentId: data.paymentId || paymentId,
         error: data.error,
-        message: data.message || (data.verified ? 'Payment verified' : 'Payment not completed')
+        message: data.message || (data.verified ? 'Payment verified' : 'Payment not completed'),
+        testPayment: false
       };
       
     } catch (error) {
@@ -208,7 +216,102 @@ export class PaymentService {
         verified: false,
         orderId: orderId,
         error: error.message || 'An error occurred while verifying the payment',
-        message: 'Payment verification failed'
+        message: 'Payment verification failed',
+        testPayment: false
+      };
+    }
+  }
+
+  /**
+   * Force verify a payment in test environment
+   * This is useful for testing the payment flow without actually making a payment
+   * @param orderId The order ID to verify
+   * @param userId The user ID who made the payment
+   * @param amount The payment amount
+   * @param packageType The package type (tournament or host)
+   * @param creditsAmount The actual number of credits to add
+   */
+  public async forceVerifyTestPayment(
+    orderId: string,
+    userId: string,
+    amount: number,
+    packageType: 'tournament' | 'host' = 'tournament',
+    creditsAmount?: number
+  ): Promise<PaymentVerificationResponse> {
+    try {
+      // Only allow in test environment
+      if (!this.isTestEnvironment) {
+        throw new Error('Force verification is only allowed in test environment');
+      }
+
+      console.log(`Force verifying test payment for order ${orderId}`);
+      
+      // Prepare the request
+      const apiUrl = import.meta.env.VITE_API_URL || '/api';
+      const url = `${apiUrl}/verify-payment`;
+      
+      // Make the API call to verify payment with forceVerify flag
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          orderId,
+          userId,
+          amount,
+          packageType,
+          skipCreditUpdate: false,
+          forceVerify: true,
+          testOrderData: {
+            order_id: orderId,
+            order_amount: amount,
+            order_currency: 'INR',
+            order_status: 'PAID',
+            order_tags: {
+              userId,
+              packageType,
+              creditsAmount: creditsAmount ? creditsAmount.toString() : amount.toString()
+            }
+          }
+        })
+      });
+      
+      // If response is not OK, throw error
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Server responded with status ${response.status}`);
+      }
+      
+      // Parse response data
+      const data = await response.json();
+      
+      // Log the verification response
+      console.log('Force verification response:', data);
+            
+      // Return the verification result
+      return {
+        success: data.success || false,
+        verified: data.verified || false,
+        orderId: data.orderId || orderId,
+        amount: data.amount || data.orderAmount,
+        paymentId: data.paymentId || `test_${Date.now()}`,
+        error: data.error,
+        message: data.message || (data.verified ? 'Test payment verified successfully' : 'Test payment verification failed'),
+        testPayment: true
+      };
+      
+    } catch (error) {
+      console.error('Error force verifying test payment:', error);
+      
+      // Return error response
+      return {
+        success: false,
+        verified: false,
+        orderId: orderId,
+        error: error.message || 'An error occurred while force verifying the test payment',
+        message: 'Test payment verification failed',
+        testPayment: false
       };
     }
   }
@@ -227,7 +330,8 @@ export class PaymentService {
         userPhone: '9999999999', // You might want to collect this from user
         packageId: params.packageId || '',
         packageName: params.packageName || '',
-        packageType: params.packageType || 'tournament' as 'tournament' | 'host'
+        packageType: params.packageType || 'tournament' as 'tournament' | 'host',
+        creditsAmount: params.creditsAmount
       };
 
       console.log('Creating CashFree order:', orderData);

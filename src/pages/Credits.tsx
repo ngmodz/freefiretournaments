@@ -34,6 +34,7 @@ interface CreditPackage {
   features: string[];
   icon: React.ReactNode;
   gradient: string;
+  description: string;
 }
 
 const Credits = () => {
@@ -50,7 +51,8 @@ const Credits = () => {
       price: 50,
       features: ['50 Tournament Credits', 'Entry fee up to ₹50', 'Perfect for beginners', 'Join multiple tournaments'],
       icon: <Coins size={24} />,
-      gradient: 'from-blue-500/20 to-cyan-500/20'
+      gradient: 'from-blue-500/20 to-cyan-500/20',
+      description: 'Perfect for beginners to join tournaments with entry fees up to ₹50'
     },
     {
       id: 'popular_pack',
@@ -60,7 +62,8 @@ const Credits = () => {
       isPopular: true,
       features: ['150 Tournament Credits', 'Entry fee up to ₹150', 'Most chosen package', 'Great value'],
       icon: <Star size={24} />,
-      gradient: 'from-gaming-accent/20 to-orange-500/20'
+      gradient: 'from-gaming-accent/20 to-orange-500/20',
+      description: 'Our most popular package with great value for tournament entries'
     },
     {
       id: 'pro_pack',
@@ -69,7 +72,8 @@ const Credits = () => {
       price: 300,
       features: ['300 Tournament Credits', 'Entry fee up to ₹300', 'For serious gamers', 'Great value package'],
       icon: <Crown size={24} />,
-      gradient: 'from-purple-500/20 to-pink-500/20'
+      gradient: 'from-purple-500/20 to-pink-500/20',
+      description: 'For serious gamers who want to participate in higher value tournaments'
     },
     {
       id: 'elite_pack',
@@ -78,7 +82,8 @@ const Credits = () => {
       price: 500,
       features: ['500 Tournament Credits', 'Entry fee up to ₹500', 'Elite gaming level', 'Premium tournaments'],
       icon: <Zap size={24} />,
-      gradient: 'from-green-500/20 to-emerald-500/20'
+      gradient: 'from-green-500/20 to-emerald-500/20',
+      description: 'Elite level access to premium tournaments with higher stakes'
     },
     {
       id: 'champion_pack',
@@ -87,7 +92,8 @@ const Credits = () => {
       price: 900,
       features: ['900 Tournament Credits', 'Entry fee up to ₹900', 'Champion level access', 'Maximum value'],
       icon: <Crown size={24} />,
-      gradient: 'from-yellow-500/20 to-orange-600/20'
+      gradient: 'from-yellow-500/20 to-orange-600/20',
+      description: 'Maximum value package for champions who want to participate in the highest stakes tournaments'
     }
   ];
 
@@ -100,7 +106,8 @@ const Credits = () => {
       price: 29,
       features: ['Create 3 tournaments', 'Basic host tools', 'Standard support', 'Tournament management'],
       icon: <CreditCard size={24} />,
-      gradient: 'from-gaming-primary/20 to-blue-600/20'
+      gradient: 'from-gaming-primary/20 to-blue-600/20',
+      description: 'Start hosting with 3 tournament credits and basic hosting tools'
     },
     {
       id: 'standard_host_pack',
@@ -109,7 +116,8 @@ const Credits = () => {
       price: 45,
       features: ['Create 5 tournaments', 'Enhanced host tools', 'Priority support', 'Great for regular hosts'],
       icon: <CreditCard size={24} />,
-      gradient: 'from-blue-500/20 to-indigo-600/20'
+      gradient: 'from-blue-500/20 to-indigo-600/20',
+      description: 'Create 5 tournaments with enhanced hosting tools and priority support'
     },
     {
       id: 'premium_host_pack',
@@ -119,7 +127,8 @@ const Credits = () => {
       isPopular: true,
       features: ['Create 10 tournaments', 'Premium host tools', 'Advanced analytics', 'Most chosen package'],
       icon: <Star size={24} />,
-      gradient: 'from-purple-500/20 to-pink-600/20'
+      gradient: 'from-purple-500/20 to-pink-600/20',
+      description: 'Our most popular hosting package with premium tools and analytics'
     },
     {
       id: 'pro_host_pack',
@@ -128,7 +137,8 @@ const Credits = () => {
       price: 159,
       features: ['Create 20 tournaments', 'Pro host features', 'Detailed analytics', 'Professional hosting'],
       icon: <Crown size={24} />,
-      gradient: 'from-green-500/20 to-emerald-600/20'
+      gradient: 'from-green-500/20 to-emerald-600/20',
+      description: 'Professional hosting with 20 tournament credits and detailed analytics'
     },
     {
       id: 'ultimate_host_pack',
@@ -137,7 +147,8 @@ const Credits = () => {
       price: 375,
       features: ['Create 50 tournaments', 'Ultimate host suite', 'Premium analytics', 'Best value package'],
       icon: <Zap size={24} />,
-      gradient: 'from-yellow-500/20 to-orange-600/20'
+      gradient: 'from-yellow-500/20 to-orange-600/20',
+      description: 'Ultimate hosting package with 50 tournament credits and premium analytics'
     }
   ];
 

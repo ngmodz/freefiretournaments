@@ -60,7 +60,7 @@ function verifyCashFreeSignature(rawBody, signature, timestamp) {
 /**
  * Update user's wallet with credits after successful payment
  */
-async function updateUserWallet(userId, packageType, amount) {
+async function updateUserWallet(userId, packageType, creditsAmount) {
   try {
     // Get user document
     const userRef = db.collection('users').doc(userId);
@@ -84,16 +84,16 @@ async function updateUserWallet(userId, packageType, amount) {
     if (packageType === 'host') {
       // Add host credits
       return userRef.update({
-        'wallet.hostCredits': admin.firestore.FieldValue.increment(amount),
-        'wallet.totalPurchasedHostCredits': admin.firestore.FieldValue.increment(amount),
+        'wallet.hostCredits': admin.firestore.FieldValue.increment(creditsAmount),
+        'wallet.totalPurchasedHostCredits': admin.firestore.FieldValue.increment(creditsAmount),
         'wallet.firstPurchaseCompleted': true,
         'wallet.lastUpdated': admin.firestore.FieldValue.serverTimestamp()
       });
     } else {
       // Default: Add tournament credits
       return userRef.update({
-        'wallet.tournamentCredits': admin.firestore.FieldValue.increment(amount),
-        'wallet.totalPurchasedTournamentCredits': admin.firestore.FieldValue.increment(amount),
+        'wallet.tournamentCredits': admin.firestore.FieldValue.increment(creditsAmount),
+        'wallet.totalPurchasedTournamentCredits': admin.firestore.FieldValue.increment(creditsAmount),
         'wallet.firstPurchaseCompleted': true,
         'wallet.lastUpdated': admin.firestore.FieldValue.serverTimestamp()
       });
@@ -110,7 +110,7 @@ async function updateUserWallet(userId, packageType, amount) {
 async function processSuccessfulPayment(orderData, webhookData) {
   try {
     const { userId, order_amount } = webhookData?.data?.order || {};
-    const { packageType, packageId, packageName } = webhookData?.data?.order?.order_tags || {};
+    const { packageType, packageId, packageName, creditsAmount } = webhookData?.data?.order?.order_tags || {};
     
     if (!userId) {
       throw new Error('User ID not found in webhook data');
@@ -120,11 +120,14 @@ async function processSuccessfulPayment(orderData, webhookData) {
     if (isNaN(amount) || amount <= 0) {
       throw new Error('Invalid order amount');
     }
+
+    // Get the actual credits amount, fallback to amount if not available
+    const actualCreditsAmount = creditsAmount ? parseInt(creditsAmount) : amount;
     
-    console.log(`Processing payment for user ${userId}, package type: ${packageType}, amount: ${amount}`);
+    console.log(`Processing payment for user ${userId}, package type: ${packageType}, amount: ${amount}, credits: ${actualCreditsAmount}`);
     
     // Update user's wallet with credits
-    await updateUserWallet(userId, packageType, amount);
+    await updateUserWallet(userId, packageType, actualCreditsAmount);
     
     // Create a transaction record
     const walletType = packageType === 'host' ? 'hostCredits' : 'tournamentCredits';
@@ -134,7 +137,7 @@ async function processSuccessfulPayment(orderData, webhookData) {
     await db.collection('creditTransactions').add({
       userId,
       type: txType,
-      amount: amount,
+      amount: actualCreditsAmount,
       value: amount,
       walletType,
       description: `Purchase of ${packageType} credits`,
