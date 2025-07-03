@@ -6,43 +6,87 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from '@/components/ui/use-toast';
 import NotchHeader from '@/components/NotchHeader';
+import { PaymentService } from '@/lib/paymentService';
+import { useAuth } from '@/contexts/AuthContext';
+import { useCreditBalance } from '@/hooks/useCreditBalance';
 
 const PaymentStatus = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
+  const { currentUser } = useAuth();
+  const { tournamentCredits, hostCredits, isLoading: creditsLoading } = useCreditBalance(currentUser?.uid);
 
   const status = searchParams.get('status');
-  const orderId = searchParams.get('order_id');
+  const orderId = searchParams.get('orderId') || searchParams.get('order_id');
   const orderToken = searchParams.get('order_token');
+  const packageType = searchParams.get('packageType');
+  const amount = searchParams.get('amount');
 
   useEffect(() => {
     const handlePaymentStatus = async () => {
-      if (status === 'success') {
+      try {
+        // If we have an order ID, verify the payment status
+        if (orderId) {
+          const paymentService = PaymentService.getInstance();
+          const verificationResult = await paymentService.verifyPayment(orderId);
+          
+          if (verificationResult.verified) {
+            toast({
+              title: "Payment Successful!",
+              description: "Your credits have been added to your account.",
+            });
+          } else if (verificationResult.error) {
+            toast({
+              title: "Payment Failed",
+              description: verificationResult.error || "Your payment could not be processed. Please try again.",
+              variant: "destructive"
+            });
+          } else {
+            toast({
+              title: status === 'cancelled' ? "Payment Cancelled" : "Payment Status",
+              description: status === 'cancelled' 
+                ? "You cancelled the payment process." 
+                : "Payment status is being verified.",
+              variant: status === 'cancelled' ? "destructive" : "default"
+            });
+          }
+        } else {
+          // Fallback to URL status parameter if no order ID
+          if (status === 'success') {
+            toast({
+              title: "Payment Successful!",
+              description: "Your credits have been added to your account.",
+            });
+          } else if (status === 'failed') {
+            toast({
+              title: "Payment Failed",
+              description: "Your payment could not be processed. Please try again.",
+              variant: "destructive"
+            });
+          } else if (status === 'cancelled') {
+            toast({
+              title: "Payment Cancelled",
+              description: "You cancelled the payment process.",
+              variant: "destructive"
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error processing payment status:', error);
         toast({
-          title: "Payment Successful!",
-          description: "Your credits have been added to your account.",
-        });
-      } else if (status === 'failed') {
-        toast({
-          title: "Payment Failed",
-          description: "Your payment could not be processed. Please try again.",
+          title: "Error",
+          description: "There was a problem verifying your payment.",
           variant: "destructive"
         });
-      } else if (status === 'cancelled') {
-        toast({
-          title: "Payment Cancelled",
-          description: "You cancelled the payment process.",
-          variant: "destructive"
-        });
+      } finally {
+        setIsLoading(false);
+
+        // Redirect to wallet after 3 seconds
+        setTimeout(() => {
+          navigate('/wallet');
+        }, 3000);
       }
-
-      setIsLoading(false);
-
-      // Redirect to home after 3 seconds
-      setTimeout(() => {
-        navigate('/wallet');
-      }, 3000);
     };
 
     handlePaymentStatus();
@@ -62,12 +106,20 @@ const PaymentStatus = () => {
   };
 
   const getStatusMessage = () => {
+    const packageDisplay = packageType === 'host' ? 'Host Credits' : 'Tournament Credits';
+    const creditBalance = packageType === 'host' ? hostCredits : tournamentCredits;
+    
     switch (status) {
       case 'success':
         return {
           title: 'Payment Successful!',
-          description: 'Your credits have been added to your account and are ready to use.',
-          color: 'text-green-500'
+          description: `Your ${packageDisplay} have been added to your account and are ready to use.`,
+          color: 'text-green-500',
+          extraInfo: !creditsLoading ? (
+            <div className="text-green-600 font-medium mt-2">
+              Current {packageDisplay} Balance: {creditBalance}
+            </div>
+          ) : null
         };
       case 'failed':
         return {
@@ -84,7 +136,7 @@ const PaymentStatus = () => {
       default:
         return {
           title: 'Processing Payment',
-          description: 'Please wait while we process your payment...',
+          description: 'Please wait while we verify your payment...',
           color: 'text-gaming-muted'
         };
     }
@@ -93,80 +145,57 @@ const PaymentStatus = () => {
   const statusInfo = getStatusMessage();
 
   return (
-    <div className="min-h-screen bg-gaming-bg text-gaming-text">
-      <NotchHeader />
+    <div className="min-h-screen flex flex-col">
+      <NotchHeader title="Payment Status" showBackButton />
 
-      <div className="container mx-auto px-4 py-12 max-w-md">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-        >
-          <Card className="bg-gaming-card border-gaming-border">
-            <CardContent className="p-8 text-center">
+      <div className="flex-1 container max-w-lg mx-auto px-4 py-8 flex flex-col items-center justify-center">
+        {isLoading ? (
+          <Card className="w-full">
+            <CardContent className="flex flex-col items-center justify-center p-6">
               <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-                className="flex justify-center mb-6"
+                animate={{ rotate: 360 }}
+                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                className="mb-4"
               >
-                {getStatusIcon()}
+                <Clock className="h-12 w-12 text-gaming-muted" />
               </motion.div>
-
-              <motion.h1
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className={`text-2xl font-bold mb-4 ${statusInfo.color}`}
-              >
-                {statusInfo.title}
-              </motion.h1>
-
-              <motion.p
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="text-gaming-muted mb-6"
-              >
-                {statusInfo.description}
-              </motion.p>
-
-              {orderId && (
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.5 }}
-                  className="text-sm text-gaming-muted mb-6"
-                >
-                  Order ID: {orderId}
-                </motion.p>
-              )}
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 }}
-              >
-                <Button
-                  onClick={() => navigate('/wallet')}
-                  className="bg-gaming-primary hover:bg-gaming-primary/90 text-white"
-                >
-                  <Home className="h-4 w-4 mr-2" />
-                  Return to Wallet
-                </Button>
-              </motion.div>
-
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.7 }}
-                className="text-xs text-gaming-muted mt-4"
-              >
-                Redirecting automatically in 3 seconds...
-              </motion.p>
+              <h3 className="text-xl font-semibold mb-2">Verifying Payment</h3>
+              <p className="text-muted-foreground text-center">
+                Please wait while we verify your payment status...
+              </p>
             </CardContent>
           </Card>
-        </motion.div>
+        ) : (
+          <Card className="w-full">
+            <CardContent className="flex flex-col items-center justify-center p-6">
+              {getStatusIcon()}
+              <h3 className={`text-xl font-semibold mt-4 mb-2 ${statusInfo.color}`}>
+                {statusInfo.title}
+              </h3>
+              <p className="text-muted-foreground text-center mb-4">
+                {statusInfo.description}
+              </p>
+              
+              {orderId && (
+                <div className="w-full bg-muted/50 p-3 rounded-md text-sm mb-4">
+                  <p><span className="text-muted-foreground">Order ID:</span> {orderId}</p>
+                  {amount && <p><span className="text-muted-foreground">Amount:</span> ₹{amount}</p>}
+                  {statusInfo.extraInfo}
+                </div>
+              )}
+
+              <div className="flex flex-col w-full gap-2 mt-2">
+                <Button onClick={() => navigate('/wallet')}>
+                  Go to Wallet
+                </Button>
+                <Button variant="outline" onClick={() => navigate('/')}>
+                  <Home className="mr-2 h-4 w-4" />
+                  Return to Home
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

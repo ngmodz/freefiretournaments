@@ -42,6 +42,7 @@ This project has been successfully integrated with CashFree Payment Gateway for 
    - Go to Developers → Webhooks
    - Add webhook URL: `https://yourdomain.com/.netlify/functions/payment-webhook`
    - Enable relevant events: `ORDER_PAID`, `PAYMENT_SUCCESS`, `PAYMENT_FAILED`
+   - It is highly recommended to also set a webhook secret token for security.
 
 ### Step 2: Environment Configuration
 
@@ -237,3 +238,132 @@ For integration support or issues:
 ---
 
 **Status**: ✅ **Integration Complete** - Ready for testing and production deployment!
+
+# CashFree Payment Verification System
+
+This document describes the implementation of the payment verification system using CashFree API keys.
+
+## Overview
+
+The system verifies payments through the CashFree payment gateway and adds credits to users' accounts upon successful payment. It consists of several components:
+
+1. **API Functions**:
+   - `verify-payment.js`: Verifies payment status with CashFree and updates user wallet
+   - `payment-webhook.js`: Handles payment status webhooks from CashFree
+
+2. **Vercel API Routes**:
+   - `api/verify-payment.js`: Server-side function to verify payments
+   - `api/payment-webhook.js`: Handles CashFree webhook notifications
+
+3. **Frontend Services**:
+   - `paymentService.ts`: Handles payment verification on the client side
+   - `cashfreeService.ts`: Manages CashFree SDK integration
+
+4. **UI Components**:
+   - `PaymentStatusPage.tsx`: Displays payment verification status
+   - `PaymentStatus.tsx`: Simplified payment status page
+
+## Payment Verification Flow
+
+1. User initiates a payment through the CashFree gateway
+2. After payment completion, user is redirected to the payment status page
+3. The system verifies the payment status with CashFree API using API keys
+4. If payment is successful, credits are added to the user's account
+5. The UI displays the updated credit balance and payment status
+
+## Key Features
+
+- **Double Verification**: Payments are verified both via redirect parameters and API calls
+- **Automatic Retry**: System retries verification if payment status is pending
+- **Transaction Records**: All credit transactions are recorded in the database
+- **Real-time UI Updates**: Credit balance updates are reflected immediately in the UI
+- **Error Handling**: Comprehensive error handling for failed payments
+
+## Configuration
+
+The system requires the following environment variables in your Vercel project:
+
+```
+VITE_CASHFREE_APP_ID=<your-cashfree-app-id>
+CASHFREE_SECRET_KEY=<your-cashfree-secret-key>
+CASHFREE_ENVIRONMENT=<SANDBOX or PRODUCTION>
+FIREBASE_SERVICE_ACCOUNT=<your-firebase-service-account-json>
+```
+
+## Security Considerations
+
+- CashFree webhook signatures are verified cryptographically
+- User transactions are protected using Firebase security rules
+- All API requests are authenticated and validated
+- Payment details are logged for audit purposes
+
+## Database Schema
+
+### Payment Orders
+```
+paymentOrders/{orderId}
+  - orderId: string
+  - userId: string
+  - amount: number
+  - orderStatus: string
+  - paymentDetails: object
+  - orderTags: object
+  - createdAt: timestamp
+  - updatedAt: timestamp
+```
+
+### Credit Transactions
+```
+creditTransactions/{transactionId}
+  - userId: string
+  - type: string
+  - amount: number
+  - value: number
+  - balanceBefore: number
+  - balanceAfter: number
+  - walletType: string
+  - description: string
+  - transactionDetails: object
+  - createdAt: timestamp
+```
+
+### User Wallet
+```
+users/{userId}
+  - wallet: {
+      tournamentCredits: number,
+      hostCredits: number,
+      earnings: number,
+      totalPurchasedTournamentCredits: number,
+      totalPurchasedHostCredits: number,
+      firstPurchaseCompleted: boolean,
+      lastUpdated: timestamp
+    }
+```
+
+## Vercel Deployment
+
+For detailed deployment instructions, please refer to [VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md).
+
+## Backend Configuration
+
+1.  **`CASHFREE_SECRET_KEY`**: Your CashFree secret key.
+2.  **`FIREBASE_SERVICE_ACCOUNT`**: Your Firebase service account JSON.
+3.  **`ADMIN_SECRET_KEY`**: A secret key for administrative actions.
+
+### Deployment
+
+- Ensure all environment variables are set in your Vercel project dashboard.
+- The Vercel deployment will automatically use the `api` directory for serverless functions.
+
+## Common Issues
+
+1. **Solution**:
+    1.  Double-check your `VITE_CASHFREE_APP_ID` and `CASHFREE_SECRET_KEY` in your environment variables.
+    2.  Ensure the keys are for the correct environment (Test/Production).
+    3.  Enable development logging by checking browser console and Vercel function logs.
+
+2. **Solution**:
+    1.  Verify the webhook URL in your CashFree dashboard is `https://your-app.vercel.app/api/payment-webhook`.
+    2.  Check for any errors in the webhook logs on the CashFree dashboard.
+    3.  Check browser console and Vercel function logs.

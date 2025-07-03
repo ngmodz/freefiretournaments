@@ -46,5 +46,5 @@ firebase-service-account*.json
 *.cert
 *.crt
 
-# Local Netlify folder
-.netlify
+# Local Mac folder
+.DS_Store

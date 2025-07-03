@@ -45,6 +45,7 @@ A comprehensive gaming tournament platform built with React, Firebase, and integ
 
 ### Backend & Services
 - **Firebase** (Authentication, Firestore, Storage)
+- **Vercel** for hosting, with serverless functions for backend logic
 - **Netlify Functions** for serverless backend
 - **Payment Gateway Integration** for payment processing
 - **Real-time database** with Firestore listeners
@@ -61,7 +62,8 @@ A comprehensive gaming tournament platform built with React, Firebase, and integ
 - Node.js 18+ and npm/yarn/bun
 - Firebase project with Firestore enabled
 - Payment gateway account for processing payments
-- Netlify account for deployment
+- Vercel account for deployment
+- CashFree merchant account
 
 ### Installation
 
@@ -94,7 +96,14 @@ A comprehensive gaming tournament platform built with React, Firebase, and integ
    VITE_PAYMENT_FORM_WEBHOOK_SECRET=your_webhook_secret
 
    # API Configuration
-   VITE_API_URL=/.netlify/functions
+   VITE_API_URL=/api
+
+   # CashFree Configuration
+   VITE_CASHFREE_APP_ID=your_cashfree_app_id
+   CASHFREE_SECRET_KEY=your_cashfree_secret_key
+
+   # Firebase Service Account
+   FIREBASE_SERVICE_ACCOUNT=your_firebase_service_account_json
    ```
 
 4. **Firebase Setup**
@@ -324,43 +333,43 @@ npm run dev
 
 ## Deployment
 
-### Netlify Deployment
+### Vercel Deployment
 
-1. **Build Configuration**
-   ```toml
-   # netlify.toml
-   [build]
-     command = "npm run build"
-     publish = "dist"
+1. **Fork and Clone Repository**
+2. **Install Dependencies**
+    ```
+    npm install
+    ```
+3. **Set Environment Variables**
+    - Create a `.env` file in the root directory.
+    - Add all the required environment variables from `.env.example`.
+    - Set all environment variables in the Vercel project dashboard.
+4. **Deploy to Vercel**
+    - Connect your repository to Vercel.
+    - Configure the build settings (usually auto-detected for Vite).
+    - Deploy!
+5. **Configure Webhooks**
+    - In your CashFree dashboard, go to Webhooks.
+    - Configure payment webhook URL: `https://your-app.vercel.app/api/payment-webhook`
 
-   [functions]
-     directory = "netlify/functions"
-   ```
+### Local Development
 
-2. **Environment Variables**
-   Set all environment variables in Netlify dashboard
+- The app includes mock payment flows for development
+- Use test payment forms for staging
+- Real payments only in production mode
 
-3. **Webhook Configuration**
-   - Configure payment webhook URL: `https://your-app.netlify.app/.netlify/functions/payment-webhook`
-   - Set webhook secret for security
+### Troubleshooting
 
-### Firebase Deployment
-
-1. **Install Firebase CLI**
-   ```bash
-   npm install -g firebase-tools
-   ```
-
-2. **Initialize Firebase**
-   ```bash
-   firebase init hosting
-   ```
-
-3. **Deploy**
-   ```bash
-   npm run build
-   firebase deploy
-   ```
+- If you encounter issues, check the following:
+  - Browser's developer console for any frontend errors.
+  - Vercel function logs for any backend errors.
+  - Ensure all environment variables are correctly set in your Vercel project.
+- For payment-related issues:
+  - Verify that the CashFree API keys are correct.
+  - Check the format of the data being sent to the CashFree API.
+- For Firebase issues:
+  - Ensure your Firebase service account key is correctly configured.
+- Check Vercel function logs
 
 ## Security Considerations
 
@@ -449,7 +458,7 @@ const { isLoading, user } = useAuthCheck({ requireAuth: true });
 1. **Payment Webhook Not Working**
    - Check webhook URL configuration in payment provider dashboard
    - Verify webhook secret environment variable
-   - Check Netlify function logs
+   - Check Vercel function logs
 
 2. **Credits Not Updated After Payment**
    - Verify webhook is receiving payment notifications

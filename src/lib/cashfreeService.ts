@@ -290,7 +290,7 @@ export class CashFreeService {
     try {
       console.log('🔍 Verifying payment status for order:', orderId);
 
-      const response = await fetch(`/.netlify/functions/verify-payment?orderId=${orderId}`, {
+      const response = await fetch(`/api/verify-payment?orderId=${orderId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'

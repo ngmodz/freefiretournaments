@@ -5,8 +5,7 @@ Your app has been successfully migrated from Netlify to **Vercel**! This guide w
 ## 📁 What Changed
 
 ### ✅ **Migration Complete**
-- ✅ Netlify functions → Vercel API routes (`api/` folder)
-- ✅ Environment variables updated for Vercel
+- ✅ Serverless functions are now in the `api/` directory, compatible with Vercel.
 - ✅ CashFree service adapted for Vercel endpoints
 - ✅ Payment webhook configured for Vercel
 - ✅ Package.json scripts updated

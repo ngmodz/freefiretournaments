@@ -58,10 +58,10 @@ if (missingEnvVars.length > 0) {
   console.log('✅ All required environment variables are set');
 }
 
-// Test Netlify functions availability
-fetch('/.netlify/functions/health-check')
-  .then(response => response.json())
-  .then(data => console.log('🏥 Netlify functions health:', data))
-  .catch(error => console.warn('⚠️ Netlify functions not available:', error.message));
+// Test Vercel API availability
+fetch('/api/health-check')
+  .then(res => res.json())
+  .then(data => console.log('🏥 Vercel API health:', data))
+  .catch(error => console.warn('⚠️ Vercel API not available:', error.message));
 
 console.log('🎯 Integration test completed. Check results above.');

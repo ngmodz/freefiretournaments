@@ -136,20 +136,20 @@ export class PaymentService {
    */
   public async verifyPayment(orderId: string, paymentId?: string): Promise<PaymentVerificationResponse> {
     try {
-      // Prepare the request URL and parameters
-      const url = `${this.apiBaseUrl}/verify-payment`;
-      const params: Record<string, string> = { order_id: orderId };
+      console.log(`Verifying payment for order ${orderId}`);
       
-      // Add payment ID if provided
+      // Prepare the request
+      const apiUrl = import.meta.env.VITE_API_URL || '/api';
+      const url = `${apiUrl}/verify-payment`;
+      
+      // Add query parameters if using GET
+      const params: Record<string, string> = {};
       if (paymentId) {
-        params.payment_id = paymentId;
+        params.paymentId = paymentId;
       }
       
-      // Build query string
-      const queryString = new URLSearchParams(params).toString();
-      
       // For development/testing, simulate a successful verification
-      if (import.meta.env.DEV || import.meta.env.MODE === 'development') {
+      if (import.meta.env.DEV && import.meta.env.VITE_MOCK_PAYMENTS === 'true') {
         console.log('DEV MODE: Simulating payment verification');
         
         // Return a mock successful response
@@ -163,22 +163,67 @@ export class PaymentService {
         };
       }
       
-      // Make the API call to verify payment
-      const response = await fetch(`${url}?${queryString}`);
+      // Make the API call to verify payment - use POST to avoid URL length limitations
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          orderId,
+          paymentId,
+          // Skip credit update if we're just checking status to avoid double-adding credits
+          skipCreditUpdate: true
+        })
+      });
+      
+      // If response is not OK, throw error
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Server responded with status ${response.status}`);
+      }
+      
+      // Parse response data
       const data = await response.json();
       
       // Log the verification response
       console.log('Payment verification response:', data);
       
+      if (data.verified && !data.skipCreditUpdate) {
+        // If payment is verified and we haven't yet updated credits, do a second call
+        // This ensures credits are added to the user's account
+        try {
+          const addCreditsResponse = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              orderId,
+              paymentId,
+              skipCreditUpdate: false
+            })
+          });
+          
+          if (addCreditsResponse.ok) {
+            const addCreditsData = await addCreditsResponse.json();
+            console.log('Credits added response:', addCreditsData);
+          }
+        } catch (error) {
+          console.error('Error adding credits:', error);
+          // Even if adding credits fails, we still report success since payment verified
+        }
+      }
+      
       // Return the verification result
       return {
-        success: response.ok,
+        success: data.success || false,
         verified: data.verified || false,
-        orderId: orderId,
-        amount: data.amount,
-        paymentId: data.payment_id || paymentId,
+        orderId: data.orderId || orderId,
+        amount: data.amount || data.orderAmount,
+        paymentId: data.paymentId || paymentId,
         error: data.error,
-        message: data.message
+        message: data.message || (data.verified ? 'Payment verified' : 'Payment not completed')
       };
       
     } catch (error) {

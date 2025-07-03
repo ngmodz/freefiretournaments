@@ -6,7 +6,7 @@ const getCashFreeConfig = () => {
   // IMPORTANT: These need to be defined in your deployment environment
   const environment = process.env.CASHFREE_ENVIRONMENT || 'SANDBOX';
   return {
-    appId: process.env.CASHFREE_APP_ID,
+    appId: process.env.VITE_CASHFREE_APP_ID || process.env.CASHFREE_APP_ID,
     secretKey: process.env.CASHFREE_SECRET_KEY,
     environment: environment,
     baseUrl: environment === 'PRODUCTION' 
@@ -51,7 +51,7 @@ export default async function handler(req, res) {
         secretKey: config.secretKey ? 'present' : 'missing',
         environment: config.environment
       });
-      throw new Error('CashFree credentials not configured. Please set CASHFREE_APP_ID and CASHFREE_SECRET_KEY environment variables.');
+      throw new Error('CashFree credentials not configured. Please set VITE_CASHFREE_APP_ID and CASHFREE_SECRET_KEY environment variables.');
     }
 
     const {
@@ -78,8 +78,8 @@ export default async function handler(req, res) {
     const orderId = `${(packageType || 'credits').substring(0, 4)}_${shortUserId}_${timestamp}`;
 
     // Get application URLs
-    const appUrl = process.env.APP_URL || 'http://localhost:5173';
-    const apiUrl = process.env.API_URL || 
+    const appUrl = process.env.VITE_APP_URL || process.env.APP_URL || 'http://localhost:5173';
+    const apiUrl = process.env.VITE_API_URL || 
                   (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
 
     console.log('Using application URLs:', { appUrl, apiUrl });

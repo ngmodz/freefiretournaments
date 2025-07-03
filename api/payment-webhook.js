@@ -2,34 +2,39 @@ import crypto from 'crypto';
 import admin from 'firebase-admin';
 
 // Initialize Firebase Admin SDK
+let serviceAccount;
+try {
+  // Try to parse the service account from environment variable
+  serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+} catch (error) {
+  console.error('Error parsing Firebase service account:', error);
+}
+
 let app;
 let db;
-
-const initializeFirebase = () => {
-  if (!app && !admin.apps.length) {
-    try {
-      const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-      app = admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
-      });
-      db = admin.firestore();
-      console.log('✅ Firebase Admin initialized');
-    } catch (error) {
-      console.error('❌ Firebase initialization error:', error);
-    }
-  } else if (admin.apps.length) {
-    app = admin.apps[0];
-    db = admin.firestore();
-  }
-  return db;
-};
+if (!admin.apps.length && serviceAccount) {
+  // Initialize with parsed service account
+  app = admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
+  });
+  db = admin.firestore();
+} else if (!admin.apps.length && process.env.SERVICE_ACCOUNT_KEY_PATH) {
+  // Fall back to file path if environment variable not set
+  app = admin.initializeApp({
+    credential: admin.credential.cert(process.env.SERVICE_ACCOUNT_KEY_PATH)
+  });
+  db = admin.firestore();
+} else if (admin.apps.length) {
+  app = admin.apps[0];
+  db = admin.firestore();
+}
 
 /**
  * Verify CashFree webhook signature
  */
 function verifyCashFreeSignature(rawBody, signature, timestamp) {
   try {
-    const secretKey = process.env.CASHFREE_SECRET_KEY;
+    const secretKey = process.env.CASHFREE_SECRET_KEY || process.env.CASHFREE_WEBHOOK_SECRET;
     if (!secretKey) {
       console.error('CashFree secret key not found');
       return false;
@@ -160,7 +165,7 @@ async function processPaymentWebhook(webhookData) {
 
     // Initialize Firebase
     if (!db) {
-      db = initializeFirebase();
+      db = admin.firestore();
       if (!db) {
         throw new Error('Failed to initialize Firebase');
       }
