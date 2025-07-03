@@ -134,7 +134,7 @@ export class PaymentService {
    * @param orderId The order ID to verify
    * @param paymentId Optional payment ID from payment provider
    */
-  public async verifyPayment(orderId: string, paymentId?: string): Promise<PaymentVerificationResponse> {
+  public async verifyPayment(orderId: string, paymentId?: string, skipCreditUpdate = false): Promise<PaymentVerificationResponse> {
     try {
       console.log(`Verifying payment for order ${orderId}`);
       
@@ -172,8 +172,7 @@ export class PaymentService {
         body: JSON.stringify({
           orderId,
           paymentId,
-          // Skip credit update if we're just checking status to avoid double-adding credits
-          skipCreditUpdate: true
+          skipCreditUpdate
         })
       });
       
@@ -188,33 +187,7 @@ export class PaymentService {
       
       // Log the verification response
       console.log('Payment verification response:', data);
-      
-      if (data.verified && !data.skipCreditUpdate) {
-        // If payment is verified and we haven't yet updated credits, do a second call
-        // This ensures credits are added to the user's account
-        try {
-          const addCreditsResponse = await fetch(url, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              orderId,
-              paymentId,
-              skipCreditUpdate: false
-            })
-          });
-          
-          if (addCreditsResponse.ok) {
-            const addCreditsData = await addCreditsResponse.json();
-            console.log('Credits added response:', addCreditsData);
-          }
-        } catch (error) {
-          console.error('Error adding credits:', error);
-          // Even if adding credits fails, we still report success since payment verified
-        }
-      }
-      
+            
       // Return the verification result
       return {
         success: data.success || false,
