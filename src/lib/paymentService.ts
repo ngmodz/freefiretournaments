@@ -40,7 +40,6 @@ export class PaymentService {
   private static instance: PaymentService;
   private paymentFormUrl: string;
   private apiBaseUrl: string;
-  private isTestEnvironment: boolean;
 
   constructor() {
     // Get the payment form URL from environment variables
@@ -53,10 +52,6 @@ export class PaymentService {
     if (!this.apiBaseUrl) {
       this.apiBaseUrl = `${window.location.origin}/api`;
     }
-
-    // Check if we're in test environment
-    this.isTestEnvironment = import.meta.env?.VITE_CASHFREE_ENVIRONMENT === 'SANDBOX' || 
-                            import.meta.env?.MODE === 'development';
   }
 
   /**
@@ -106,18 +101,6 @@ export class PaymentService {
       // Log the payment initiation
       console.log(`Initiating payment:`, Object.fromEntries(urlParams.entries()));
       
-      // For development/testing, simulate a successful payment
-      if (import.meta.env.DEV || import.meta.env.MODE === 'development') {
-        console.log('DEV MODE: Simulating payment redirect');
-        
-        // Simulate redirect to payment status page
-        setTimeout(() => {
-          window.location.href = `/payment-status?order_id=${orderId}&status=success&amount=${params.amount}`;
-        }, 1500);
-        
-        return;
-      }
-      
       // Determine which payment form URL to use
       let paymentFormUrl = this.paymentFormUrl;
       
@@ -148,27 +131,6 @@ export class PaymentService {
       // Prepare the request
       const apiUrl = import.meta.env.VITE_API_URL || '/api';
       const url = `${apiUrl}/verify-payment`;
-      
-      // Add query parameters if using GET
-      const params: Record<string, string> = {};
-      if (paymentId) {
-        params.paymentId = paymentId;
-      }
-      
-      // For development/testing, simulate a successful verification
-      if (import.meta.env.DEV && import.meta.env.VITE_MOCK_PAYMENTS === 'true') {
-        console.log('DEV MODE: Simulating payment verification');
-        
-        // Return a mock successful response
-        return {
-          success: true,
-          verified: true,
-          orderId: orderId,
-          amount: 100, // Mock amount
-          paymentId: paymentId || `mock_payment_${Date.now()}`,
-          message: 'Payment verified successfully (DEV MODE)'
-        };
-      }
       
       // Make the API call to verify payment - use POST to avoid URL length limitations
       const response = await fetch(url, {
@@ -217,100 +179,6 @@ export class PaymentService {
         orderId: orderId,
         error: error.message || 'An error occurred while verifying the payment',
         message: 'Payment verification failed',
-        testPayment: false
-      };
-    }
-  }
-
-  /**
-   * Force verify a payment in test environment
-   * This is useful for testing the payment flow without actually making a payment
-   * @param orderId The order ID to verify
-   * @param userId The user ID who made the payment
-   * @param amount The payment amount
-   * @param packageType The package type (tournament or host)
-   * @param creditsAmount The actual number of credits to add
-   */
-  public async forceVerifyTestPayment(
-    orderId: string,
-    userId: string,
-    amount: number,
-    packageType: 'tournament' | 'host' = 'tournament',
-    creditsAmount?: number
-  ): Promise<PaymentVerificationResponse> {
-    try {
-      // Only allow in test environment
-      if (!this.isTestEnvironment) {
-        throw new Error('Force verification is only allowed in test environment');
-      }
-
-      console.log(`Force verifying test payment for order ${orderId}`);
-      
-      // Prepare the request
-      const apiUrl = import.meta.env.VITE_API_URL || '/api';
-      const url = `${apiUrl}/verify-payment`;
-      
-      // Make the API call to verify payment with forceVerify flag
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          orderId,
-          userId,
-          amount,
-          packageType,
-          skipCreditUpdate: false,
-          forceVerify: true,
-          testOrderData: {
-            order_id: orderId,
-            order_amount: amount,
-            order_currency: 'INR',
-            order_status: 'PAID',
-            order_tags: {
-              userId,
-              packageType,
-              creditsAmount: creditsAmount ? creditsAmount.toString() : amount.toString()
-            }
-          }
-        })
-      });
-      
-      // If response is not OK, throw error
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Server responded with status ${response.status}`);
-      }
-      
-      // Parse response data
-      const data = await response.json();
-      
-      // Log the verification response
-      console.log('Force verification response:', data);
-            
-      // Return the verification result
-      return {
-        success: data.success || false,
-        verified: data.verified || false,
-        orderId: data.orderId || orderId,
-        amount: data.amount || data.orderAmount,
-        paymentId: data.paymentId || `test_${Date.now()}`,
-        error: data.error,
-        message: data.message || (data.verified ? 'Test payment verified successfully' : 'Test payment verification failed'),
-        testPayment: true
-      };
-      
-    } catch (error) {
-      console.error('Error force verifying test payment:', error);
-      
-      // Return error response
-      return {
-        success: false,
-        verified: false,
-        orderId: orderId,
-        error: error.message || 'An error occurred while force verifying the test payment',
-        message: 'Test payment verification failed',
         testPayment: false
       };
     }

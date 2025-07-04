@@ -158,7 +158,8 @@ export default async function handler(req, res) {
     return;
   }
 
-  if (req.method !== 'POST') {
+  // Allow both GET and POST methods
+  if (req.method !== 'POST' && req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
@@ -169,7 +170,14 @@ export default async function handler(req, res) {
       throw new Error('CashFree credentials not configured');
     }
 
-    const { orderId, skipCreditUpdate, forceVerify } = req.body;
+    // Get parameters from either POST body or GET query
+    const orderId = req.method === 'POST' 
+      ? req.body.orderId 
+      : req.query.orderId;
+      
+    const skipCreditUpdate = req.method === 'POST'
+      ? req.body.skipCreditUpdate === true
+      : req.query.skipCreditUpdate === 'true';
 
     if (!orderId) {
       return res.status(400).json({
@@ -200,112 +208,6 @@ export default async function handler(req, res) {
       }
     }
 
-    // Special handling for test environment with forceVerify flag
-    // This allows us to force verification in test environment when needed
-    if (config.isSandbox && forceVerify === true) {
-      console.log('TEST ENVIRONMENT: Force verifying payment for order:', orderId);
-      console.log('Request body:', JSON.stringify(req.body, null, 2));
-      
-      // Get order data from request body or try to find in database
-      let testOrderData = req.body.testOrderData;
-      
-      if (!testOrderData && db) {
-        // Try to find order in database
-        const orderRef = db.collection('paymentOrders').doc(orderId);
-        const orderDoc = await orderRef.get();
-        
-        if (orderDoc.exists) {
-          testOrderData = orderDoc.data();
-        }
-      }
-      
-      if (!testOrderData) {
-        // If we still don't have order data, create minimal test data
-        testOrderData = {
-          order_id: orderId,
-          order_amount: req.body.amount || 100,
-          order_currency: 'INR',
-          order_status: 'PAID',
-          order_tags: {
-            userId: req.body.userId,
-            packageType: req.body.packageType || 'tournament'
-          }
-        };
-      }
-      
-      // Simulate a successful payment
-      if (!skipCreditUpdate && testOrderData.order_tags && testOrderData.order_tags.userId) {
-        try {
-          // Update order status in database
-          if (db) {
-            const orderRef = db.collection('paymentOrders').doc(orderId);
-            await orderRef.set({
-              orderId: testOrderData.order_id,
-              userId: testOrderData.order_tags.userId,
-              amount: parseInt(testOrderData.order_amount),
-              currency: testOrderData.order_currency || 'INR',
-              orderStatus: 'PAID',
-              orderTags: testOrderData.order_tags,
-              customerDetails: testOrderData.customer_details || {},
-              paymentDetails: {
-                cf_payment_id: `test_${Date.now()}`,
-                payment_method: 'test_payment',
-                payment_status: 'SUCCESS'
-              },
-              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-              verifiedAt: admin.firestore.FieldValue.serverTimestamp(),
-              testPayment: true
-            }, { merge: true });
-          }
-          
-          // Update user wallet with credits
-          const userId = testOrderData.order_tags.userId;
-          const packageType = testOrderData.order_tags.packageType || 'tournament';
-          const priceAmount = parseInt(testOrderData.order_amount);
-          
-          // Get the actual credits amount from order tags, fallback to amount if not available
-          const creditsAmount = testOrderData.order_tags.creditsAmount 
-            ? parseInt(testOrderData.order_tags.creditsAmount) 
-            : priceAmount;
-
-          console.log('--- Test Payment Wallet Update ---');
-          console.log('User ID:', userId);
-          console.log('Package Type:', packageType);
-          console.log('Price Amount:', priceAmount);
-          console.log('Credits Amount:', creditsAmount);
-          console.log('---------------------------------');
-          
-          await updateUserWallet(userId, packageType, creditsAmount, priceAmount, orderId, {
-            cf_payment_id: `test_${Date.now()}`,
-            payment_method: 'test_payment',
-            payment_status: 'SUCCESS',
-            order_tags: testOrderData.order_tags
-          });
-          
-          console.log('TEST ENVIRONMENT: Credits added for order:', orderId);
-          
-          return res.status(200).json({
-            success: true,
-            verified: true,
-            orderId: testOrderData.order_id,
-            orderStatus: 'PAID',
-            orderAmount: testOrderData.order_amount,
-            orderCurrency: testOrderData.order_currency || 'INR',
-            paymentDetails: {
-              cf_payment_id: `test_${Date.now()}`,
-              payment_method: 'test_payment'
-            },
-            userId: testOrderData.order_tags.userId,
-            packageType: testOrderData.order_tags.packageType,
-            message: 'Test payment verified successfully and credits added',
-            testPayment: true
-          });
-        } catch (error) {
-          console.error('Error processing test payment:', error);
-        }
-      }
-    }
-
     // Call CashFree API to get order details
     const response = await fetch(`${config.baseUrl}/orders/${orderId}`, {
       method: 'GET',
@@ -316,28 +218,6 @@ export default async function handler(req, res) {
 
     if (!response.ok) {
       console.error('CashFree API error:', orderData);
-      
-      // Special handling for test environment
-      if (config.isSandbox) {
-        console.log('TEST ENVIRONMENT: API error, but proceeding with test payment verification');
-        
-        // Return a simulated success response for test environment
-        return res.status(200).json({
-          success: true,
-          verified: true,
-          orderId: orderId,
-          orderStatus: 'PAID',
-          orderAmount: req.body.amount || 100,
-          orderCurrency: 'INR',
-          paymentDetails: {
-            cf_payment_id: `test_${Date.now()}`,
-            payment_method: 'test_payment'
-          },
-          message: 'Test payment verified successfully',
-          testPayment: true
-        });
-      }
-      
       throw new Error(orderData.message || 'Failed to verify payment');
     }
 

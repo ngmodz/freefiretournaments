@@ -292,11 +292,14 @@ export class CashFreeService {
     try {
       console.log('🔍 Verifying payment status for order:', orderId);
 
-      const response = await fetch(`/api/verify-payment?orderId=${orderId}`, {
-        method: 'GET',
+      const response = await fetch(`/api/verify-payment`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json'
-        }
+        },
+        body: JSON.stringify({
+          orderId: orderId
+        })
       });
 
       if (!response.ok) {
