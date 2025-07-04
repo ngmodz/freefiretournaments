@@ -70,7 +70,7 @@ const BuyCreditsButton: React.FC<BuyCreditsButtonProps> = ({
         userId: currentUser.uid,
         userName: currentUser.displayName || currentUser.email?.split('@')[0] || 'User',
         userEmail: currentUser.email || '',
-        paymentType: 'credit_purchase',
+        paymentType: 'credit_purchase' as const,
         packageId: packageId,
         packageName: packageName || packageId,
         packageType: packageType,
@@ -80,11 +80,11 @@ const BuyCreditsButton: React.FC<BuyCreditsButtonProps> = ({
       console.log(`Initiating direct payment for ${packageName || packageId}:`, paymentParams);
       
       toast({
-        title: "Redirecting to Payment",
-        description: "You will be redirected to the payment page.",
+        title: "Opening Payment Gateway",
+        description: "Please complete your payment in the popup window.",
       });
       
-      paymentService.redirectToPaymentForm(paymentParams);
+      await paymentService.initiateCashFreeCheckout(paymentParams);
       
     } catch (error) {
       console.error('Payment error:', error);
@@ -93,6 +93,7 @@ const BuyCreditsButton: React.FC<BuyCreditsButtonProps> = ({
         description: error.message || "An error occurred while processing your payment.",
         variant: "destructive"
       });
+    } finally {
       setIsProcessing(false);
     }
   };

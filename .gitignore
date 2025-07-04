@@ -49,3 +49,4 @@ firebase-service-account*.json
 # Local Mac folder
 .DS_Store
 .vercel
+.env*.local

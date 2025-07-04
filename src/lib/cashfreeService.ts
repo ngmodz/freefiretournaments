@@ -73,15 +73,24 @@ export class CashFreeService {
 
     try {
       console.log('🚀 Initializing CashFree SDK...');
+      console.log('🔧 Config:', {
+        appId: cashfreeConfig.appId ? cashfreeConfig.appId.substring(0, 10) + '...' : 'MISSING',
+        environment: cashfreeConfig.environment,
+        apiVersion: cashfreeConfig.apiVersion
+      });
       
       // Validate configuration
       if (!cashfreeConfig.appId) {
         throw new Error('CashFree App ID is required. Please check your environment variables.');
       }
 
+      // Ensure environment is valid
+      const validEnvironment = cashfreeConfig.environment?.toUpperCase() === 'PRODUCTION' ? 'production' : 'sandbox';
+      console.log('🌍 Using environment:', validEnvironment);
+
       // Load CashFree SDK
       this.cashfree = await load({
-        mode: cashfreeConfig.environment.toLowerCase() as 'sandbox' | 'production'
+        mode: validEnvironment as 'sandbox' | 'production'
       });
 
       this.initialized = true;

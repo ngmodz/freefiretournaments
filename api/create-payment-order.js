@@ -92,9 +92,9 @@ export default async function handler(req, res) {
     const orderId = `${(packageType || 'credits').substring(0, 4)}_${shortUserId}_${timestamp}`;
 
     // Get application URLs
-    const appUrl = process.env.VITE_APP_URL || process.env.APP_URL || 'http://localhost:5173';
-    const apiUrl = process.env.VITE_API_URL || 
-                  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+    const appUrl = (process.env.VITE_APP_URL || process.env.APP_URL || 'http://localhost:5173').trim();
+    const apiUrl = (process.env.VITE_API_URL || 
+                  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')).trim();
 
     console.log('Using application URLs:', { appUrl, apiUrl });
 
