@@ -93,10 +93,10 @@ export default async function handler(req, res) {
 
     // Get application URLs
     const appUrl = (process.env.VITE_APP_URL || process.env.APP_URL || 'http://localhost:5173').trim();
-    const apiUrl = (process.env.VITE_API_URL || 
-                  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')).trim();
+    // Use the same URL for webhook as the return URL to ensure consistency
+    const webhookUrl = appUrl;
 
-    console.log('Using application URLs:', { appUrl, apiUrl });
+    console.log('Using application URLs:', { appUrl, webhookUrl });
 
     // Prepare CashFree order data
     const orderData = {
@@ -111,7 +111,7 @@ export default async function handler(req, res) {
       },
       order_meta: {
         return_url: `${appUrl}/payment-status?orderId=${orderId}`,
-        notify_url: `${apiUrl}/api/payment-webhook`
+        notify_url: `${webhookUrl}/api/payment-webhook`
       },
       order_note: `Credit purchase: ${packageName || 'Credits'}`,
       order_tags: {
