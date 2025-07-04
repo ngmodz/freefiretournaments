@@ -113,10 +113,10 @@ export class CashFreeService {
       const timestamp = Date.now().toString().slice(-8); // Last 8 digits of timestamp
       const orderId = `${orderData.packageType.substring(0, 4)}_${shortUserId}_${timestamp}`;
       
-      // Always use the real Cashfree API endpoint
+      // Use the existing API endpoint
       const endpoint = '/api/create-payment-order';
       
-      console.log('🔍 Debug - Using real Cashfree API endpoint:', endpoint);
+      console.log('🔍 Debug - Using CORRECT Cashfree API endpoint:', endpoint);
       
       // Send data in the format expected by the API
       const requestData = {
@@ -131,7 +131,7 @@ export class CashFreeService {
         creditsAmount: orderData.creditsAmount
       };
 
-      console.log(`📡 Calling ${endpoint} for real Cashfree payment`);
+      console.log(`📡 Calling ${endpoint} for Cashfree payment`);
 
       const response = await fetch(endpoint, {
         method: 'POST',

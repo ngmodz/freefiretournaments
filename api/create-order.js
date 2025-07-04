@@ -26,19 +26,8 @@ const generateCashFreeHeaders = (config) => {
   };
 };
 
+// Handler function for the API route
 export default async function handler(req, res) {
-  console.log('🔥 FUNCTION STARTED!');
-  console.log('🔥 METHOD:', req.method);
-  console.log('🔥 URL:', req.url);
-  console.log('🔥 HEADERS:', JSON.stringify(req.headers, null, 2));
-  
-  // Log the incoming request method and headers for debugging
-  console.log(`[${new Date().toISOString()}] Received request:`, {
-    method: req.method,
-    url: req.url,
-    headers: req.headers,
-  });
-
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -51,7 +40,6 @@ export default async function handler(req, res) {
   }
 
   if (req.method !== 'POST') {
-    console.error(`[${new Date().toISOString()}] Method Not Allowed: Received ${req.method}, expected POST.`);
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
@@ -177,4 +165,4 @@ export default async function handler(req, res) {
       success: false
     });
   }
-}
+} 
