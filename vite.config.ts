@@ -16,12 +16,10 @@ export default defineConfig(({ mode }) => ({
         target: 'http://localhost:3001',
         changeOrigin: true,
         rewrite: (path) => {
-          console.log('API proxy request:', path);
           return path;
         },
         configure: (proxy, _options) => {
           proxy.on('error', (err, req, res) => {
-            console.log('❌ API Proxy error:', err.message);
             // Return mock response on proxy error
             if (req.url?.includes('/api/mock-create-payment-order') || req.url?.includes('/api/create-payment-order')) {
               res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
@@ -44,10 +42,8 @@ export default defineConfig(({ mode }) => ({
             }
           });
           proxy.on('proxyReq', (proxyReq, req, _res) => {
-            console.log('📤 Proxying:', req.method, req.url);
           });
           proxy.on('proxyRes', (proxyRes, req, _res) => {
-            console.log('📥 Response:', proxyRes.statusCode, req.url);
           });
         },
       }

@@ -50,176 +50,26 @@ console.log("Using Firebase config:", {
 
 // For development: Mock Firebase if config is missing or invalid
 let app, db, auth, storage;
-let isMock = false;
 
-try {
-  // Validate required Firebase config values
-  if (!firebaseConfig.apiKey || !firebaseConfig.projectId || !firebaseConfig.appId) {
-    throw new Error("Invalid Firebase configuration - missing required fields");
-  }
-  
-  // Initialize Firebase
-  console.log("Initializing Firebase with config:", { 
-    apiKey: firebaseConfig.apiKey.substring(0, 5) + '***', 
-    projectId: firebaseConfig.projectId,
-    appId: firebaseConfig.appId.substring(0, 8) + '***'
-  });
-  
-  app = initializeApp(firebaseConfig);
-  db = getFirestore(app);
-  auth = getAuth(app);
-  storage = getStorage(app);
-  
-  // Verify initialization
-  if (!db || !auth || !storage) {
-    throw new Error("Firebase services not initialized properly");
-  }
-  
-  console.log("Firebase initialized successfully:", { 
-    app: !!app, 
-    db: !!db, 
-    auth: !!auth, 
-    storage: !!storage,
-    mock: isMock
-  });
-} catch (error) {
-  console.error('Firebase initialization error:', error);
-  console.warn('Using mock Firebase implementation for development');
-  isMock = true;
-  console.log("⚠️ IMPORTANT: App is running in MOCK MODE - profile updates will not be saved to Firestore");
-  
-  // Mock data store for development
-  const mockData: Record<string, Record<string, any>> = {
-    users: {
-      'mock-user-1': {
-        id: 'mock-user-1',
-        ign: 'TestPlayer123',
-        email: 'test@example.com',
-        avatar_url: 'https://randomuser.me/api/portraits/men/1.jpg',
-        isPremium: false,
-      }
-    },
-    tournaments: {},
-    tournament_drafts: {}
-  };
-  
-  // Mock document reference
-  class MockDocumentReference {
-    constructor(public path: string, public id: string) {}
-  }
-  
-  // Mock Firestore operations
-  db = {
-    collection: (collectionPath: string) => {
-      // Create the collection if it doesn't exist
-      if (!mockData[collectionPath]) {
-        mockData[collectionPath] = {};
-      }
-      
-      return {
-        // Mock document
-        doc: (docId: string) => {
-          const docRef = new MockDocumentReference(collectionPath, docId);
-          
-          return {
-            id: docId,
-            get: async () => {
-              const data = mockData[collectionPath][docId];
-              return {
-                exists: () => !!data,
-                data: () => data,
-                id: docId
-              };
-            },
-            set: async (data: any) => {
-              mockData[collectionPath][docId] = {
-                ...data,
-                id: docId
-              };
-              return docRef;
-            },
-            update: async (data: any) => {
-              mockData[collectionPath][docId] = {
-                ...mockData[collectionPath][docId],
-                ...data
-              };
-              return docRef;
-            }
-          };
-        },
-        // Add document with auto-generated ID
-        add: async (data: any) => {
-          const docId = 'mock-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
-          mockData[collectionPath][docId] = {
-            ...data,
-            id: docId,
-            created_at: new Date().toISOString()
-          };
-          return new MockDocumentReference(collectionPath, docId);
-        },
-        // Query operations
-        where: () => ({
-          get: async () => ({
-            docs: Object.entries(mockData[collectionPath]).map(([id, data]) => ({
-              id,
-              data: () => data,
-              exists: true
-            }))
-          })
-        }),
-        orderBy: () => ({
-          get: async () => ({
-            docs: Object.entries(mockData[collectionPath]).map(([id, data]) => ({
-              id,
-              data: () => data,
-              exists: true
-            }))
-          })
-        })
-      };
-    }
-  };
-  
-  // Mock Auth
-  auth = {
-    currentUser: {
-      uid: 'mock-user-1',
-      email: 'test@example.com',
-      displayName: 'Test User'
-    },
-    onAuthStateChanged: (callback: (user: any) => void) => {
-      // Simulate a logged-in user
-      setTimeout(() => {
-        callback({
-          uid: 'mock-user-1',
-          email: 'test@example.com',
-          displayName: 'Test User'
-        });
-      }, 100);
-      return () => {}; // Unsubscribe function
-    }
-  };
-  
-  // Mock Storage
-  storage = {
-    ref: (path: string) => ({
-      put: async (file: File) => {
-        console.log('Mock file upload:', file.name, 'to path:', path);
-        return {
-          ref: {
-            getDownloadURL: async () => `https://placehold.co/600x400?text=${encodeURIComponent(file.name)}`
-          }
-        };
-      }
-    }),
-    refFromURL: (url: string) => ({
-      delete: async () => {
-        console.log('Mock file deletion:', url);
-        return Promise.resolve();
-      }
-    })
-  };
+// Validate required Firebase config values
+if (!firebaseConfig.apiKey || !firebaseConfig.projectId || !firebaseConfig.appId) {
+  throw new Error("Missing Firebase configuration. Please check your .env file and ensure all VITE_FIREBASE_* variables are set.");
 }
+  
+// Initialize Firebase
+console.log("Initializing Firebase...");
+  
+app = initializeApp(firebaseConfig);
+db = getFirestore(app);
+auth = getAuth(app);
+storage = getStorage(app);
+  
+// Verify initialization
+if (!db || !auth || !storage) {
+  throw new Error("Firebase services not initialized properly");
+}
+  
+console.log("Firebase initialized successfully.");
 
 // Profile-related functions
 export const getUserProfile = async (userId: string) => {
@@ -244,29 +94,12 @@ export const getUserProfile = async (userId: string) => {
         created_at: Timestamp;
         updated_at: Timestamp;
       };
-    } else if (isMock) {
-      // Return mock user for development
-      return {
-        id: 'mock-user-1',
-        uid: 'FF123456789',
-        ign: 'TestPlayer123',
-        fullName: 'Test User',
-        email: 'test@example.com',
-        phone: '+1234567890',
-        bio: 'I am a passionate gamer who loves Free Fire tournaments.',
-        location: 'New York, USA',
-        birthdate: '1995-07-15',
-        gender: 'male',
-        avatar_url: 'https://randomuser.me/api/portraits/men/1.jpg',
-        isPremium: false,
-        created_at: Timestamp.now(),
-        updated_at: Timestamp.now(),
-      };
     } else {
-      throw new Error('User profile not found');
+       console.warn(`No profile found for user ID: ${userId}`);
+       return null;
     }
   } catch (error) {
-    console.error('Error fetching user profile:', error);
+    console.error('Error fetching user profile for user:', userId, error);
     throw error;
   }
 };
@@ -324,9 +157,6 @@ export const createUserProfile = async (userId: string, profileData: {
 
 // Mock serverTimestamp for development
 export const mockServerTimestamp = () => {
-  if (isMock) {
-    return new Date().toISOString();
-  }
   return serverTimestamp();
 };
 
@@ -584,11 +414,6 @@ export const resetPassword = async (email: string) => {
 // Simple function to verify Firestore connection without any test documents
 export const verifyFirestoreConnection = async () => {
   try {
-    if (isMock) {
-      console.log("Cannot verify Firestore connection in mock mode");
-      return { success: false, error: "App is running in mock mode" };
-    }
-    
     // Just check if we can access Firestore by doing a simple operation
     const usersCollection = collection(db, 'users');
     await getDocs(query(usersCollection, where('isPremium', '==', true), limit(1)));
@@ -674,16 +499,6 @@ export const debugCheckValueInFirestore = async (type: 'ign' | 'uid', value: str
   try {
     console.log(`DEBUG CHECK: Searching for ${type}='${value}' in Firestore`);
     
-    if (isMock) {
-      return { 
-        success: false, 
-        error: "App is running in mock mode, can't check real database", 
-        foundUsers: [],
-        type,
-        value
-      };
-    }
-    
     // Direct approach to avoid issues with existing functions
     const usersRef = collection(db, 'users');
     const q = query(usersRef, where(type, '==', value));
@@ -722,4 +537,4 @@ export const debugCheckValueInFirestore = async (type: 'ign' | 'uid', value: str
 };
 
 // Export app, db, auth, and storage for direct access if needed
-export { isMock, app, db, auth, storage }; 
+export { app, db, auth, storage }; 
