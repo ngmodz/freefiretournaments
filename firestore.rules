@@ -17,8 +17,8 @@ service cloud.firestore {
       // Normal update rules - only allow the owner to update
       allow update: if request.auth != null && request.auth.uid == userId;
       
-      // Don't allow users to delete their profiles
-      allow delete: if false;
+      // Allow users to delete their own profiles
+      allow delete: if request.auth != null && request.auth.uid == userId;
     }
     
     // Tournament-related rules
@@ -131,7 +131,7 @@ service cloud.firestore {
       allow read: if request.auth != null && request.auth.uid == userId;
       allow create: if request.auth != null && request.auth.uid == userId;
       allow update: if request.auth != null && request.auth.uid == userId;
-      allow delete: if false; // Don't allow wallet deletion
+      allow delete: if request.auth != null && request.auth.uid == userId; // Allow wallet deletion if owned by user
     }
     
     // Simplified transaction rules

@@ -14,7 +14,7 @@ import {
   signInWithPopup, 
   getAuth
 } from "firebase/auth";
-import { doc, deleteDoc, collection, query, where, getDocs } from "firebase/firestore";
+import { doc, deleteDoc, collection, query, where, getDocs, writeBatch, limit } from "firebase/firestore";
 
 const DeleteAccount = () => {
   const navigate = useNavigate();
@@ -88,6 +88,9 @@ const DeleteAccount = () => {
       // Add detailed logging
       console.log("Starting account deletion process for user:", user.uid);
       
+      // Use a batch for more reliable Firestore operations
+      const batch = writeBatch(db);
+      
       try {
         // Delete user's tournaments data
         console.log("Deleting user tournaments...");
@@ -100,27 +103,74 @@ const DeleteAccount = () => {
         
         if (tournamentsSnapshot.docs.length > 0) {
           try {
+            tournamentsSnapshot.docs.forEach(document => {
+              console.log(`Adding tournament for deletion: ${document.id}`);
+              batch.delete(document.ref);
+            });
+            console.log("All tournaments added to deletion batch");
+          } catch (tournamentError) {
+            console.warn("Error adding tournaments to batch, will try individual deletion:", tournamentError);
+            // Fallback to individual deletes if batch fails
             const tournamentDeletions = tournamentsSnapshot.docs.map(doc => {
-              console.log(`Deleting tournament: ${doc.id}`);
+              console.log(`Individual deletion of tournament: ${doc.id}`);
               return deleteDoc(doc.ref);
             });
             await Promise.all(tournamentDeletions);
-            console.log("All tournaments deleted successfully");
-          } catch (tournamentError) {
-            console.warn("Error deleting tournaments, but continuing with account deletion:", tournamentError);
-            // Continue with deletion process even if tournament deletion fails
+            console.log("All tournaments deleted successfully via individual deletion");
           }
         }
         
-        // Try to delete user data from Firestore, but continue even if it fails
+        // Add any wallet or transaction cleanup
         try {
-          console.log("Deleting user profile from Firestore...");
+          console.log("Checking for wallet data to delete...");
+          const walletRef = doc(db, 'wallets', user.uid);
+          batch.delete(walletRef);
+          console.log("Wallet added to deletion batch");
+        } catch (walletError) {
+          console.warn("Error adding wallet to batch deletion:", walletError);
+        }
+        
+        // Check for credit transactions
+        try {
+          console.log("Checking for credit transactions...");
+          const transactionsQuery = query(
+            collection(db, 'creditTransactions'),
+            where('userId', '==', user.uid),
+            limit(100)
+          );
+          const transactionsSnapshot = await getDocs(transactionsQuery);
+          if (transactionsSnapshot.docs.length > 0) {
+            console.log(`Found ${transactionsSnapshot.docs.length} credit transactions`);
+            // We don't delete these, just logging for completeness
+          }
+        } catch (transactionError) {
+          console.warn("Error checking credit transactions:", transactionError);
+        }
+        
+        // Try to delete user data from Firestore
+        try {
+          console.log("Adding user profile to deletion batch...");
+          const userRef = doc(db, 'users', user.uid);
+          batch.delete(userRef);
+          console.log("User profile added to deletion batch");
+        } catch (firestoreError) {
+          console.warn("Error adding user profile to batch deletion:", firestoreError);
+        }
+        
+        // Commit the batch operation
+        console.log("Committing batch deletion...");
+        await batch.commit();
+        console.log("Batch deletion successful");
+        
+        // As a fallback, also try direct deletion of the user document
+        // This helps ensure deletion even if batch fails
+        try {
+          console.log("Performing direct user document deletion as fallback...");
           const userRef = doc(db, 'users', user.uid);
           await deleteDoc(userRef);
-          console.log("User profile deleted from Firestore");
-        } catch (firestoreError) {
-          console.warn("Error deleting user profile from Firestore, but continuing with account deletion:", firestoreError);
-          // Continue with auth deletion even if Firestore deletion fails due to permissions
+          console.log("Direct user profile deletion successful");
+        } catch (directDeleteError) {
+          console.warn("Direct user deletion failed, but continuing with auth deletion:", directDeleteError);
         }
         
         // Delete Firebase Auth user
@@ -161,6 +211,10 @@ const DeleteAccount = () => {
             break;
           case 'auth/too-many-requests':
             errorMessage = "Too many requests. Please try again later.";
+            break;
+          // Specifically handle permission denied error
+          case 'permission-denied':
+            errorMessage = "Permission denied. Please contact support.";
             break;
           default:
             errorMessage = error.message || errorMessage;
@@ -276,7 +330,7 @@ const DeleteAccount = () => {
             />
           </div>
           
-          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+          <div className="flex gap-4 items-center">
             <Button 
               variant="destructive"
               onClick={handleDeleteAccount}
@@ -298,23 +352,17 @@ const DeleteAccount = () => {
         </div>
       )}
       
-      {isReauthenticating && !showDeleteConfirm && authProviderId === "password" && (
+      {isReauthenticating && !showDeleteConfirm && authProviderId === "password" &&
         <div className="p-4 border border-red-500/30 rounded-lg bg-red-500/5">
           <div className="flex items-start mb-4">
             <AlertCircle className="text-red-500 h-5 w-5 mr-2 mt-0.5" />
             <div>
               <h3 className="text-white font-medium">Confirm your password</h3>
               <p className="text-[#A0A0A0] text-sm mt-1">
-                For security reasons, please enter your password to confirm account deletion.
+                For security reasons, please enter your password before deleting your account.
               </p>
             </div>
           </div>
-          
-          {reAuthError && (
-            <div className="p-3 mb-3 bg-red-500/20 border border-red-500/30 rounded-md text-white text-sm">
-              {reAuthError}
-            </div>
-          )}
           
           <div className="mb-4">
             <Label htmlFor="password-confirm" className="text-white block mb-2">
@@ -327,30 +375,32 @@ const DeleteAccount = () => {
               onChange={(e) => setPassword(e.target.value)}
               className="border-red-500/50 bg-red-950/20 text-white"
             />
+            {reAuthError && <p className="text-red-500 text-xs mt-1">{reAuthError}</p>}
           </div>
           
-          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+          <div className="flex gap-4 items-center">
             <Button 
               variant="destructive"
               onClick={handleEmailPasswordReauth}
-              disabled={!password || isReauthenticating}
+              disabled={!password || isDeleting}
             >
-              {isReauthenticating ? "Verifying..." : "Continue with Deletion"}
+              {isDeleting ? "Deleting..." : "Confirm & Delete"}
             </Button>
             <Button 
               variant="outline" 
               onClick={() => {
+                setShowDeleteConfirm(true);
                 setIsReauthenticating(false);
                 setPassword("");
                 setReAuthError("");
               }}
               className="border-red-500/20 hover:bg-red-500/10 text-white"
             >
-              Cancel
+              Back
             </Button>
           </div>
         </div>
-      )}
+      }
     </div>
   );
 };
