@@ -296,9 +296,7 @@ export class CashFreeService {
           }
           
           // Force redirect to home
-          this.showPaymentFailureOverlay(() => {
-            window.location.href = '/';
-          });
+          window.location.href = '/';
         }
       }, 30000); // 30 second timeout for debugging
 
@@ -336,9 +334,7 @@ export class CashFreeService {
       alert(`Checkout Error: ${error}\n\nCheck console for details. Page will redirect in 5 seconds.`);
       
       setTimeout(() => {
-        this.showPaymentFailureOverlay(() => {
-          window.location.href = '/';
-        });
+        window.location.href = '/';
       }, 5000);
     }
   }
@@ -376,10 +372,8 @@ export class CashFreeService {
         onFailure(failureData);
       }
       
-      // Show failure overlay with redirect option
-      this.showPaymentFailureOverlay(() => {
-        window.location.href = '/';
-      });
+      // Redirect to home
+      window.location.href = '/';
       return;
     }
 
@@ -426,9 +420,7 @@ export class CashFreeService {
             onFailure(failureData);
           }
           
-          this.showPaymentFailureOverlay(() => {
-            window.location.href = '/';
-          });
+          window.location.href = '/';
           break;
 
         case 'CANCELLED':
@@ -454,26 +446,20 @@ export class CashFreeService {
         case 'INCOMPLETE':
           console.log('⚠️ Payment incomplete');
           
-          this.showPaymentFailureOverlay(() => {
-            window.location.href = '/';
-          });
+          window.location.href = '/';
           break;
 
         default:
           console.warn('❓ Unknown order status:', order_status);
           
-          // For unknown status, show informative message
-          this.showPaymentFailureOverlay(() => {
-            window.location.href = '/';
-          });
+          // For unknown status, redirect to home
+          window.location.href = '/';
       }
     } else {
       console.warn('⚠️ No payment details in result');
       
-      // No payment details available - show error and redirect
-      this.showPaymentFailureOverlay(() => {
-        window.location.href = '/';
-      });
+      // No payment details available - redirect to home
+      window.location.href = '/';
     }
   }
 
@@ -510,10 +496,8 @@ export class CashFreeService {
       onFailure(failureData);
     }
     
-    // Show error overlay and redirect
-    this.showPaymentFailureOverlay(() => {
-      window.location.href = '/';
-    });
+    // Redirect to home
+    window.location.href = '/';
   }
 
   /**
@@ -855,10 +839,8 @@ export class CashFreeService {
             }, attempt * 50); // 0ms, 50ms, 100ms, 150ms, 200ms
           }
           
-          // Show failure overlay IMMEDIATELY
-          this.showPaymentFailureOverlay(() => {
-            window.location.href = '/';
-          });
+          // Redirect to home immediately
+          window.location.href = '/';
           
           return;
         }
@@ -991,114 +973,6 @@ export class CashFreeService {
    */
   static isReady(): boolean {
     return this.initialized && this.cashfree !== null;
-  }
-
-  /**
-   * Show custom overlay with "Redirect to home" button when payment failure is detected
-   */
-  static showPaymentFailureOverlay(onRedirect: () => void): void {
-    console.log('🚨 Showing payment failure overlay');
-    
-    try {
-      // Check if overlay already exists
-      if (document.getElementById('custom-payment-failure-overlay')) {
-        return;
-      }
-
-      // Create overlay
-      const overlay = document.createElement('div');
-      overlay.id = 'custom-payment-failure-overlay';
-      overlay.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.9);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 999999999;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-      `;
-
-      // Create modal
-      const modal = document.createElement('div');
-      modal.style.cssText = `
-        background: white;
-        padding: 32px;
-        border-radius: 16px;
-        text-align: center;
-        max-width: 400px;
-        margin: 20px;
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-      `;
-
-      // Create content
-      modal.innerHTML = `
-        <div style="margin-bottom: 24px;">
-          <div style="width: 64px; height: 64px; margin: 0 auto 16px; background-color: #fecaca; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-            <div style="color: #dc2626; font-size: 32px; font-weight: bold;">!</div>
-          </div>
-          <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #111827;">Payment Failed</h3>
-          <p style="margin: 0; color: #6b7280; font-size: 14px;">Your payment could not be processed. Please try again or use a different payment method.</p>
-        </div>
-        <button id="redirect-home-btn" style="
-          background-color: #3b82f6;
-          color: white;
-          border: none;
-          padding: 12px 24px;
-          border-radius: 8px;
-          font-size: 14px;
-          font-weight: 500;
-          cursor: pointer;
-          width: 100%;
-          transition: background-color 0.2s;
-        ">Redirect to Home</button>
-      `;
-
-      overlay.appendChild(modal);
-      document.body.appendChild(overlay);
-
-      // Add click handler for button
-      const redirectBtn = document.getElementById('redirect-home-btn');
-      if (redirectBtn) {
-        redirectBtn.addEventListener('click', () => {
-          overlay.remove();
-          onRedirect();
-        });
-
-        // Add hover effect
-        redirectBtn.addEventListener('mouseenter', () => {
-          redirectBtn.style.backgroundColor = '#2563eb';
-        });
-        redirectBtn.addEventListener('mouseleave', () => {
-          redirectBtn.style.backgroundColor = '#3b82f6';
-        });
-      }
-
-      // Add immediate click anywhere to redirect
-      overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) {
-          overlay.remove();
-          onRedirect();
-        }
-      });
-
-      // Auto-remove overlay and redirect after 5 seconds (reduced from 10)
-      setTimeout(() => {
-        if (document.getElementById('custom-payment-failure-overlay')) {
-          overlay.remove();
-          onRedirect();
-        }
-      }, 5000);
-
-      console.log('✅ Payment failure overlay displayed');
-    } catch (error) {
-      console.error('Error showing payment failure overlay:', error);
-      // Fail-safe: redirect anyway
-      onRedirect();
-    }
   }
 
   /**
