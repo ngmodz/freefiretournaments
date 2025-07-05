@@ -110,7 +110,7 @@ export default async function handler(req, res) {
         customer_phone: userPhone || '9999999999'
       },
       order_meta: {
-        return_url: `${appUrl}/payment-status?orderId=${orderId}`,
+        return_url: `${appUrl}/payment-status?orderId=${orderId}&packageType=${packageType || 'tournament'}&amount=${amount}`,
         notify_url: `${webhookUrl}/api/payment-webhook`
       },
       order_note: `Credit purchase: ${packageName || 'Credits'}`,
@@ -127,8 +127,12 @@ export default async function handler(req, res) {
       environment: config.environment,
       baseUrl: config.baseUrl,
       appId: config.appId ? config.appId.substring(0, 4) + '...' : 'missing',
-      orderId: orderId
+      orderId: orderId,
+      returnUrl: `${appUrl}/payment-status?orderId=${orderId}&packageType=${packageType || 'tournament'}&amount=${amount}`,
+      notifyUrl: `${webhookUrl}/api/payment-webhook`
     });
+    
+    console.log('📋 Full order data:', JSON.stringify(orderData, null, 2));
 
     // Call CashFree API
     const response = await fetch(`${config.baseUrl}/orders`, {

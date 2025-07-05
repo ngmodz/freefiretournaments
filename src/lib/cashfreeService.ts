@@ -211,6 +211,7 @@ export class CashFreeService {
         .checkout(checkoutOptions)
         .then((result: any) => {
           console.log('CashFree checkout result:', result);
+          console.log('🔍 Full CashFree result object:', JSON.stringify(result, null, 2));
           
           // Handle payment result based on status
           if (result.status === 'OK' || result.status === 'SUCCESS') {
@@ -232,6 +233,12 @@ export class CashFreeService {
             onSuccess?.(callbackData);
           } else {
             console.log('Payment failed or cancelled:', result);
+            console.log('🚨 Payment failure details:', {
+              status: result.status,
+              order: result.order,
+              transaction: result.transaction,
+              error: result.error
+            });
             
             // Format callback data
             const callbackData: PaymentCallbackData = {

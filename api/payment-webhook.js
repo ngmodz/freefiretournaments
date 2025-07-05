@@ -109,8 +109,8 @@ async function updateUserWallet(userId, packageType, creditsAmount) {
  */
 async function processSuccessfulPayment(orderData, webhookData) {
   try {
-    const { userId, order_amount } = webhookData?.data?.order || {};
-    const { packageType, packageId, packageName, creditsAmount } = webhookData?.data?.order?.order_tags || {};
+    const { order_amount } = webhookData?.data?.order || {};
+    const { packageType, packageId, packageName, creditsAmount, userId } = webhookData?.data?.order?.order_tags || {};
     
     if (!userId) {
       throw new Error('User ID not found in webhook data');
@@ -229,14 +229,22 @@ export default async function handler(req, res) {
     const timestamp = req.headers['x-webhook-timestamp'];
 
     // Log the webhook received
-    console.log('Cashfree webhook received:', { 
+    console.log('🎯 Cashfree webhook received:', { 
       timestamp, 
       hasSignature: !!signature,
-      body: typeof req.body === 'object' ? '(object)' : rawBody.substring(0, 100) + '...'
+      method: req.method,
+      headers: req.headers,
+      bodyType: typeof req.body,
+      bodyKeys: req.body ? Object.keys(req.body) : []
     });
+    
+    // Log the actual webhook data for debugging
+    console.log('📦 Webhook payload:', JSON.stringify(req.body, null, 2));
 
-    // Verify webhook signature in production
-    if (process.env.NODE_ENV === 'production' && signature && timestamp) {
+    // Verify webhook signature - skip for SANDBOX environment
+    const isSandbox = (process.env.CASHFREE_ENVIRONMENT || 'SANDBOX') === 'SANDBOX';
+    
+    if (!isSandbox && signature && timestamp) {
       const isValidSignature = verifyCashFreeSignature(rawBody, signature, timestamp);
       if (!isValidSignature) {
         console.error('Invalid webhook signature');
@@ -244,7 +252,12 @@ export default async function handler(req, res) {
       }
       console.log('✅ Webhook signature verified');
     } else {
-      console.warn('⚠️ Webhook signature verification skipped (development mode or missing headers)');
+      console.warn('⚠️ Webhook signature verification skipped (sandbox mode or missing headers)', {
+        isSandbox,
+        hasSignature: !!signature,
+        hasTimestamp: !!timestamp,
+        environment: process.env.CASHFREE_ENVIRONMENT
+      });
     }
 
     // Process the webhook data
