@@ -13,33 +13,6 @@ interface LoginFormProps {
   setActiveTab: (tab: string) => void;
 }
 
-// Password validation helper function
-const validatePassword = (password: string) => {
-  const errors = [];
-  
-  if (password.length < 8) {
-    errors.push("Password must be at least 8 characters");
-  }
-  
-  if (!/[A-Z]/.test(password)) {
-    errors.push("Password must contain at least one uppercase letter");
-  }
-  
-  if (!/[a-z]/.test(password)) {
-    errors.push("Password must contain at least one lowercase letter");
-  }
-  
-  if (!/[0-9]/.test(password)) {
-    errors.push("Password must contain at least one number");
-  }
-  
-  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
-    errors.push("Password must contain at least one special character");
-  }
-  
-  return errors;
-};
-
 const LoginForm = ({ setActiveTab }: LoginFormProps) => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
@@ -48,19 +21,18 @@ const LoginForm = ({ setActiveTab }: LoginFormProps) => {
   const [rememberMe, setRememberMe] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loginErrors, setLoginErrors] = useState({ email: "", password: "" });
-  
-  // Password validation errors
-  const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
 
-  // Check password as user types
+  // Simplified password handling - no validation needed for login
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newPassword = e.target.value;
     setLoginPassword(newPassword);
     
-    if (newPassword) {
-      setPasswordErrors(validatePassword(newPassword));
-    } else {
-      setPasswordErrors([]);
+    // Clear any existing password error
+    if (loginErrors.password) {
+      setLoginErrors({
+        ...loginErrors,
+        password: ""
+      });
     }
   };
   
@@ -76,16 +48,10 @@ const LoginForm = ({ setActiveTab }: LoginFormProps) => {
       isValid = false;
     }
     
-    // Password validation
+    // Simple password validation - just check if it's not empty
     if (!loginPassword) {
       errors.password = "Password is required";
       isValid = false;
-    } else {
-      const passwordValidationErrors = validatePassword(loginPassword);
-      if (passwordValidationErrors.length > 0) {
-        errors.password = "Password does not meet requirements";
-        isValid = false;
-      }
     }
     
     setLoginErrors(errors);
@@ -189,60 +155,26 @@ const LoginForm = ({ setActiveTab }: LoginFormProps) => {
         {loginErrors.password && (
           <p className="text-xs text-red-500">{loginErrors.password}</p>
         )}
-        
-        {/* Password requirements - only shown when password doesn't meet requirements */}
-        {loginPassword && passwordErrors.length > 0 && (
-          <div className="mt-2 space-y-1">
-            <p className="text-xs text-gaming-text/70">Password requirements:</p>
-            <ul className="text-xs space-y-1">
-              <li className={cn("flex items-center gap-1", 
-                loginPassword.length >= 8 ? "text-green-500" : "text-gaming-text/50")}>
-                <Check size={12} className={loginPassword.length >= 8 ? "text-green-500" : "text-gaming-text/50"} />
-                Minimum 8 characters
-              </li>
-              <li className={cn("flex items-center gap-1", 
-                /[A-Z]/.test(loginPassword) ? "text-green-500" : "text-gaming-text/50")}>
-                <Check size={12} className={/[A-Z]/.test(loginPassword) ? "text-green-500" : "text-gaming-text/50"} />
-                One uppercase letter
-              </li>
-              <li className={cn("flex items-center gap-1", 
-                /[a-z]/.test(loginPassword) ? "text-green-500" : "text-gaming-text/50")}>
-                <Check size={12} className={/[a-z]/.test(loginPassword) ? "text-green-500" : "text-gaming-text/50"} />
-                One lowercase letter
-              </li>
-              <li className={cn("flex items-center gap-1", 
-                /[0-9]/.test(loginPassword) ? "text-green-500" : "text-gaming-text/50")}>
-                <Check size={12} className={/[0-9]/.test(loginPassword) ? "text-green-500" : "text-gaming-text/50"} />
-                One number
-              </li>
-              <li className={cn("flex items-center gap-1", 
-                /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(loginPassword) ? "text-green-500" : "text-gaming-text/50")}>
-                <Check size={12} className={/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(loginPassword) ? "text-green-500" : "text-gaming-text/50"} />
-                One special character
-              </li>
-            </ul>
-          </div>
-        )}
-        
-        <div className="flex items-center justify-between mt-1">
-          <div className="flex items-center space-x-2">
-            <Checkbox 
-              id="remember-me" 
-              checked={rememberMe}
-              onCheckedChange={(checked) => setRememberMe(checked === true)}
-              className="border-gaming-primary/50 data-[state=checked]:bg-gaming-primary"
-            />
-            <label htmlFor="remember-me" className="text-xs text-gaming-text/70 cursor-pointer">
-              Remember me
-            </label>
-          </div>
-          <Link 
-            to="/forgot-password" 
-            className="text-xs text-gaming-primary hover:text-gaming-primary/90 hover:underline transition-colors"
-          >
-            Forgot password?
-          </Link>
+      </div>
+      
+      <div className="flex items-center justify-between mt-1">
+        <div className="flex items-center space-x-2">
+          <Checkbox 
+            id="remember-me" 
+            checked={rememberMe}
+            onCheckedChange={(checked) => setRememberMe(checked === true)}
+            className="border-gaming-primary/50 data-[state=checked]:bg-gaming-primary"
+          />
+          <label htmlFor="remember-me" className="text-xs text-gaming-text/70 cursor-pointer">
+            Remember me
+          </label>
         </div>
+        <Link 
+          to="/forgot-password" 
+          className="text-xs text-gaming-primary hover:text-gaming-primary/90 hover:underline transition-colors"
+        >
+          Forgot password?
+        </Link>
       </div>
       
       <Button 
