@@ -227,12 +227,13 @@ export class PaymentService {
         orderResponse.paymentSessionId,
         (data) => {
           console.log('Payment successful:', data);
-          // Redirect to success page
-          window.location.href = `/payment-status?status=success&orderId=${data.orderId}`;
+          // CRITICAL: Don't redirect to success immediately - let webhook handle credit addition
+          // Just redirect to a status page that will poll for completion
+          window.location.href = `/payment-status?orderId=${data.orderId}&status=processing&message=Payment completed, processing credits...`;
         },
         (data) => {
           console.log('Payment failed:', data);
-          // Redirect to failure page
+          // For failures, redirect to failure page immediately
           window.location.href = `/payment-status?status=failed&orderId=${data.orderId}&message=${encodeURIComponent(data.txMsg)}`;
         }
       );

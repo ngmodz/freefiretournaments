@@ -254,8 +254,7 @@ const PaymentStatusPage: React.FC = () => {
                 onClick={() => navigate('/')}
                 variant="outline"
               >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Go Home
+                Redirect to Home
               </Button>
             </div>
           </div>
