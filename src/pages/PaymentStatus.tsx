@@ -82,9 +82,13 @@ const PaymentStatus = () => {
       } finally {
         setIsLoading(false);
 
-        // Redirect to wallet after 3 seconds
+        // Redirect based on payment status
         setTimeout(() => {
-          navigate('/wallet');
+          if (status === 'success') {
+            navigate('/wallet'); // Success -> go to wallet to see credits
+          } else {
+            navigate('/'); // Failed/cancelled -> go to home
+          }
         }, 3000);
       }
     };
@@ -146,7 +150,23 @@ const PaymentStatus = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <NotchHeader title="Payment Status" showBackButton />
+      <NotchHeader />
+      
+      {/* Custom header with title and back button */}
+      <div className="sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b z-40">
+        <div className="container flex h-14 items-center">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate('/')}
+            className="mr-2"
+          >
+            <Home className="h-4 w-4 mr-2" />
+            Back
+          </Button>
+          <h1 className="text-lg font-semibold">Payment Status</h1>
+        </div>
+      </div>
 
       <div className="flex-1 container max-w-lg mx-auto px-4 py-8 flex flex-col items-center justify-center">
         {isLoading ? (
