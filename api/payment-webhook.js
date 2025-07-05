@@ -62,6 +62,8 @@ function verifyCashFreeSignature(rawBody, signature, timestamp) {
  */
 async function updateUserWallet(userId, packageType, creditsAmount) {
   try {
+    console.log(`🔥 updateUserWallet called with: userId="${userId}", packageType="${packageType}", creditsAmount=${creditsAmount}`);
+    
     // Get user document
     const userRef = db.collection('users').doc(userId);
     const userDoc = await userRef.get();
@@ -121,10 +123,22 @@ async function processSuccessfulPayment(orderData, webhookData) {
       throw new Error('Invalid order amount');
     }
 
-    // Get the actual credits amount, fallback to amount if not available
-    const actualCreditsAmount = creditsAmount ? parseInt(creditsAmount) : amount;
+    // Get the actual credits amount - only use if it's a valid positive number
+    let actualCreditsAmount;
+    if (creditsAmount && creditsAmount.trim() !== '') {
+      const parsedCredits = parseInt(creditsAmount);
+      if (!isNaN(parsedCredits) && parsedCredits > 0) {
+        actualCreditsAmount = parsedCredits;
+      }
+    }
+    
+    // If we don't have a valid credits amount, we cannot proceed safely
+    if (!actualCreditsAmount) {
+      throw new Error(`Invalid or missing credits amount. Received: "${creditsAmount}", cannot fallback to payment amount for safety.`);
+    }
     
     console.log(`Processing payment for user ${userId}, package type: ${packageType}, amount: ${amount}, credits: ${actualCreditsAmount}`);
+    console.log(`🔥 CALLING updateUserWallet with parameters: userId="${userId}", packageType="${packageType}", creditsAmount=${actualCreditsAmount}`);
     
     // Update user's wallet with credits
     await updateUserWallet(userId, packageType, actualCreditsAmount);
@@ -151,8 +165,8 @@ async function processSuccessfulPayment(orderData, webhookData) {
       createdAt: admin.firestore.FieldValue.serverTimestamp()
     });
     
-    console.log(`✅ Credits added successfully: ${amount} ${walletType} for user ${userId}`);
-    return { success: true, userId, amount, packageType };
+    console.log(`✅ Credits added successfully: ${actualCreditsAmount} ${walletType} for user ${userId}`);
+    return { success: true, userId, amount: actualCreditsAmount, packageType };
   } catch (error) {
     console.error('Error processing successful payment:', error);
     throw error;
@@ -181,7 +195,7 @@ async function processPaymentWebhook(webhookData) {
 
     const orderId = webhookData.data.order.order_id;
     const paymentStatus = webhookData.data.payment.payment_status || 'FAILED';
-    const cfPaymentId = webhookData.data.payment.cf_payment_id;
+    const cfPaymentId = String(webhookData.data.payment.cf_payment_id || ''); // Convert to string to handle both number and string types
     
     console.log(`Processing payment webhook for order ${orderId}, status: ${paymentStatus}, payment ID: ${cfPaymentId}`);
 
