@@ -27,8 +27,8 @@ import { Label } from "@/components/ui/label";
 const formSchema = z.object({
   entry_fee: z.number()
     .int("Entry fee must be a whole number")
-    .min(10, "Minimum entry fee is ₹10")
-    .max(1000, "Maximum entry fee is ₹1000"),
+    .min(10, "Minimum entry fee is 10 credits")
+    .max(1000, "Maximum entry fee is 1000 credits"),
   prize_distribution: z.object({
     "1st": z.number().min(0).max(100),
     "2nd": z.number().min(0).max(100),
@@ -264,10 +264,9 @@ const EntryAndPrizesForm = ({ formData, updateFormData, nextStep, prevStep }: En
             name="entry_fee"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Entry Fee (₹)</FormLabel>
+                <FormLabel>Entry Fee (Credits)</FormLabel>
                 <FormControl>
                   <div className="flex items-center space-x-2">
-                    <span className="text-gaming-muted">₹</span>
                     <Input 
                       type="number" 
                       className="bg-gaming-card text-white" 
@@ -278,7 +277,7 @@ const EntryAndPrizesForm = ({ formData, updateFormData, nextStep, prevStep }: En
                   </div>
                 </FormControl>
                 <FormDescription>
-                  Total expected prize pool: ₹{totalPrizePool}
+                  Total expected prize pool: {totalPrizePool} credits
                 </FormDescription>
                 <FormMessage />
               </FormItem>

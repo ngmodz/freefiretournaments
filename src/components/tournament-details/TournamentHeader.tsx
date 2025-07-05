@@ -85,14 +85,14 @@ const TournamentHeader: React.FC<TournamentHeaderProps> = ({
             <div className="text-[#A0A0A0] text-xs mb-1">Prize Pool</div>
             <div className="flex items-center">
               <Trophy size={18} className="mr-2 text-gaming-accent" />
-              <span className="text-gaming-accent font-bold text-lg">₹{prizePool}</span>
+              <span className="text-gaming-accent font-bold text-lg">{prizePool} credits</span>
             </div>
           </div>
           
           {/* Entry fee */}
           <div className="bg-[#1A1A1A] p-3 rounded-md">
             <div className="text-[#A0A0A0] text-xs mb-1">Entry Fee</div>
-            <div className="text-[#D0D0D0] font-bold text-lg">₹{tournament.entry_fee}</div>
+            <div className="text-[#D0D0D0] font-bold text-lg">{tournament.entry_fee} credits</div>
           </div>
           
           {/* Start date and time */}

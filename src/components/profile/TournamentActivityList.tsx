@@ -104,11 +104,11 @@ const TournamentActivityList = ({ tournaments, type }: TournamentActivityListPro
                     <div className="mt-3 flex justify-between items-center">
                       <div className="text-sm">
                         <span className="text-[#A0AEC0]">Entry: </span>
-                        <span className="text-white">₹{tournament.entryFee}</span>
+                        <span className="text-white">{tournament.entryFee} credits</span>
                       </div>
                       <div className="text-sm">
                         <span className="text-[#A0AEC0]">Prize: </span>
-                        <span className="text-white">₹{tournament.prizeMoney}</span>
+                        <span className="text-white">{tournament.prizeMoney} credits</span>
                       </div>
                       {tournament.position && tournament.prize > 0 && (
                         <div className="flex items-center text-sm">
@@ -127,7 +127,7 @@ const TournamentActivityList = ({ tournaments, type }: TournamentActivityListPro
                       </div>
                       <div className="text-sm">
                         <span className="text-[#A0AEC0]">Prize: </span>
-                        <span className="text-white">₹{tournament.prizeMoney}</span>
+                        <span className="text-white">{tournament.prizeMoney} credits</span>
                       </div>
                     </div>
                   )}
@@ -140,7 +140,7 @@ const TournamentActivityList = ({ tournaments, type }: TournamentActivityListPro
                       </div>
                       <div className="text-sm">
                         <span className="text-[#A0AEC0]">Prize: </span>
-                        <span className="text-white">₹{tournament.prize}</span>
+                        <span className="text-white">{tournament.prize} credits</span>
                       </div>
                     </div>
                   )}
@@ -225,8 +225,8 @@ const TournamentActivityList = ({ tournaments, type }: TournamentActivityListPro
                         </span>
                       )}
                     </TableCell>
-                    <TableCell>₹{tournament.entryFee}</TableCell>
-                    <TableCell>₹{tournament.prizeMoney}</TableCell>
+                    <TableCell>{tournament.entryFee} credits</TableCell>
+                    <TableCell>{tournament.prizeMoney} credits</TableCell>
                     <TableCell>
                       {tournament.position && tournament.prize > 0 ? (
                         <span className="text-[#FFD700] font-bold">#{tournament.position}</span>
@@ -258,7 +258,7 @@ const TournamentActivityList = ({ tournaments, type }: TournamentActivityListPro
                         <span>{tournament.participants}/{tournament.totalSpots}</span>
                       </div>
                     </TableCell>
-                    <TableCell>₹{tournament.prizeMoney}</TableCell>
+                    <TableCell>{tournament.prizeMoney} credits</TableCell>
                   </>
                 )}
                 
@@ -270,27 +270,9 @@ const TournamentActivityList = ({ tournaments, type }: TournamentActivityListPro
                         <span className="text-[#FFD700] font-semibold">#{tournament.position}</span>
                       </div>
                     </TableCell>
-                    <TableCell>₹{tournament.prize}</TableCell>
+                    <TableCell>{tournament.prize} credits</TableCell>
                   </>
                 )}
                 
                 <TableCell className="text-right">
-                  <Link to={`/tournament/${tournament.id}`}>
-                    <Button 
-                      size="sm" 
-                      className="bg-[#22C55E] hover:bg-[#22C55E]/90 text-white"
-                    >
-                      View Details
-                    </Button>
-                  </Link>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    </>
-  );
-};
-
-export default TournamentActivityList;
+                  <Link to={`

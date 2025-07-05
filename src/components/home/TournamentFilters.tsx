@@ -232,10 +232,10 @@ const TournamentFilters = ({
                 <span className="mr-2 font-bold text-sm">₹</span> Entry Fee (High to Low)
               </DropdownMenuRadioItem>
               <DropdownMenuRadioItem value="prize-asc" className="text-xs focus:bg-gaming-primary/20 focus:text-white">
-                <Trophy size={14} className="mr-2" /> Prize Money (Low to High)
+                <Trophy size={14} className="mr-2" /> Prize Credits (Low to High)
               </DropdownMenuRadioItem>
               <DropdownMenuRadioItem value="prize-desc" className="text-xs focus:bg-gaming-primary/20 focus:text-white">
-                <Trophy size={14} className="mr-2" /> Prize Money (High to Low)
+                <Trophy size={14} className="mr-2" /> Prize Credits (High to Low)
               </DropdownMenuRadioItem>
             </DropdownMenuRadioGroup>
           </DropdownMenuContent>

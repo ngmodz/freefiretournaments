@@ -65,7 +65,7 @@ const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
                     {position} Place ({percentage}%)
                   </div>
                   <div className="font-bold text-lg">
-                    ₹{prizeAmount}
+                    {prizeAmount} credits
                   </div>
                 </div>
               </div>
