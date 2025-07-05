@@ -181,20 +181,53 @@ async function processPaymentWebhook(webhookData) {
 
     const orderId = webhookData.data.order.order_id;
     const paymentStatus = webhookData.data.payment.payment_status || 'FAILED';
+    const cfPaymentId = webhookData.data.payment.cf_payment_id;
     
-    console.log(`Processing payment webhook for order ${orderId}, status: ${paymentStatus}`);
+    console.log(`Processing payment webhook for order ${orderId}, status: ${paymentStatus}, payment ID: ${cfPaymentId}`);
+
+    // Check if we've already processed this payment to prevent duplicates
+    if (paymentStatus === 'SUCCESS') {
+      // Use payment ID as primary identifier, fallback to order ID
+      const duplicateCheckId = cfPaymentId || orderId;
+      
+      if (duplicateCheckId) {
+        const existingPayment = await db.collection('processedPayments').doc(duplicateCheckId).get();
+        if (existingPayment.exists) {
+          console.log(`✅ Payment ${duplicateCheckId} already processed, skipping duplicate webhook`);
+          return { success: true, message: 'Payment already processed' };
+        }
+        
+        // Mark payment as being processed to prevent race conditions
+        await db.collection('processedPayments').doc(duplicateCheckId).set({
+          orderId,
+          cfPaymentId,
+          processedAt: admin.firestore.FieldValue.serverTimestamp(),
+          status: 'processing'
+        });
+      }
+    }
 
     // Store webhook data in Firestore for reference
     const webhookRef = db.collection('paymentWebhooks').doc();
     await webhookRef.set({
       webhookData,
       receivedAt: admin.firestore.FieldValue.serverTimestamp(),
-      orderId
+      orderId,
+      cfPaymentId
     });
 
     // If payment is successful, process the payment
     if (paymentStatus === 'SUCCESS') {
       await processSuccessfulPayment(null, webhookData);
+      
+      // Mark payment as completed
+      const duplicateCheckId = cfPaymentId || orderId;
+      if (duplicateCheckId) {
+        await db.collection('processedPayments').doc(duplicateCheckId).update({
+          status: 'completed',
+          completedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+      }
     }
 
     console.log('✅ Webhook processed successfully for order:', orderId);
