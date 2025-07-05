@@ -15,7 +15,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, ArrowUpCircle, WalletCards } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Wallet as WalletType, updateWalletBalance, addTransaction } from "@/lib/walletService";
 import { motion, AnimatePresence } from "framer-motion";
 import React from "react";
@@ -28,13 +27,14 @@ interface WithdrawDialogProps {
   wallet: WalletType | null;
 }
 
+const COMMISSION_RATE = 0.02; // 2% commission
+
 const WithdrawDialog = ({
   isOpen,
   onOpenChange,
   wallet,
 }: WithdrawDialogProps) => {
   const [amount, setAmount] = useState<string>("");
-  const [withdrawalMethod, setWithdrawalMethod] = useState<"upi" | "bank">("upi");
   const [upiId, setUpiId] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,6 +42,11 @@ const WithdrawDialog = ({
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [transactionId, setTransactionId] = useState<string | undefined>(undefined);
   const [confirmedAmount, setConfirmedAmount] = useState(0);
+
+  // Calculate commission and final amount
+  const numAmount = Number(amount) || 0;
+  const commission = numAmount * COMMISSION_RATE;
+  const finalAmount = numAmount - commission;
 
   useEffect(() => {
     if (!isOpen) {
@@ -88,7 +93,7 @@ const WithdrawDialog = ({
       return;
     }
 
-    if (withdrawalMethod === "upi" && !upiId) {
+    if (!upiId) {
       setError("Please enter a valid UPI ID.");
       return;
     }
@@ -102,12 +107,12 @@ const WithdrawDialog = ({
       setIsLoading(true);
       setError(null);
 
-      console.log(`Withdrawing: ₹${numAmount} to ${upiId} via ${withdrawalMethod} for user ${currentUser.uid}`);
+      console.log(`Withdrawing: ₹${finalAmount} (after ${commission} commission) to ${upiId} via UPI for user ${currentUser.uid}`);
       
       // Use the new CreditService method for withdrawal
       const result = await CreditService.requestWithdrawal(
         currentUser.uid,
-        numAmount,
+        finalAmount, // Use the final amount after commission
         upiId
       );
       
@@ -115,9 +120,9 @@ const WithdrawDialog = ({
         setIsLoading(false);
         onOpenChange(false);
         
-        // Show success dialog
+        // Show success dialog with the final amount
         setTransactionId(result.transactionId);
-        setConfirmedAmount(numAmount);
+        setConfirmedAmount(finalAmount);
         setShowSuccessDialog(true);
       } else {
         throw new Error(result.error || "Failed to process withdrawal");
@@ -179,73 +184,29 @@ const WithdrawDialog = ({
                     transition={{ delay: 0.15 }}
                     className="space-y-2"
                   >
-                    <Label className="text-gaming-text text-sm">Withdrawal Method</Label>
-                    <RadioGroup
-                      value={withdrawalMethod}
-                      onValueChange={(value) => setWithdrawalMethod(value as "upi" | "bank")}
-                      className="flex space-x-4"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem 
-                          value="upi" 
-                          id="upi-withdraw" 
-                          className="border-gaming-primary text-gaming-primary focus:ring-offset-gaming-bg"
-                        />
-                        <Label htmlFor="upi-withdraw" className="text-gaming-text cursor-pointer">UPI</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem 
-                          value="bank" 
-                          id="bank-withdraw" 
-                          className="border-gaming-primary text-gaming-primary focus:ring-offset-gaming-bg" 
-                        />
-                        <Label htmlFor="bank-withdraw" className="text-gaming-text cursor-pointer">Bank Transfer</Label>
-                      </div>
-                    </RadioGroup>
+                    <Label htmlFor="upiId" className="text-gaming-text text-sm">UPI ID</Label>
+                    <Input
+                      id="upiId"
+                      type="text"
+                      placeholder="e.g., yourname@upi"
+                      value={upiId}
+                      onChange={handleUpiIdChange}
+                      className="bg-gaming-bg/70 text-gaming-text border-gaming-border/50 focus:border-gaming-primary focus:ring-gaming-primary/20"
+                    />
+                    <p className="text-yellow-500/90 text-xs mt-1">
+                      ⚠️ Please verify your UPI ID carefully. We are not responsible for transfers to incorrect UPI IDs.
+                    </p>
                   </motion.div>
 
-                  {withdrawalMethod === "upi" && (
-                    <motion.div 
-                      initial={{ y: 10, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      transition={{ duration: 0.3 }}
-                      className="space-y-2"
-                    >
-                      <Label htmlFor="upiId" className="text-gaming-text text-sm">UPI ID</Label>
-                      <Input
-                        id="upiId"
-                        type="text"
-                        placeholder="e.g., yourname@upi"
-                        value={upiId}
-                        onChange={handleUpiIdChange}
-                        className="bg-gaming-bg/70 text-gaming-text border-gaming-border/50 focus:border-gaming-primary focus:ring-gaming-primary/20"
-                      />
-                    </motion.div>
-                  )}
-
-                  {withdrawalMethod === "bank" && (
-                    <motion.div 
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.3 }}
-                      className="bg-gaming-bg/80 p-4 rounded-lg border border-gaming-primary/10 text-center"
-                    >
-                      <p className="text-gaming-muted">Bank withdrawal is currently under development.</p>
-                      <p className="text-gaming-muted text-sm">Please use UPI for now.</p>
-                    </motion.div>
-                  )}
-
-                  {withdrawalMethod === "upi" && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.3 }}
-                      className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 text-sm text-blue-200"
-                    >
-                      <p className="font-medium mb-1">Processing Time:</p>
-                      <p>Funds will be transferred to your UPI ID in 2-3 business days.</p>
-                    </motion.div>
-                  )}
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                    className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 text-sm text-blue-200"
+                  >
+                    <p className="font-medium mb-1">Processing Time:</p>
+                    <p>Funds will be transferred to your UPI ID in 2-3 business days.</p>
+                  </motion.div>
 
                   <motion.div 
                     initial={{ y: 10, opacity: 0 }}
@@ -283,13 +244,17 @@ const WithdrawDialog = ({
                     className="bg-gaming-bg/50 p-4 rounded-lg border border-gaming-border/30 mt-2"
                   >
                     <div className="flex justify-between text-sm">
-                      <span className="text-gaming-muted">Amount:</span>
+                      <span className="text-gaming-muted">Amount Entered:</span>
                       <span className="text-gaming-text">₹{amount || "0"}</span>
+                    </div>
+                    <div className="flex justify-between text-sm mt-2">
+                      <span className="text-gaming-muted">Tax (2%):</span>
+                      <span className="text-gaming-text text-gaming-muted">-₹{commission.toFixed(2)}</span>
                     </div>
                     <div className="border-t border-gaming-border/30 my-2"></div>
                     <div className="flex justify-between text-sm font-semibold">
-                      <span className="text-gaming-muted">To be received:</span>
-                      <span className="text-gaming-accent">₹{amount || "0"}</span>
+                      <span className="text-gaming-muted">Amount to be received:</span>
+                      <span className="text-gaming-accent">₹{finalAmount.toFixed(2)}</span>
                     </div>
                   </motion.div>
                 </div>

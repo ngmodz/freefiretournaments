@@ -68,7 +68,7 @@ const ContactDeveloperForm = ({ onClose }: ContactDeveloperFormProps) => {
       <div className="mb-6 p-4 bg-gaming-bg/40 rounded-lg border border-gaming-border">
         <div className="flex items-center gap-3 mb-3">
           <User className="text-gray-400" size={20} />
-          <span className="text-white text-base">Nishant Grewal</span>
+          <span className="text-white text-base">NG MODZ</span>
         </div>
         <div className="flex items-center gap-3">
           <Mail className="text-gray-400" size={20} />
