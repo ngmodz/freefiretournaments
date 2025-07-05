@@ -109,7 +109,7 @@ async function updateUserWallet(userId, packageType, creditsAmount) {
 /**
  * Process successful payment
  */
-async function processSuccessfulPayment(orderData, webhookData) {
+async function processSuccessfulPayment(orderData, webhookData, cfPaymentId, orderId) {
   try {
     const { order_amount } = webhookData?.data?.order || {};
     const { packageType, packageId, packageName, creditsAmount, userId } = webhookData?.data?.order?.order_tags || {};
@@ -139,6 +139,7 @@ async function processSuccessfulPayment(orderData, webhookData) {
     
     console.log(`Processing payment for user ${userId}, package type: ${packageType}, amount: ${amount}, credits: ${actualCreditsAmount}`);
     console.log(`🔥 CALLING updateUserWallet with parameters: userId="${userId}", packageType="${packageType}", creditsAmount=${actualCreditsAmount}`);
+    console.log(`🚨 CRITICAL: About to add ${actualCreditsAmount} credits to user ${userId} for payment ${cfPaymentId || orderId}`);
     
     // Update user's wallet with credits
     await updateUserWallet(userId, packageType, actualCreditsAmount);
@@ -166,6 +167,18 @@ async function processSuccessfulPayment(orderData, webhookData) {
     });
     
     console.log(`✅ Credits added successfully: ${actualCreditsAmount} ${walletType} for user ${userId}`);
+    
+    // Atomically mark payment as completed
+    if (cfPaymentId || orderId) {
+      const duplicateCheckId = String(cfPaymentId || orderId);
+      await db.collection('processedPayments').doc(duplicateCheckId).update({
+        status: 'completed',
+        completedAt: admin.firestore.FieldValue.serverTimestamp(),
+        creditsAdded: actualCreditsAmount,
+        walletType
+      });
+    }
+    
     return { success: true, userId, amount: actualCreditsAmount, packageType };
   } catch (error) {
     console.error('Error processing successful payment:', error);
@@ -199,25 +212,46 @@ async function processPaymentWebhook(webhookData) {
     
     console.log(`Processing payment webhook for order ${orderId}, status: ${paymentStatus}, payment ID: ${cfPaymentId}`);
 
-    // Check if we've already processed this payment to prevent duplicates
+    // Check if we've already processed this payment to prevent duplicates using atomic transaction
     if (paymentStatus === 'SUCCESS') {
       // Use payment ID as primary identifier, fallback to order ID
       const duplicateCheckId = cfPaymentId || orderId;
       
       if (duplicateCheckId) {
-        const existingPayment = await db.collection('processedPayments').doc(duplicateCheckId).get();
-        if (existingPayment.exists) {
-          console.log(`✅ Payment ${duplicateCheckId} already processed, skipping duplicate webhook`);
-          return { success: true, message: 'Payment already processed' };
-        }
+        // Use a transaction to atomically check and mark payment as processing
+        const paymentRef = db.collection('processedPayments').doc(duplicateCheckId);
         
-        // Mark payment as being processed to prevent race conditions
-        await db.collection('processedPayments').doc(duplicateCheckId).set({
-          orderId,
-          cfPaymentId,
-          processedAt: admin.firestore.FieldValue.serverTimestamp(),
-          status: 'processing'
-        });
+        try {
+          const result = await db.runTransaction(async (transaction) => {
+            const existingPayment = await transaction.get(paymentRef);
+            
+            if (existingPayment.exists) {
+              console.log(`✅ Payment ${duplicateCheckId} already processed, skipping duplicate webhook`);
+              return { success: true, message: 'Payment already processed', duplicate: true };
+            }
+            
+            // Atomically mark payment as being processed
+            transaction.set(paymentRef, {
+              orderId,
+              cfPaymentId,
+              processedAt: admin.firestore.FieldValue.serverTimestamp(),
+              status: 'processing'
+            });
+            
+            return { success: true, message: 'Payment marked for processing', duplicate: false };
+          });
+          
+          // If this was a duplicate, return early
+          if (result.duplicate) {
+            return result;
+          }
+          
+        } catch (error) {
+          console.error('Error in payment duplicate check transaction:', error);
+          // If transaction fails, assume payment might be duplicate and skip
+          console.log(`⚠️ Transaction failed for payment ${duplicateCheckId}, skipping to be safe`);
+          return { success: true, message: 'Payment processing skipped due to transaction error' };
+        }
       }
     }
 
@@ -232,7 +266,7 @@ async function processPaymentWebhook(webhookData) {
 
     // If payment is successful, process the payment
     if (paymentStatus === 'SUCCESS') {
-      await processSuccessfulPayment(null, webhookData);
+      await processSuccessfulPayment(null, webhookData, cfPaymentId, orderId);
       
       // Mark payment as completed
       const duplicateCheckId = cfPaymentId || orderId;
