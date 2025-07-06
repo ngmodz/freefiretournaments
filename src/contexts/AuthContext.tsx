@@ -7,6 +7,7 @@ import {
   signInWithGoogle, 
   signOut, 
   resetPassword,
+  changePassword,
   getUserProfile
 } from '@/lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
@@ -20,6 +21,7 @@ interface AuthContextType {
   googleSignIn: () => Promise<any>;
   logout: () => Promise<any>;
   sendPasswordReset: (email: string) => Promise<any>;
+  changeUserPassword: (currentPassword: string, newPassword: string) => Promise<any>;
 }
 
 interface UserProfile {
@@ -81,6 +83,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     googleSignIn: signInWithGoogle,
     logout: signOut,
     sendPasswordReset: resetPassword,
+    changeUserPassword: changePassword,
   };
 
   return (

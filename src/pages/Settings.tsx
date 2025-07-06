@@ -28,6 +28,7 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import ContactDeveloperForm from "@/components/settings/ContactDeveloperForm";
 import ProfileEditForm from "@/components/settings/ProfileEditForm";
 import ChangePasswordDialog from "@/components/settings/ChangePasswordDialog";
+import ForgotPasswordDialog from "@/components/settings/ForgotPasswordDialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
@@ -581,6 +582,7 @@ const Settings = () => {
 
 const ChangePasswordForm = ({ onClose }: { onClose: () => void }) => {
   const { toast } = useToast();
+  const { changeUserPassword } = useAuth();
   const [form, setForm] = useState({
     currentPassword: "",
     newPassword: "",
@@ -600,6 +602,7 @@ const ChangePasswordForm = ({ onClose }: { onClose: () => void }) => {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
 
   // Password validation regex patterns
   const hasLowerCase = /[a-z]/;
@@ -691,8 +694,8 @@ const ChangePasswordForm = ({ onClose }: { onClose: () => void }) => {
     setIsSubmitting(true);
 
     try {
-      // Simulate API call - will be replaced with Firebase auth later
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Use Firebase changePassword function
+      await changeUserPassword(form.currentPassword, form.newPassword);
 
       // Show success message
       toast({
@@ -706,11 +709,37 @@ const ChangePasswordForm = ({ onClose }: { onClose: () => void }) => {
         newPassword: "",
         confirmPassword: "",
       });
+      setFormErrors({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
       onClose();
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Password change error:', error);
+      
+      // Handle specific Firebase errors
+      let errorMessage = "Failed to update password. Please try again.";
+      
+      if (error.message === "Current password is incorrect") {
+        setFormErrors({
+          ...formErrors,
+          currentPassword: "Current password is incorrect",
+        });
+        errorMessage = "Current password is incorrect.";
+      } else if (error.message === "New password is too weak") {
+        setFormErrors({
+          ...formErrors,
+          newPassword: "Password is too weak",
+        });
+        errorMessage = "New password is too weak.";
+      } else if (error.message === "Please sign out and sign in again before changing your password") {
+        errorMessage = "Please sign out and sign in again before changing your password.";
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to update password. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -763,13 +792,7 @@ const ChangePasswordForm = ({ onClose }: { onClose: () => void }) => {
         <div className="flex justify-end">
           <button
             type="button"
-            onClick={() => {
-              // Would integrate with Firebase password reset in the future
-              toast({
-                title: "Password Reset Email Sent",
-                description: "Check your email for instructions to reset your password",
-              });
-            }}
+            onClick={() => setShowForgotPassword(true)}
             className="text-xs text-[#22C55E] hover:text-[#22C55E]/80 hover:underline transition-colors focus:outline-none"
           >
             Forgot Password?
@@ -872,6 +895,12 @@ const ChangePasswordForm = ({ onClose }: { onClose: () => void }) => {
           {isSubmitting ? "Changing Password..." : "Change Password"}
         </Button>
       </div>
+
+      {/* Forgot Password Dialog */}
+      <ForgotPasswordDialog 
+        open={showForgotPassword} 
+        onOpenChange={setShowForgotPassword}
+      />
     </form>
   );
 };

@@ -26,7 +26,10 @@ import {
   signInWithEmailAndPassword,
   GoogleAuthProvider,
   signInWithPopup,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  updatePassword,
+  reauthenticateWithCredential,
+  EmailAuthProvider
 } from 'firebase/auth';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
@@ -411,6 +414,40 @@ export const resetPassword = async (email: string) => {
   }
 };
 
+// Change password function that requires current password for reauthentication
+export const changePassword = async (currentPassword: string, newPassword: string) => {
+  try {
+    const user = auth.currentUser;
+    if (!user || !user.email) {
+      throw new Error('No user is currently signed in');
+    }
+
+    // Create credential with current password
+    const credential = EmailAuthProvider.credential(user.email, currentPassword);
+    
+    // Reauthenticate user with current password
+    await reauthenticateWithCredential(user, credential);
+    
+    // Update password
+    await updatePassword(user, newPassword);
+    
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error changing password:', error);
+    
+    // Handle specific error cases
+    if (error.code === 'auth/wrong-password') {
+      throw new Error('Current password is incorrect');
+    } else if (error.code === 'auth/weak-password') {
+      throw new Error('New password is too weak');
+    } else if (error.code === 'auth/requires-recent-login') {
+      throw new Error('Please sign out and sign in again before changing your password');
+    }
+    
+    throw error;
+  }
+};
+
 // Simple function to verify Firestore connection without any test documents
 export const verifyFirestoreConnection = async () => {
   try {
@@ -537,4 +574,4 @@ export const debugCheckValueInFirestore = async (type: 'ign' | 'uid', value: str
 };
 
 // Export app, db, auth, and storage for direct access if needed
-export { app, db, auth, storage }; 
+export { app, db, auth, storage };

@@ -1,11 +1,14 @@
 import React, { useState } from "react";
 import { Eye, EyeOff, AlertCircle, Check, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import ForgotPasswordDialog from "./ForgotPasswordDialog";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
@@ -47,7 +50,9 @@ const validatePassword = (password: string) => {
 
 const ChangePasswordDialog = ({ trigger }: ChangePasswordDialogProps) => {
   const { toast } = useToast();
+  const { changeUserPassword } = useAuth();
   const [open, setOpen] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [form, setForm] = useState({
     currentPassword: "",
     newPassword: "",
@@ -155,8 +160,8 @@ const ChangePasswordDialog = ({ trigger }: ChangePasswordDialogProps) => {
     setIsSubmitting(true);
 
     try {
-      // Simulate API call - will be replaced with Firebase auth later
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Use Firebase changePassword function
+      await changeUserPassword(form.currentPassword, form.newPassword);
 
       // Show success message
       toast({
@@ -170,11 +175,38 @@ const ChangePasswordDialog = ({ trigger }: ChangePasswordDialogProps) => {
         newPassword: "",
         confirmPassword: "",
       });
+      setFormErrors({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+      setPasswordErrors([]);
       setOpen(false);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Password change error:', error);
+      
+      // Handle specific Firebase errors
+      let errorMessage = "Failed to update password. Please try again.";
+      
+      if (error.message === "Current password is incorrect") {
+        setFormErrors({
+          ...formErrors,
+          currentPassword: "Current password is incorrect",
+        });
+        errorMessage = "Current password is incorrect.";
+      } else if (error.message === "New password is too weak") {
+        setFormErrors({
+          ...formErrors,
+          newPassword: "Password is too weak",
+        });
+        errorMessage = "New password is too weak.";
+      } else if (error.message === "Please sign out and sign in again before changing your password") {
+        errorMessage = "Please sign out and sign in again before changing your password.";
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to update password. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -201,12 +233,15 @@ const ChangePasswordDialog = ({ trigger }: ChangePasswordDialogProps) => {
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="bg-[#1F2937] border-none text-white max-w-md mx-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-white">
+      <DialogContent className="bg-[#1F2937] border-none text-white">
+        <DialogHeader className="space-y-2">
+          <DialogTitle className="flex items-center gap-2 text-white text-lg font-semibold">
             <Lock size={18} className="text-[#22C55E]" />
             Change Password
           </DialogTitle>
+          <DialogDescription className="text-[#A0AEC0] text-sm">
+            Update your account password by entering your current password and choosing a new one.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div className="space-y-2">
@@ -240,6 +275,15 @@ const ChangePasswordDialog = ({ trigger }: ChangePasswordDialogProps) => {
                 {formErrors.currentPassword}
               </p>
             )}
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowForgotPassword(true)}
+                className="text-xs text-[#22C55E] hover:text-[#22C55E]/80 hover:underline transition-colors focus:outline-none"
+              >
+                Forgot Password?
+              </button>
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -366,9 +410,15 @@ const ChangePasswordDialog = ({ trigger }: ChangePasswordDialogProps) => {
             </Button>
           </DialogFooter>
         </form>
+
+        {/* Forgot password section */}
+        <ForgotPasswordDialog 
+          open={showForgotPassword} 
+          onOpenChange={setShowForgotPassword}
+        />
       </DialogContent>
     </Dialog>
   );
 };
 
-export default ChangePasswordDialog; 
+export default ChangePasswordDialog;
