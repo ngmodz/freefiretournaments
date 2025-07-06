@@ -1,40 +1,9 @@
-import { useState, useEffect } from "react";
-import { 
-  Form,
-  FormControl, 
-  FormField, 
-  FormItem, 
-  FormLabel, 
-  FormMessage,
-} from "@/components/ui/form";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
-import { ChevronRight } from "lucide-react";
 import { TournamentFormData } from "@/pages/TournamentCreate";
-
-// Validation schema
-const formSchema = z.object({
-  name: z.string()
-    .min(3, "Tournament name must be at least 3 characters")
-    .max(50, "Tournament name cannot exceed 50 characters")
-    .regex(/^[a-zA-Z0-9 ]+$/, "Only alphanumeric characters and spaces are allowed"),
-  description: z.string()
-    .min(10, "Description must be at least 10 characters")
-    .max(500, "Description cannot exceed 500 characters"),
-  mode: z.enum(["Solo", "Duo", "Squad"]),
-  max_players: z.number()
-    .int("Must be a whole number")
-    .positive("Must be a positive number"),
-  start_date: z.string()
-    .refine(date => new Date(date) > new Date(), {
-      message: "Tournament must start in the future"
-    }),
-});
 
 interface BasicInfoFormProps {
   formData: TournamentFormData;
@@ -43,156 +12,204 @@ interface BasicInfoFormProps {
 }
 
 const BasicInfoForm = ({ formData, updateFormData, nextStep }: BasicInfoFormProps) => {
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: formData.name,
-      description: formData.description,
-      mode: formData.mode,
-      max_players: formData.max_players,
-      start_date: formData.start_date,
-    },
+  const [name, setName] = useState(formData.name);
+  const [description, setDescription] = useState(formData.description);
+  const [mode, setMode] = useState(formData.mode);
+  const [maxPlayers, setMaxPlayers] = useState(formData.max_players);
+  const [startDate, setStartDate] = useState(formData.start_date);
+  
+  // Error states
+  const [errors, setErrors] = useState({
+    name: "",
+    maxPlayers: "",
+    startDate: ""
   });
 
-  // Update max_players based on selected mode
-  useEffect(() => {
-    const mode = form.watch("mode");
-    let defaultMaxPlayers = 12; // Default for Solo
-    
-    if (mode === "Duo") {
-      defaultMaxPlayers = 24; // 12 teams of 2
-    } else if (mode === "Squad") {
-      defaultMaxPlayers = 48; // 12 teams of 4
-    }
-    
-    form.setValue("max_players", defaultMaxPlayers);
-  }, [form.watch("mode")]);
+  const validateForm = () => {
+    const newErrors = {
+      name: "",
+      maxPlayers: "",
+      startDate: ""
+    };
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    updateFormData(values);
-    nextStep();
+    // Validate tournament name
+    if (!name.trim()) {
+      newErrors.name = "Tournament name is required";
+    } else if (name.trim().length < 3) {
+      newErrors.name = "Tournament name must be at least 3 characters";
+    }
+
+    // Validate max players
+    if (!maxPlayers || maxPlayers <= 0) {
+      newErrors.maxPlayers = "Max players is required and must be greater than 0";
+    } else if (maxPlayers > 100) {
+      newErrors.maxPlayers = "Max players cannot exceed 100";
+    }
+
+    // Validate start date
+    if (!startDate) {
+      newErrors.startDate = "Start date and time is required";
+    } else {
+      const selectedDate = new Date(startDate);
+      const now = new Date();
+      if (selectedDate <= now) {
+        newErrors.startDate = "Start date must be in the future";
+      }
+    }
+
+    setErrors(newErrors);
+    return !newErrors.name && !newErrors.maxPlayers && !newErrors.startDate;
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (validateForm()) {
+      updateFormData({
+        name,
+        description,
+        mode,
+        max_players: maxPlayers,
+        start_date: startDate,
+      });
+      nextStep();
+    }
   };
 
   return (
     <div>
-      <h2 className="text-xl font-semibold mb-6">Basic Tournament Information</h2>
+      <h2 className="text-xl font-semibold mb-4">Basic Tournament Information</h2>
+      <p className="text-gray-400 mb-6">Enter the essential details of your tournament</p>
       
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Tournament Name</FormLabel>
-                <FormControl>
-                  <Input 
-                    placeholder="Enter tournament name" 
-                    className="bg-gaming-card text-white placeholder:text-gray-400" 
-                    {...field} 
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="space-y-2">
+          <label className="block text-sm font-medium">
+            Tournament Name <span className="text-red-500">*</span>
+          </label>
+          <Input 
+            value={name}
+            onChange={(e) => {
+              setName(e.target.value);
+              if (errors.name) {
+                setErrors(prev => ({ ...prev, name: "" }));
+              }
+            }}
+            placeholder="Enter a catchy tournament name"
+            className={`bg-gaming-card border-2 text-white ${
+              errors.name ? "border-red-500" : "border-gray-600"
+            }`}
+            required
           />
-          
-          <FormField
-            control={form.control}
-            name="description"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Description</FormLabel>
-                <FormControl>
-                  <Textarea 
-                    placeholder="Describe your tournament" 
-                    className="bg-gaming-card text-white placeholder:text-gray-400 min-h-24" 
-                    {...field} 
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+          {errors.name ? (
+            <p className="text-xs text-red-500">{errors.name}</p>
+          ) : (
+            <p className="text-xs text-gray-400">Choose a memorable name for your tournament</p>
+          )}
+        </div>
+        
+        <div className="space-y-2">
+          <label className="block text-sm font-medium">Description</label>
+          <Textarea 
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Describe your tournament, rules, and expectations"
+            className="bg-gaming-card border-2 border-gray-600 text-white min-h-[100px]"
           />
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <FormField
-              control={form.control}
-              name="mode"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Game Mode</FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="bg-gaming-card text-white">
-                        <SelectValue placeholder="Select mode" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent className="bg-gaming-card text-white">
-                      <SelectItem value="Solo">Solo</SelectItem>
-                      <SelectItem value="Duo">Duo</SelectItem>
-                      <SelectItem value="Squad">Squad</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="max_players"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Max Players</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="number" 
-                      className="bg-gaming-card text-white" 
-                      {...field}
-                      onChange={(e) => field.onChange(Number(e.target.value))} 
-                      value={field.value}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="start_date"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Start Date & Time</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="datetime-local" 
-                      className="bg-gaming-card text-white" 
-                      {...field} 
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-          
-          <div className="flex justify-end mt-8">
-            <Button 
-              type="submit" 
-              className="bg-gaming-primary hover:bg-gaming-primary-dark w-full sm:w-auto py-6 sm:py-2 rounded-xl sm:rounded-md text-base font-medium"
+          <p className="text-xs text-gray-400">Give players a compelling reason to join your tournament</p>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="space-y-2">
+            <label className="block text-sm font-medium">Game Mode</label>
+            <Select 
+              value={mode}
+              onValueChange={setMode}
             >
-              Next <ChevronRight size={18} className="ml-2" />
-            </Button>
+              <SelectTrigger className="bg-gaming-card border-2 border-gray-600 text-white">
+                <SelectValue placeholder="Select mode" />
+              </SelectTrigger>
+              <SelectContent className="bg-gaming-card border-2 border-gray-600 text-white">
+                <SelectItem value="Solo">Solo</SelectItem>
+                <SelectItem value="Duo">Duo</SelectItem>
+                <SelectItem value="Squad">Squad</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        </form>
-      </Form>
+          
+          <div className="space-y-2">
+            <label className="block text-sm font-medium">
+              Max Players <span className="text-red-500">*</span>
+            </label>
+            <Input 
+              type="number" 
+              value={maxPlayers}
+              onChange={(e) => {
+                setMaxPlayers(Number(e.target.value));
+                if (errors.maxPlayers) {
+                  setErrors(prev => ({ ...prev, maxPlayers: "" }));
+                }
+              }}
+              className={`bg-gaming-card border-2 text-white ${
+                errors.maxPlayers ? "border-red-500" : "border-gray-600"
+              }`}
+              min="1"
+              max="100"
+              required
+            />
+            {errors.maxPlayers && (
+              <p className="text-xs text-red-500">{errors.maxPlayers}</p>
+            )}
+          </div>
+          
+          <div className="space-y-2">
+            <label className="block text-sm font-medium">
+              Start Date & Time <span className="text-red-500">*</span>
+            </label>
+            <div 
+              className="relative cursor-pointer"
+              onClick={(e) => {
+                const input = e.currentTarget.querySelector('input[type="datetime-local"]') as HTMLInputElement;
+                if (input) {
+                  input.focus();
+                  input.showPicker?.();
+                }
+              }}
+            >
+              <Input 
+                type="datetime-local" 
+                value={startDate}
+                onChange={(e) => {
+                  setStartDate(e.target.value);
+                  if (errors.startDate) {
+                    setErrors(prev => ({ ...prev, startDate: "" }));
+                  }
+                }}
+                className={`bg-gaming-card border-2 text-white datetime-input cursor-pointer ${
+                  errors.startDate ? "border-red-500" : "border-gray-600"
+                }`}
+                required
+                onClick={(e) => {
+                  e.currentTarget.showPicker?.();
+                }}
+              />
+            </div>
+            {errors.startDate && (
+              <p className="text-xs text-red-500">{errors.startDate}</p>
+            )}
+          </div>
+        </div>
+        
+        <div className="flex justify-end mt-8">
+          <Button 
+            type="submit" 
+            className="bg-gaming-primary hover:bg-gaming-secondary text-white px-8"
+          >
+            Next
+          </Button>
+        </div>
+      </form>
     </div>
   );
 };
 
-export default BasicInfoForm; 
+export default BasicInfoForm;

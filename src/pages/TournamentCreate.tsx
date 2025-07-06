@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, ChevronRight, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { useAuthCheck } from "@/hooks/useAuthCheck";
 
 // Step components will be imported here
@@ -47,6 +46,11 @@ export type TournamentFormData = {
       third: number;
     };
     distributionPercentage: {
+      first: number;
+      second: number;
+      third: number;
+    };
+    prizeDistributionPercentage: {
       first: number;
       second: number;
       third: number;
@@ -98,6 +102,11 @@ const TournamentCreate = () => {
         second: 30,
         third: 20
       },
+      prizeDistributionPercentage: {
+        first: 50,
+        second: 30,
+        third: 20
+      },
       isDistributed: false
     },
     rules: "",
@@ -121,6 +130,15 @@ const TournamentCreate = () => {
       setCurrentStep(currentStep - 1);
     }
   };
+
+  // Step labels
+  const steps = [
+    { number: 1, label: "Basic Info" },
+    { number: 2, label: "Game Settings" },
+    { number: 3, label: "Entry & Prizes" },
+    { number: 4, label: "Rules & Media" },
+    { number: 5, label: "Review" }
+  ];
 
   // Render the current step component
   const renderStep = () => {
@@ -149,47 +167,109 @@ const TournamentCreate = () => {
   }
 
   return (
-    <div className="container mx-auto py-6 px-4 max-w-4xl">
-      {/* Back button */}
-      <Link to="/home" className="inline-flex items-center text-gaming-muted hover:text-gaming-text mb-4">
-        <ArrowLeft size={18} className="mr-1" /> Back to tournaments
-      </Link>
-
-      <h1 className="text-2xl md:text-3xl font-bold mb-6">Create Tournament</h1>
-
-      {/* Stepper */}
-      <div className="mb-8">
-        <div className="flex justify-between mb-2">
-          {["Basic Info", "Game Settings", "Entry & Prizes", "Rules & Media", "Review"].map((step, index) => (
-            <div key={index} className="flex flex-col items-center">
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm mb-1 
-                  ${index + 1 === currentStep 
-                    ? "bg-gaming-primary text-white" 
-                    : index + 1 < currentStep 
-                      ? "bg-green-500 text-white" 
-                      : "bg-gaming-card text-gaming-muted"
-                  }`}
-              >
-                {index + 1 < currentStep ? "✓" : index + 1}
-              </div>
-              <span className="text-xs text-gaming-muted hidden md:block">{step}</span>
+    <div className="min-h-screen bg-gaming-bg text-white">
+      <div className="max-w-4xl mx-auto py-8 px-4">
+        <h1 className="text-2xl font-bold mb-8">Create Tournament</h1>
+        
+        {/* Enhanced Stepper */}
+        <div className="relative mb-12">
+          {/* Progress Line */}
+          <div className="absolute top-6 left-0 w-full h-0.5 bg-gray-700 hidden md:block">
+            <div 
+              className="h-full bg-gradient-to-r from-gaming-primary to-gaming-secondary transition-all duration-500 ease-out progress-line"
+              style={{ width: `${((currentStep - 1) / (steps.length - 1)) * 100}%` }}
+            />
+          </div>
+          
+          {/* Steps */}
+          <div className="flex justify-between items-center relative z-10">
+            {steps.map((step, index) => {
+              const isActive = currentStep === step.number;
+              const isCompleted = currentStep > step.number;
+              const isUpcoming = currentStep < step.number;
+              
+              return (
+                <div key={step.number} className="flex flex-col items-center group stepper-step">
+                  {/* Step Circle */}
+                  <div className="relative">
+                    <div 
+                      className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold mb-3 transition-all duration-300 transform
+                        ${isActive 
+                          ? "bg-gradient-to-r from-gaming-primary to-gaming-secondary text-white shadow-lg shadow-gaming-primary/50 scale-110 stepper-active" 
+                          : isCompleted
+                          ? "bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg shadow-green-500/30 stepper-completed"
+                          : "bg-gray-700 text-gray-400 hover:bg-gray-600"
+                        }
+                        ${isActive ? "ring-4 ring-gaming-primary/30" : ""}
+                        group-hover:scale-105`}
+                    >
+                      {isCompleted ? (
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      ) : (
+                        step.number
+                      )}
+                    </div>
+                    
+                    {/* Glow effect for active step */}
+                    {isActive && (
+                      <div className="absolute inset-0 w-12 h-12 rounded-full bg-gaming-primary/20 animate-ping" />
+                    )}
+                  </div>
+                  
+                  {/* Step Label */}
+                  <div className="text-center">
+                    <span 
+                      className={`text-xs font-medium transition-colors duration-300
+                        ${isActive 
+                          ? "text-gaming-primary" 
+                          : isCompleted 
+                          ? "text-green-400" 
+                          : "text-gray-400"
+                        }`}
+                    >
+                      {step.label}
+                    </span>
+                    
+                    {/* Step Status */}
+                    <div className="mt-1">
+                      {isActive && (
+                        <div className="text-xs text-gaming-primary font-semibold">Current</div>
+                      )}
+                      {isCompleted && (
+                        <div className="text-xs text-green-400 font-semibold">Completed</div>
+                      )}
+                      {isUpcoming && (
+                        <div className="text-xs text-gray-500">Pending</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          
+          {/* Mobile Progress Bar */}
+          <div className="mt-6 md:hidden">
+            <div className="flex justify-between text-xs text-gray-400 mb-2">
+              <span>Step {currentStep} of {steps.length}</span>
+              <span>{Math.round((currentStep / steps.length) * 100)}% Complete</span>
             </div>
-          ))}
+            <div className="w-full bg-gray-700 rounded-full h-2">
+              <div 
+                className="bg-gradient-to-r from-gaming-primary to-gaming-secondary h-2 rounded-full transition-all duration-500 ease-out"
+                style={{ width: `${(currentStep / steps.length) * 100}%` }}
+              />
+            </div>
+          </div>
         </div>
-        {/* Progress bar */}
-        <div className="w-full bg-gaming-card h-2 rounded-full overflow-hidden">
-          <div 
-            className="h-full bg-gaming-primary rounded-full transition-all duration-300 ease-in-out" 
-            style={{ width: `${(currentStep - 1) * 25}%` }}
-          ></div>
-        </div>
+        
+        {/* Current step content */}
+        <Card className="bg-gaming-card border border-purple-500/30 p-8 rounded-lg shadow-lg shadow-purple-500/10 transition-all duration-300 hover:border-purple-500/70 hover:shadow-purple-500/30">
+          {renderStep()}
+        </Card>
       </div>
-
-      {/* Current step */}
-      <Card className="bg-gaming-card p-6">
-        {renderStep()}
-      </Card>
     </div>
   );
 };

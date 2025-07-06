@@ -122,27 +122,29 @@ const GameSettingsForm = ({ formData, updateFormData, nextStep, prevStep }: Game
             />
           </div>
           
-          <div className="bg-gaming-card p-6 rounded-md">
-            <h3 className="text-lg font-semibold mb-5 text-center">Custom Room Settings</h3>
+          <div className="bg-gradient-to-br from-gaming-card via-gaming-card to-gaming-card/80 p-6 rounded-xl border border-gaming-primary/20 shadow-lg">
+            <h3 className="text-lg font-semibold mb-6 text-center text-gaming-primary">Custom Room Settings</h3>
             
-            <div className="space-y-6">
+            <div className="space-y-4">
               <FormField
                 control={form.control}
                 name="custom_settings.auto_aim"
                 render={({ field }) => (
-                  <FormItem className="flex items-center justify-between py-2 border-b border-gaming-border">
-                    <div>
-                      <FormLabel className="text-base font-medium">Auto-Aim</FormLabel>
-                      <FormDescription className="text-sm text-gaming-muted">
+                  <FormItem className="flex items-center justify-between p-4 rounded-lg bg-gaming-bg/50 border border-gaming-border hover:border-gaming-primary/40 transition-all duration-300 hover:bg-gaming-bg/70 toggle-card">
+                    <div className="flex-1">
+                      <FormLabel className="text-base font-medium text-white cursor-pointer">Auto-Aim</FormLabel>
+                      <FormDescription className="text-sm text-gray-400 mt-1">
                         Allow auto-aim assistance in tournament matches
                       </FormDescription>
                     </div>
                     <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                        className="data-[state=checked]:bg-gaming-primary"
-                      />
+                      <div className="ml-4">
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          className="switch-glow"
+                        />
+                      </div>
                     </FormControl>
                   </FormItem>
                 )}
@@ -152,19 +154,21 @@ const GameSettingsForm = ({ formData, updateFormData, nextStep, prevStep }: Game
                 control={form.control}
                 name="custom_settings.fall_damage"
                 render={({ field }) => (
-                  <FormItem className="flex items-center justify-between py-2 border-b border-gaming-border">
-                    <div>
-                      <FormLabel className="text-base font-medium">Fall Damage</FormLabel>
-                      <FormDescription className="text-sm text-gaming-muted">
+                  <FormItem className="flex items-center justify-between p-4 rounded-lg bg-gaming-bg/50 border border-gaming-border hover:border-gaming-primary/40 transition-all duration-300 hover:bg-gaming-bg/70 toggle-card">
+                    <div className="flex-1">
+                      <FormLabel className="text-base font-medium text-white cursor-pointer">Fall Damage</FormLabel>
+                      <FormDescription className="text-sm text-gray-400 mt-1">
                         Enable damage from falling
                       </FormDescription>
                     </div>
                     <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                        className="data-[state=checked]:bg-gaming-primary"
-                      />
+                      <div className="ml-4">
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          className="switch-glow"
+                        />
+                      </div>
                     </FormControl>
                   </FormItem>
                 )}
@@ -174,19 +178,21 @@ const GameSettingsForm = ({ formData, updateFormData, nextStep, prevStep }: Game
                 control={form.control}
                 name="custom_settings.friendly_fire"
                 render={({ field }) => (
-                  <FormItem className="flex items-center justify-between py-2">
-                    <div>
-                      <FormLabel className="text-base font-medium">Friendly Fire</FormLabel>
-                      <FormDescription className="text-sm text-gaming-muted">
+                  <FormItem className="flex items-center justify-between p-4 rounded-lg bg-gaming-bg/50 border border-gaming-border hover:border-gaming-primary/40 transition-all duration-300 hover:bg-gaming-bg/70 toggle-card">
+                    <div className="flex-1">
+                      <FormLabel className="text-base font-medium text-white cursor-pointer">Friendly Fire</FormLabel>
+                      <FormDescription className="text-sm text-gray-400 mt-1">
                         Allow damage to teammates
                       </FormDescription>
                     </div>
                     <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                        className="data-[state=checked]:bg-gaming-primary"
-                      />
+                      <div className="ml-4">
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          className="switch-glow"
+                        />
+                      </div>
                     </FormControl>
                   </FormItem>
                 )}

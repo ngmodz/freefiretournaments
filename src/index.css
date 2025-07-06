@@ -63,6 +63,21 @@
     color: #FFFFFF !important;
     box-shadow: 0 0 0 30px #1B1F2D inset !important;
   }
+
+  /* Remove purple focus borders from all inputs */
+  input:focus,
+  textarea:focus,
+  select:focus {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+  }
 }
 
 @layer utilities {
@@ -311,6 +326,224 @@
       -webkit-appearance: none;
       appearance: none;
       border-radius: 0.5rem;
+    }
+  }
+
+  /* Custom datetime-local input styling */
+  input[type="datetime-local"] {
+    color-scheme: dark;
+    cursor: pointer;
+    position: relative;
+  }
+
+  input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    cursor: pointer;
+    opacity: 0.8;
+    transition: opacity 0.2s ease;
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    z-index: 2;
+  }
+
+  input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+  }
+
+  /* Make the entire input clickable */
+  .datetime-input {
+    font-family: inherit !important;
+    font-size: 14px !important;
+    line-height: 1.5 !important;
+    letter-spacing: normal !important;
+    cursor: pointer !important;
+    position: relative;
+  }
+
+  .datetime-input::-webkit-datetime-edit {
+    color: white !important;
+    padding: 0 !important;
+    cursor: pointer !important;
+    width: 100%;
+    height: 100%;
+  }
+
+  .datetime-input::-webkit-datetime-edit-fields-wrapper {
+    padding: 0 !important;
+    cursor: pointer !important;
+    width: 100%;
+    height: 100%;
+  }
+
+  .datetime-input::-webkit-datetime-edit-text {
+    color: #9CA3AF !important;
+    padding: 0 2px !important;
+    cursor: pointer !important;
+  }
+
+  .datetime-input::-webkit-datetime-edit-month-field,
+  .datetime-input::-webkit-datetime-edit-day-field,
+  .datetime-input::-webkit-datetime-edit-year-field,
+  .datetime-input::-webkit-datetime-edit-hour-field,
+  .datetime-input::-webkit-datetime-edit-minute-field,
+  .datetime-input::-webkit-datetime-edit-ampm-field {
+    color: white !important;
+    background: transparent !important;
+    padding: 0 1px !important;
+    cursor: pointer !important;
+  }
+
+  /* Ensure the input responds to clicks everywhere */
+  .datetime-input:focus {
+    outline: none !important;
+    box-shadow: none !important;
+    border-color: inherit !important;
+  }
+
+  .datetime-input:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+    border-color: inherit !important;
+  }
+
+  .datetime-input:active {
+    transform: none;
+    outline: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Remove focus styles from all datetime input pseudo-elements */
+  .datetime-input:focus::-webkit-datetime-edit,
+  .datetime-input:focus::-webkit-datetime-edit-fields-wrapper,
+  .datetime-input:focus::-webkit-datetime-edit-text,
+  .datetime-input:focus::-webkit-datetime-edit-month-field,
+  .datetime-input:focus::-webkit-datetime-edit-day-field,
+  .datetime-input:focus::-webkit-datetime-edit-year-field,
+  .datetime-input:focus::-webkit-datetime-edit-hour-field,
+  .datetime-input:focus::-webkit-datetime-edit-minute-field,
+  .datetime-input:focus::-webkit-datetime-edit-ampm-field {
+    outline: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+
+  /* Make sure the entire input area is clickable */
+  .datetime-input::-webkit-datetime-edit {
+    min-height: 100%;
+    display: flex;
+    align-items: center;
+  }
+
+  /* Ensure placeholder text is visible on mobile */
+  .datetime-placeholder {
+    font-size: 14px;
+    color: #9CA3AF;
+    user-select: none;
+  }
+
+  @media (max-width: 768px) {
+    .datetime-input {
+      font-size: 16px !important; /* Prevent zoom on mobile */
+    }
+    
+    .datetime-placeholder {
+      font-size: 16px; /* Prevent zoom on mobile */
+    }
+  }
+
+  /* Enhanced switch animations and effects */
+  .switch-glow {
+    transition: all 0.3s ease;
+  }
+
+  .switch-glow[data-state="checked"] {
+    box-shadow: 0 0 20px rgba(155, 135, 245, 0.6), 0 0 40px rgba(155, 135, 245, 0.3);
+    animation: switchPulse 2s infinite;
+  }
+
+  @keyframes switchPulse {
+    0% {
+      box-shadow: 0 0 20px rgba(155, 135, 245, 0.6), 0 0 40px rgba(155, 135, 245, 0.3);
+    }
+    50% {
+      box-shadow: 0 0 25px rgba(155, 135, 245, 0.8), 0 0 50px rgba(155, 135, 245, 0.4);
+    }
+    100% {
+      box-shadow: 0 0 20px rgba(155, 135, 245, 0.6), 0 0 40px rgba(155, 135, 245, 0.3);
+    }
+  }
+
+  /* Gaming toggle card hover effects */
+  .toggle-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .toggle-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(155, 135, 245, 0.15);
+  }
+
+  /* Enhanced stepper animations */
+  .stepper-step {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .stepper-step:hover {
+    transform: translateY(-2px);
+  }
+
+  .stepper-active {
+    animation: stepperPulse 2s infinite;
+  }
+
+  @keyframes stepperPulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(155, 135, 245, 0.7);
+    }
+    70% {
+      box-shadow: 0 0 0 10px rgba(155, 135, 245, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(155, 135, 245, 0);
+    }
+  }
+
+  .stepper-completed {
+    animation: stepperComplete 0.6s ease-out;
+  }
+
+  @keyframes stepperComplete {
+    0% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.2);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  /* Progress line animation */
+  .progress-line {
+    background: linear-gradient(90deg, 
+      rgba(155, 135, 245, 0.8) 0%, 
+      rgba(155, 135, 245, 0.6) 50%, 
+      rgba(155, 135, 245, 0.8) 100%);
+    background-size: 200% 100%;
+    animation: progressShimmer 2s linear infinite;
+  }
+
+  @keyframes progressShimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
     }
   }
 }
