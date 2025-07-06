@@ -5,6 +5,7 @@ import TournamentDetails from "./pages/TournamentDetails";
 import TournamentCreate from "./pages/TournamentCreate";
 import Tournaments from "./pages/Tournaments";
 import HostedTournaments from "./pages/HostedTournaments";
+import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import TermsAndPolicy from "./pages/TermsAndPolicy";
@@ -88,7 +89,11 @@ function App() {
                 <PaymentStatus />
               </ProtectedRoute>
             } />
-            <Route path="/profile" element={<Navigate to="/settings" replace />} />
+            <Route path="/profile" element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            } />
             <Route path="/settings" element={
               <ProtectedRoute>
                 <Settings />

@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import AvatarDisplay from "@/components/ui/AvatarDisplay";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,9 +15,13 @@ interface ProfileSectionProps {
 
 const ProfileSection = ({ user }: ProfileSectionProps) => {
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
   
   return (
-    <Card className="p-4 bg-gaming-card border-gaming-border shadow-glow">
+    <Card 
+      className="p-4 bg-gaming-card border-gaming-border shadow-glow hover:bg-gaming-card/80 transition-colors cursor-pointer" 
+      onClick={() => navigate('/profile')}
+    >
       <div className="flex items-center gap-4">
         <AvatarDisplay 
           userProfile={user}

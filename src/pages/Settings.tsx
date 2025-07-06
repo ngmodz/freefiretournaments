@@ -361,7 +361,10 @@ const Settings = () => {
         </div>
         
         {/* Profile Card */}
-        <Card className="p-4 bg-gaming-card border-gaming-border shadow-glow">
+        <Card 
+          className="p-4 bg-gaming-card border-gaming-border shadow-glow hover:bg-gaming-card/80 transition-colors cursor-pointer" 
+          onClick={() => navigate('/profile')}
+        >
           <div className="flex items-center gap-4">
             <AvatarDisplay 
               userProfile={userProfile}
