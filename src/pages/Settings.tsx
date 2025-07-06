@@ -327,7 +327,7 @@ const Settings = () => {
       icon: <Trophy size={20} className="text-gaming-accent" />,
       title: "My Tournaments",
       description: "Tournaments you've joined or hosted",
-      onClick: () => navigate("/profile"),
+      onClick: () => navigate("/tournaments"),
     },
     {
       id: "password",

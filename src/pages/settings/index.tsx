@@ -77,7 +77,7 @@ const Settings = () => {
       id: "tournaments",
       title: "My Tournaments",
       description: "Tournaments you've joined or hosted",
-      onClick: () => navigate("/profile"),
+      onClick: () => navigate("/tournaments"),
     },
     {
       id: "password",
