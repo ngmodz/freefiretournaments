@@ -2,12 +2,12 @@
   "name": "Freefire Tournaments",
   "short_name": "Freefire Tournaments",
   "description": "Your guide to Free Fire tournaments and competitions",
-  "start_url": "/?v=20250706112011",
+  "start_url": "/?v=20250706115512",
   "display": "standalone",
   "background_color": "#1B1F2D",
   "theme_color": "#172554",
   "orientation": "portrait",
-  "version": "1.0.20250706112011",
+  "version": "1.0.20250706115512",
   "icons": [
     {
       "src": "/lovable-uploads/new-logo.png",

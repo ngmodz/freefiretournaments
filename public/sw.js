@@ -1,5 +1,5 @@
 // Service Worker to help with cache management
-const CACHE_VERSION = 'v1-20250706112011';
+const CACHE_VERSION = 'v1-20250706115512';
 const CACHE_NAME = `app-cache-${CACHE_VERSION}`;
 
 // On install, cache the static assets

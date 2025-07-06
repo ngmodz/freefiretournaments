@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
 import { 
   User, 
   Settings as SettingsIcon, 
@@ -8,25 +9,78 @@ import {
   MapPin, 
   BadgeInfo,
   ArrowLeft,
-  Edit,
   Calendar,
-  Shield
+  Shield,
+  TrendingUp,
+  Target,
+  Award,
+  Users,
+  Clock,
+  Star
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserProfile } from "@/hooks/use-user-profile";
 import { useCreditBalance } from "@/hooks/useCreditBalance";
+import { useTournament } from "@/contexts/TournamentContext";
 import AvatarDisplay from "@/components/ui/AvatarDisplay";
+import TournamentCard from "@/components/TournamentCard";
 
 const Profile = () => {
   const { currentUser } = useAuth();
   const { user, loading } = useUserProfile();
   const creditData = useCreditBalance(currentUser?.uid);
+  const { 
+    hostedTournaments, 
+    joinedTournaments,
+    isLoadingHostedTournaments,
+    isLoadingJoinedTournaments,
+    refreshHostedTournaments,
+    refreshJoinedTournaments
+  } = useTournament();
   const navigate = useNavigate();
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024); // lg breakpoint
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Refresh tournament data on component mount
+  useEffect(() => {
+    refreshJoinedTournaments();
+    refreshHostedTournaments();
+  }, [refreshJoinedTournaments, refreshHostedTournaments]);
+
+  // Calculate tournament statistics
+  const totalJoinedTournaments = joinedTournaments.length;
+  const totalHostedTournaments = hostedTournaments.length;
+  const totalTournaments = totalJoinedTournaments + totalHostedTournaments;
+  
+  // Calculate completed tournaments (status === 'completed')
+  const completedJoined = joinedTournaments.filter(t => t.status === 'completed').length;
+  const completedHosted = hostedTournaments.filter(t => t.status === 'completed').length;
+  const totalCompleted = completedJoined + completedHosted;
+  
+  // Calculate active tournaments (ongoing status)
+  const activeJoined = joinedTournaments.filter(t => t.status === 'ongoing').length;
+  const activeHosted = hostedTournaments.filter(t => t.status === 'ongoing').length;
+  const totalActive = activeJoined + activeHosted;
+
+  // Wallet details
+  const totalBalance = creditData.hostCredits + creditData.tournamentCredits;
+  const totalEarnings = creditData.earnings || 0;
+  const totalPurchased = (creditData.totalPurchasedHostCredits || 0) + (creditData.totalPurchasedTournamentCredits || 0);
 
   if (loading && !user) {
     return (
@@ -48,41 +102,48 @@ const Profile = () => {
       })
     : 'Unknown';
 
-  const totalBalance = creditData.hostCredits + creditData.tournamentCredits;
-
   return (
-    <div className="container-padding py-4 min-h-screen">
+    <div 
+      className="container-padding min-h-screen overflow-auto" 
+      style={{ 
+        overscrollBehavior: 'contain',
+        WebkitOverflowScrolling: 'touch'
+      }}
+    >
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="space-y-6 max-w-4xl mx-auto"
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className={`space-y-6 max-w-4xl mx-auto py-4 ${isMobile ? 'pb-24' : 'pb-8'}`}
       >
         {/* Header with back button */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="mr-3 rounded-full bg-gaming-card hover:bg-gaming-card/80"
-              onClick={() => navigate(-1)}
-            >
-              <ArrowLeft size={18} />
-            </Button>
-            <div>
-              <h1 className="text-2xl font-bold text-white">Profile</h1>
-              <p className="text-gaming-muted text-sm">Your personal information and activity</p>
-            </div>
+        <motion.div 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="flex items-center mb-6"
+        >
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="mr-3 rounded-full bg-gaming-card hover:bg-gaming-card/80"
+            onClick={() => navigate(-1)}
+          >
+            <ArrowLeft size={18} />
+          </Button>
+          <div className="text-left">
+            <h1 className="text-2xl font-bold text-white text-left">Profile</h1>
+            <p className="text-gaming-muted text-sm text-left">Your personal information and activity</p>
           </div>
-          <Link to="/settings">
-            <Button variant="outline" className="border-gaming-primary/30">
-              <SettingsIcon size={16} className="mr-2" />
-              Settings
-            </Button>
-          </Link>
-        </div>
+        </motion.div>
 
         {/* Main Profile Card */}
-        <Card className="bg-gaming-card border-gaming-border shadow-xl">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+        >
+          <Card className="bg-gaming-card border-gaming-border shadow-xl">
           <CardContent className="p-8">
             <div className="flex flex-col lg:flex-row items-center lg:items-start gap-8">
               {/* Avatar Section */}
@@ -161,74 +222,356 @@ const Profile = () => {
             )}
           </CardContent>
         </Card>
+        </motion.div>
 
-        {/* Quick Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Credit Balance */}
+        {/* Comprehensive Stats Grid */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+        >
+          <h3 className="text-xl font-bold text-white mb-4">Overview</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {/* Total Balance */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+            >
+              <Card className="bg-gaming-card border-gaming-border">
+                <CardContent className="p-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-gaming-primary/20 rounded-full">
+                      <Wallet className="w-5 h-5 text-gaming-primary" />
+                    </div>
+                    <div>
+                      <p className="text-gaming-muted text-xs">Total Balance</p>
+                      <p className="text-lg font-bold text-white">₹{totalBalance}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* Total Tournaments */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.35 }}
+            >
+              <Card className="bg-gaming-card border-gaming-border">
+                <CardContent className="p-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-gaming-accent/20 rounded-full">
+                      <Trophy className="w-5 h-5 text-gaming-accent" />
+                    </div>
+                    <div>
+                      <p className="text-gaming-muted text-xs">Tournaments</p>
+                      <p className="text-lg font-bold text-white">{totalTournaments}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* Completed */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+            >
+              <Card className="bg-gaming-card border-gaming-border">
+                <CardContent className="p-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-green-500/20 rounded-full">
+                      <Award className="w-5 h-5 text-green-500" />
+                    </div>
+                    <div>
+                      <p className="text-gaming-muted text-xs">Completed</p>
+                      <p className="text-lg font-bold text-white">{totalCompleted}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* Earnings */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.45 }}
+            >
+              <Card className="bg-gaming-card border-gaming-border">
+                <CardContent className="p-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-yellow-500/20 rounded-full">
+                      <TrendingUp className="w-5 h-5 text-yellow-500" />
+                    </div>
+                    <div>
+                      <p className="text-gaming-muted text-xs">Earnings</p>
+                      <p className="text-lg font-bold text-white">₹{totalEarnings}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </div>
+        </motion.div>
+
+        {/* Detailed Wallet Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.5 }}
+        >
           <Card className="bg-gaming-card border-gaming-border">
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-4">
-                <div className="p-3 bg-gaming-primary/20 rounded-full">
-                  <Wallet className="w-6 h-6 text-gaming-primary" />
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <Wallet className="w-5 h-5" />
+                Wallet Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <p className="text-gaming-muted text-sm">Host Credits</p>
+                  <p className="text-2xl font-bold text-gaming-primary">₹{creditData.hostCredits}</p>
                 </div>
-                <div>
-                  <p className="text-gaming-muted text-sm">Credit Balance</p>
-                  <p className="text-2xl font-bold text-white">₹{totalBalance}</p>
+                <div className="space-y-2">
+                  <p className="text-gaming-muted text-sm">Tournament Credits</p>
+                  <p className="text-2xl font-bold text-gaming-accent">₹{creditData.tournamentCredits}</p>
                 </div>
+                <div className="space-y-2">
+                  <p className="text-gaming-muted text-sm">Total Purchased</p>
+                  <p className="text-2xl font-bold text-white">₹{totalPurchased}</p>
+                </div>
+              </div>
+              <Separator className="bg-gaming-border" />
+              <div className="flex justify-between items-center">
+                <span className="text-gaming-muted">Available Balance</span>
+                <span className="text-xl font-bold text-white">₹{totalBalance}</span>
               </div>
             </CardContent>
           </Card>
+        </motion.div>
 
-          {/* Tournaments Link */}
-          <Card className="bg-gaming-card border-gaming-border hover:bg-gaming-card/80 transition-colors cursor-pointer">
-            <Link to="/tournaments">
-              <CardContent className="p-6">
-                <div className="flex items-center space-x-4">
-                  <div className="p-3 bg-gaming-accent/20 rounded-full">
-                    <Trophy className="w-6 h-6 text-gaming-accent" />
-                  </div>
-                  <div>
-                    <p className="text-gaming-muted text-sm">My Tournaments</p>
-                    <p className="text-lg font-semibold text-white">View All</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Link>
+        {/* Tournament Activity Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.7 }}
+        >
+          <Card className="bg-gaming-card border-gaming-border">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <Trophy className="w-5 h-5" />
+                Tournament Activity
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue="joined" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 bg-gaming-bg">
+                  <TabsTrigger value="joined" className="data-[state=active]:bg-gaming-primary">
+                    Joined ({totalJoinedTournaments})
+                  </TabsTrigger>
+                  <TabsTrigger value="hosted" className="data-[state=active]:bg-gaming-accent">
+                    Hosted ({totalHostedTournaments})
+                  </TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="joined" className="mt-4">
+                  {isLoadingJoinedTournaments ? (
+                    <div className="text-center py-8">
+                      <p className="text-gaming-muted">Loading joined tournaments...</p>
+                    </div>
+                  ) : joinedTournaments.length > 0 ? (
+                    <div className="space-y-3 max-h-64 overflow-y-auto">
+                      {joinedTournaments.slice(0, 5).map((tournament) => (
+                        <Link 
+                          key={tournament.id} 
+                          to={`/tournament/${tournament.id}`}
+                          className="block p-3 bg-gaming-bg rounded-lg border border-gaming-border hover:bg-gaming-bg/80 hover:border-gaming-primary/50 transition-colors cursor-pointer"
+                        >
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h4 className="font-semibold text-white">{tournament.name}</h4>
+                              <p className="text-sm text-gaming-muted">{tournament.mode} • {tournament.map}</p>
+                              <p className="text-xs text-gaming-muted">
+                                {new Date(tournament.start_date).toLocaleDateString()}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <Badge 
+                                variant="outline" 
+                                className={`
+                                  ${tournament.status === 'completed' ? 'bg-green-500/20 text-green-500 border-green-500/30' : ''}
+                                  ${tournament.status === 'ongoing' ? 'bg-gaming-primary/20 text-gaming-primary border-gaming-primary/30' : ''}
+                                  ${tournament.status === 'cancelled' ? 'bg-red-500/20 text-red-500 border-red-500/30' : ''}
+                                `}
+                              >
+                                {tournament.status}
+                              </Badge>
+                              <p className="text-sm text-gaming-accent mt-1">₹{tournament.entry_fee}</p>
+                            </div>
+                          </div>
+                        </Link>
+                      ))}
+                      {joinedTournaments.length > 5 && (
+                        <div className="text-center pt-2">
+                          <Link to="/tournaments">
+                            <Button variant="ghost" size="sm" className="text-gaming-primary">
+                              View all {joinedTournaments.length} tournaments
+                            </Button>
+                          </Link>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Trophy className="w-12 h-12 text-gaming-muted mx-auto mb-3" />
+                      <p className="text-gaming-muted mb-2">No tournaments joined yet</p>
+                      <Link to="/home">
+                        <Button size="sm" className="bg-gaming-primary hover:bg-gaming-primary/90">
+                          Browse Tournaments
+                        </Button>
+                      </Link>
+                    </div>
+                  )}
+                </TabsContent>
+                
+                <TabsContent value="hosted" className="mt-4">
+                  {isLoadingHostedTournaments ? (
+                    <div className="text-center py-8">
+                      <p className="text-gaming-muted">Loading hosted tournaments...</p>
+                    </div>
+                  ) : hostedTournaments.length > 0 ? (
+                    <div className="space-y-3 max-h-64 overflow-y-auto">
+                      {hostedTournaments.slice(0, 5).map((tournament) => (
+                        <Link 
+                          key={tournament.id} 
+                          to={`/tournament/${tournament.id}`}
+                          className="block p-3 bg-gaming-bg rounded-lg border border-gaming-border hover:bg-gaming-bg/80 hover:border-gaming-accent/50 transition-colors cursor-pointer"
+                        >
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h4 className="font-semibold text-white">{tournament.name}</h4>
+                              <p className="text-sm text-gaming-muted">{tournament.mode} • {tournament.map}</p>
+                              <p className="text-xs text-gaming-muted">
+                                {new Date(tournament.start_date).toLocaleDateString()}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <Badge 
+                                variant="outline" 
+                                className={`
+                                  ${tournament.status === 'completed' ? 'bg-green-500/20 text-green-500 border-green-500/30' : ''}
+                                  ${tournament.status === 'ongoing' ? 'bg-gaming-accent/20 text-gaming-accent border-gaming-accent/30' : ''}
+                                  ${tournament.status === 'cancelled' ? 'bg-red-500/20 text-red-500 border-red-500/30' : ''}
+                                `}
+                              >
+                                {tournament.status}
+                              </Badge>
+                              <p className="text-sm text-gaming-accent mt-1">{tournament.max_players} players</p>
+                            </div>
+                          </div>
+                        </Link>
+                      ))}
+                      {hostedTournaments.length > 5 && (
+                        <div className="text-center pt-2">
+                          <Link to="/tournaments">
+                            <Button variant="ghost" size="sm" className="text-gaming-accent">
+                              View all {hostedTournaments.length} tournaments
+                            </Button>
+                          </Link>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Users className="w-12 h-12 text-gaming-muted mx-auto mb-3" />
+                      <p className="text-gaming-muted mb-2">No tournaments hosted yet</p>
+                      <Link to="/tournament/create">
+                        <Button size="sm" className="bg-gaming-accent hover:bg-gaming-accent/90">
+                          Create Tournament
+                        </Button>
+                      </Link>
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
+            </CardContent>
           </Card>
+        </motion.div>
 
-          {/* Wallet Link */}
-          <Card className="bg-gaming-card border-gaming-border hover:bg-gaming-card/80 transition-colors cursor-pointer">
-            <Link to="/wallet">
-              <CardContent className="p-6">
-                <div className="flex items-center space-x-4">
-                  <div className="p-3 bg-green-500/20 rounded-full">
-                    <Wallet className="w-6 h-6 text-green-500" />
-                  </div>
-                  <div>
-                    <p className="text-gaming-muted text-sm">Wallet</p>
-                    <p className="text-lg font-semibold text-white">Manage</p>
-                  </div>
-                </div>
+        {/* Quick Actions */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.9 }}
+          className="grid grid-cols-2 md:grid-cols-4 gap-3"
+        >
+          <Link to="/wallet" className="block">
+            <Card className="bg-gaming-card border-gaming-border hover:bg-gaming-card/80 transition-colors cursor-pointer h-full">
+              <CardContent className="p-4 text-center">
+                <Wallet className="w-8 h-8 text-green-500 mx-auto mb-2" />
+                <p className="text-sm font-medium text-white">Wallet</p>
+                <p className="text-xs text-gaming-muted">Manage funds</p>
               </CardContent>
-            </Link>
-          </Card>
-        </div>
+            </Card>
+          </Link>
+
+          <Link to="/tournaments" className="block">
+            <Card className="bg-gaming-card border-gaming-border hover:bg-gaming-card/80 transition-colors cursor-pointer h-full">
+              <CardContent className="p-4 text-center">
+                <Trophy className="w-8 h-8 text-gaming-accent mx-auto mb-2" />
+                <p className="text-sm font-medium text-white">Tournaments</p>
+                <p className="text-xs text-gaming-muted">View all</p>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link to="/tournament/create" className="block">
+            <Card className="bg-gaming-card border-gaming-border hover:bg-gaming-card/80 transition-colors cursor-pointer h-full">
+              <CardContent className="p-4 text-center">
+                <Users className="w-8 h-8 text-gaming-primary mx-auto mb-2" />
+                <p className="text-sm font-medium text-white">Create</p>
+                <p className="text-xs text-gaming-muted">New tournament</p>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link to="/buy-credits" className="block">
+            <Card className="bg-gaming-card border-gaming-border hover:bg-gaming-card/80 transition-colors cursor-pointer h-full">
+              <CardContent className="p-4 text-center">
+                <Star className="w-8 h-8 text-yellow-500 mx-auto mb-2" />
+                <p className="text-sm font-medium text-white">Buy Credits</p>
+                <p className="text-xs text-gaming-muted">Add funds</p>
+              </CardContent>
+            </Card>
+          </Link>
+        </motion.div>
 
         {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Link to="/settings" className="flex-1 sm:flex-none">
-            <Button className="w-full bg-gaming-primary hover:bg-gaming-primary/90 flex items-center justify-center gap-2">
-              <Edit size={16} />
-              Edit Profile
-            </Button>
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 1.0 }}
+          className="flex justify-center"
+        >
+          <Link to="/tournaments" className="flex-1 sm:flex-none max-w-xs">
+            <motion.div
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+            >
+              <Button 
+                className="w-full bg-gaming-primary hover:bg-gaming-primary/90 text-white font-medium py-2 px-6 rounded-md flex items-center justify-center gap-2 shadow-sm"
+              >
+                <Trophy size={16} />
+                View Tournaments
+              </Button>
+            </motion.div>
           </Link>
-          <Link to="/tournaments" className="flex-1 sm:flex-none">
-            <Button variant="outline" className="w-full border-gaming-border hover:bg-gaming-card flex items-center justify-center gap-2">
-              <Trophy size={16} />
-              View Tournaments
-            </Button>
-          </Link>
-        </div>
+        </motion.div>
       </motion.div>
     </div>
   );
