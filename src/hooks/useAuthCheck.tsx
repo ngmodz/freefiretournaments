@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
 /**
@@ -17,6 +17,7 @@ export function useAuthCheck(options: {
   const { requireAuth = false, redirectIfAuthenticated = false, redirectPath } = options;
   const { currentUser, isLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
@@ -27,13 +28,14 @@ export function useAuthCheck(options: {
         // Redirect to auth page if authentication is required but user is not authenticated
         navigate(redirectPath || '/auth');
       } else if (redirectIfAuthenticated && isAuthenticated) {
-        // Redirect to home if user is authenticated but shouldn't be on this page
-        navigate(redirectPath || '/home');
+        // Get the intended destination from location state, fallback to redirectPath or default
+        const from = (location.state as any)?.from?.pathname || redirectPath || '/home';
+        navigate(from);
       }
       
       setIsChecking(false);
     }
-  }, [currentUser, isLoading, navigate, redirectIfAuthenticated, requireAuth, redirectPath]);
+  }, [currentUser, isLoading, navigate, redirectIfAuthenticated, requireAuth, redirectPath, location]);
 
   return {
     isAuthenticated: !!currentUser,

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { signInWithGoogle } from "@/lib/firebase";
 
@@ -16,6 +16,7 @@ const GoogleLogo = () => (
 
 const SocialLoginOptions = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleGoogleLogin = async () => {
@@ -29,8 +30,9 @@ const SocialLoginOptions = () => {
         description: "Welcome to Free Fire Tournament",
       });
       
-      // Navigate to home after successful login
-      navigate('/home');
+      // Navigate to the intended page or home after successful login
+      const from = (location.state as any)?.from?.pathname || '/home';
+      navigate(from);
     } catch (error: any) {
       console.error("Google login error:", error);
       

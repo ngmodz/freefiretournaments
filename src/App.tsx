@@ -10,6 +10,7 @@ import NotFound from "./pages/NotFound";
 import TermsAndPolicy from "./pages/TermsAndPolicy";
 import Layout from "./components/Layout";
 import PWALayoutWrapper from "./components/PWALayoutWrapper";
+import ProtectedRoute from "./components/ProtectedRoute";
 import { Toaster } from "./components/ui/toaster";
 import { Toaster as SonnerToaster } from "./components/ui/sonner";
 import Landing from "./pages/Landing";
@@ -36,35 +37,63 @@ function App() {
           {/* Protected routes inside main layout */}
           <Route element={<Layout />}>
             <Route path="/home" element={
-              currentUser ? <Index /> : <Navigate to="/auth" replace />
+              <ProtectedRoute>
+                <Index />
+              </ProtectedRoute>
             } />
-            <Route path="/tournament/create" element={<TournamentCreate />} />
-            <Route path="/tournament/:id" element={<TournamentDetails />} />
+            <Route path="/tournament/create" element={
+              <ProtectedRoute>
+                <TournamentCreate />
+              </ProtectedRoute>
+            } />
+            <Route path="/tournament/:id" element={
+              <ProtectedRoute>
+                <TournamentDetails />
+              </ProtectedRoute>
+            } />
             <Route path="/tournaments" element={
-              currentUser ? <Tournaments /> : <Navigate to="/auth" replace />
+              <ProtectedRoute>
+                <Tournaments />
+              </ProtectedRoute>
             } />
             <Route path="/wallet" element={
-              currentUser ? <Wallet /> : <Navigate to="/auth" replace />
+              <ProtectedRoute>
+                <Wallet />
+              </ProtectedRoute>
             } />
             {/* Credits routes - available at multiple paths */}
             <Route path="/credits" element={
-              currentUser ? <Credits /> : <Navigate to="/auth" replace />
+              <ProtectedRoute>
+                <Credits />
+              </ProtectedRoute>
             } />
             <Route path="/packages" element={
-              currentUser ? <Credits /> : <Navigate to="/auth" replace />
+              <ProtectedRoute>
+                <Credits />
+              </ProtectedRoute>
             } />
             <Route path="/subscription" element={
-              currentUser ? <Credits /> : <Navigate to="/auth" replace />
+              <ProtectedRoute>
+                <Credits />
+              </ProtectedRoute>
             } />
             <Route path="/buy-credits" element={
-              currentUser ? <Credits /> : <Navigate to="/auth" replace />
+              <ProtectedRoute>
+                <Credits />
+              </ProtectedRoute>
             } />
             {/* Payment status page */}
             <Route path="/payment-status" element={
-              currentUser ? <PaymentStatus /> : <Navigate to="/auth" replace />
+              <ProtectedRoute>
+                <PaymentStatus />
+              </ProtectedRoute>
             } />
             <Route path="/profile" element={<Navigate to="/settings" replace />} />
-            <Route path="/settings" element={<Settings />} />
+            <Route path="/settings" element={
+              <ProtectedRoute>
+                <Settings />
+              </ProtectedRoute>
+            } />
             <Route path="/terms-and-privacy" element={<TermsAndPolicy />} />
           </Route>
           

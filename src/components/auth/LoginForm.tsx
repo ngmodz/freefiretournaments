@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Eye, EyeOff, Loader2, Mail, Lock, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ interface LoginFormProps {
 
 const LoginForm = ({ setActiveTab }: LoginFormProps) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [showPassword, setShowPassword] = useState(false);
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
@@ -79,9 +80,10 @@ const LoginForm = ({ setActiveTab }: LoginFormProps) => {
         localStorage.setItem("userEmail", loginEmail);
       }
       
-      // Navigate to home after successful login
+      // Navigate to the intended page or home after successful login
+      const from = (location.state as any)?.from?.pathname || '/home';
       setTimeout(() => {
-        navigate('/home');
+        navigate(from);
       }, 1000);
       
     } catch (error: any) {
