@@ -70,14 +70,6 @@ const TournamentHeader: React.FC<TournamentHeaderProps> = ({
                 )}
                 {tournament.status.toUpperCase()}
               </div>
-              
-              {/* Organizer badge */}
-                <div className="flex items-center ml-2 bg-[#1A1A1A]/60 backdrop-blur-sm px-2 py-1 rounded-md">
-                  <span className="text-[#E0E0E0] text-xs">By {hostIGN ? hostIGN : "..."} ({hostUID ? hostUID : "-"})</span>
-                  {hostVerified && (
-                  <Check size={14} className="ml-1 text-gaming-primary" />
-                )}
-              </div>
             </div>
             
             {/* Tournament name */}

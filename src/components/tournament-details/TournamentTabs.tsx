@@ -14,7 +14,7 @@ const TournamentTabs: React.FC<TournamentTabsProps> = ({
   onCopy
 }) => {
   return (
-    <Tabs defaultValue="info" className="w-full">image.png
+    <Tabs defaultValue="info" className="w-full">
       <TabsList className="bg-gradient-to-b from-gaming-card to-gaming-bg rounded-full flex justify-center items-center px-1 py-1 shadow-md border border-gaming-primary/20 overflow-hidden backdrop-blur-sm relative">
         <div className="absolute top-0 right-0 w-32 h-32 -mr-10 -mt-10 rounded-full bg-gaming-primary/5 blur-xl"></div>
         <div className="absolute bottom-0 left-0 w-24 h-24 -ml-8 -mb-8 rounded-full bg-gaming-accent/5 blur-lg"></div>

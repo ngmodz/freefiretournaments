@@ -6,9 +6,12 @@ import { Separator } from "@/components/ui/separator";
 import { TournamentDetailsSidebarProps } from "./types";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { getUserProfile } from "@/lib/firebase/profile";
+import { collection, query, where, getDocs } from "firebase/firestore";
 
 interface OrganizerData {
-  name: string;
+  ign: string;
+  uid: string;
   verified: boolean;
   tournamentsHosted: number;
 }
@@ -30,25 +33,26 @@ const TournamentSidebar: React.FC<TournamentDetailsSidebarProps> = ({
       }
 
       try {
-        const userDocRef = doc(db, "users", tournament.host_id);
-        const userDoc = await getDoc(userDocRef);
-        
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
-          setOrganizer({
-            name: userData.displayName || userData.username || "Anonymous Organizer",
-            verified: userData.verified || false,
-            tournamentsHosted: userData.tournamentsHosted || 0
-          });
-        } else {
-          setOrganizer({
-            name: "Unknown Organizer",
-            verified: false,
-            tournamentsHosted: 0
-          });
-        }
+        const profile = await getUserProfile(tournament.host_id);
+        // Fetch tournaments hosted count from Firestore
+        const tournamentsQuery = query(
+          collection(db, "tournaments"),
+          where("host_id", "==", tournament.host_id)
+        );
+        const tournamentsSnapshot = await getDocs(tournamentsQuery);
+        setOrganizer({
+          ign: profile.ign || "Unknown Organizer",
+          uid: profile.uid || "-",
+          verified: !!profile.isPremium,
+          tournamentsHosted: tournamentsSnapshot.size
+        });
       } catch (error) {
-        console.error("Error fetching organizer data:", error);
+        setOrganizer({
+          ign: "Unknown Organizer",
+          uid: "-",
+          verified: false,
+          tournamentsHosted: 0
+        });
       } finally {
         setLoading(false);
       }
@@ -113,8 +117,9 @@ const TournamentSidebar: React.FC<TournamentDetailsSidebarProps> = ({
           ) : organizer ? (
             <div className="flex items-center">
               <div>
-                <div className="font-medium text-white">{organizer.name}</div>
-                <div className="text-xs text-gaming-muted">{organizer.tournamentsHosted} tournaments hosted</div>
+                <div className="font-medium text-white text-left">IGN: {organizer.ign}</div>
+                <div className="text-xs text-gaming-muted text-left">UID: {organizer.uid}</div>
+                <div className="text-xs text-gaming-muted text-left">{organizer.tournamentsHosted} tournaments hosted</div>
               </div>
               {organizer.verified && (
                 <Check size={18} className="ml-auto text-gaming-primary" />
