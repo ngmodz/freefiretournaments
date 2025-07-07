@@ -193,6 +193,10 @@ const EntryAndPrizesForm = ({ formData, updateFormData, nextStep, prevStep }: En
             max="1000"
           />
           <p className="text-xs text-gray-400">
+            <span className="font-semibold text-blue-400">Entry Fee:</span> <span className="font-semibold text-blue-300">{entryFeeState}</span> credits &nbsp; | &nbsp;
+            <span className="font-semibold text-blue-400">Number of Players:</span> <span className="font-semibold text-blue-300">{maxPlayers}</span>
+          </p>
+          <p className="text-xs text-gray-400">
             <span className="font-semibold text-blue-400">Total expected prize pool:</span> <span className="font-semibold text-blue-300">{entryFeeState * maxPlayers}</span> credits
           </p>
         </div>
@@ -262,7 +266,13 @@ const EntryAndPrizesForm = ({ formData, updateFormData, nextStep, prevStep }: En
                     )}
                   </div>
                   {prizes.length > 1 && (
-                    <Button type="button" variant="ghost" size="icon" onClick={() => removePrizePosition(idx)}>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removePrizePosition(idx)}
+                      className="ml-2 min-w-[40px] min-h-[40px] flex-shrink-0"
+                    >
                       <Trash2 size={18} className="text-red-400" />
                     </Button>
                   )}
