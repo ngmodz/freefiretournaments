@@ -433,11 +433,27 @@ const ReviewAndPublish = ({ formData, prevStep }: ReviewAndPublishProps) => {
         </div>
       </div>
       {hostCreditError && (
-        <Alert variant="destructive" className="mb-6">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{hostCreditError}</AlertDescription>
-        </Alert>
+        <div className="flex justify-center w-full mb-6 mt-8">
+          <Alert
+            variant="destructive"
+            className="bg-red-100 border border-red-300 text-red-700 max-w-md w-full"
+            style={{
+              borderRadius: '0.75rem',
+              padding: '0.75rem 1rem',
+              minHeight: 'unset',
+              boxShadow: 'none',
+              display: 'block',
+            }}
+          >
+            <div className="flex flex-col items-center">
+              <AlertTriangle className="h-4 w-4 text-red-400 mb-1" />
+              <AlertTitle className="text-base font-semibold mb-1 text-center w-full">Error</AlertTitle>
+            </div>
+            <AlertDescription className="text-sm font-normal leading-tight text-left w-full mt-1">
+              {hostCreditError}
+            </AlertDescription>
+          </Alert>
+        </div>
       )}
     </div>
   );
