@@ -11,6 +11,9 @@ import { toast } from "sonner";
 import { auth } from "@/lib/firebase";
 import { signOut, onAuthStateChanged } from "firebase/auth";
 import { useTournament } from "@/contexts/TournamentContext";
+import { useCreditBalance } from '@/hooks/useCreditBalance';
+import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogFooter, AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel } from '@/components/ui/alert-dialog';
+import { useHostCredit } from '@/lib/walletService';
 
 // Array of banner images to randomly assign to tournaments
 const bannerImages = [
@@ -41,6 +44,10 @@ const ReviewAndPublish = ({ formData, prevStep }: ReviewAndPublishProps) => {
   // Generate a truly random banner index when component mounts 
   // Use useEffect to ensure it's random on each render
   const [selectedBannerIndex, setSelectedBannerIndex] = useState(0);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [hostCreditError, setHostCreditError] = useState<string | null>(null);
+  const currentUser = auth.currentUser;
+  const { hostCredits, isLoading: isHostCreditsLoading } = useCreditBalance(currentUser?.uid);
   
   useEffect(() => {
     // Generate a random index between 0 and bannerImages.length-1
@@ -150,75 +157,77 @@ const ReviewAndPublish = ({ formData, prevStep }: ReviewAndPublishProps) => {
     }
   };
 
-  // Handle tournament creation
-  const createTournamentHandler = async () => {
+  // Modified handler to show dialog
+  const handlePublishClick = () => {
+    setHostCreditError(null);
+    setShowConfirmDialog(true);
+  };
+
+  // Modified createTournamentHandler to accept a flag for dialog
+  const createTournamentHandler = async (fromDialog = false) => {
     try {
-      // Reset states
       setError(null);
-      
       if (!authVerified) {
         const isRefreshed = await refreshAuthentication();
         if (!isRefreshed) return;
       }
-      
-      // Validate data
       if (!validateTournamentData()) {
         return;
       }
-      
+      // Host credit check only if from dialog
+      if (fromDialog) {
+        if (isHostCreditsLoading) return;
+        if (hostCredits < 1) {
+          setHostCreditError('You need to add Host Credits before hosting a tournament.');
+          return;
+        }
+      }
       setIsSubmitting(true);
-      
-      // Single toast notification for the process
-      const toastId = toast.loading("Creating your tournament...");
-      
+      const toastId = toast.loading('Creating your tournament...');
       try {
         // Create the tournament in Firestore
         const result = await createTournament(formData);
-        
-        // Success!
+        // Deduct host credit if from dialog
+        if (fromDialog && currentUser) {
+          const useHostCreditResult = await useHostCredit(currentUser.uid, result.id, formData.name);
+          if (!useHostCreditResult.success) {
+            toast.error('Failed to deduct Host Credit. Please contact support.', { id: toastId });
+          }
+        }
         setSuccess(true);
-        
-        // Update the toast with a well-formatted success message
-        toast.success("Tournament created successfully!", { 
+        toast.success('Tournament created successfully!', {
           id: toastId,
-          position: "top-center",
-          className: "mobile-toast-success",
+          position: 'top-center',
+          className: 'mobile-toast-success',
           duration: 3000,
-          description: "Redirecting to tournament page..."
+          description: 'Redirecting to tournament page...'
         });
-        
-        // Refresh the tournaments list
         await refreshHostedTournaments();
-        
-        // Redirect after a delay
         setTimeout(() => {
           navigate(`/tournament/${result.id}`);
         }, 2000);
       } catch (innerError) {
-        // Update the toast with the error message
-        const errorMessage = innerError instanceof Error ? innerError.message : "Failed to create tournament. Please try again.";
-        toast.error(errorMessage, { 
+        const errorMessage = innerError instanceof Error ? innerError.message : 'Failed to create tournament. Please try again.';
+        toast.error(errorMessage, {
           id: toastId,
-          position: "top-center",
-          className: "mobile-toast-error",
+          position: 'top-center',
+          className: 'mobile-toast-error',
           duration: 4000
         });
         throw innerError;
       }
     } catch (error) {
-      console.error("Error creating tournament:", error);
-      const errorMessage = error instanceof Error ? error.message : "Failed to create tournament. Please try again.";
-      
-      // Handle specific error cases
-      if (errorMessage.includes("permission") || errorMessage.includes("Permission")) {
-        // If it's a permissions issue, try to refresh auth
-        toast.error("Permission issue detected. Refreshing your authentication...");
+      console.error('Error creating tournament:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create tournament. Please try again.';
+      if (errorMessage.includes('permission') || errorMessage.includes('Permission')) {
+        toast.error('Permission issue detected. Refreshing your authentication...');
         await refreshAuthentication();
       } else {
         setError(errorMessage);
       }
     } finally {
       setIsSubmitting(false);
+      setShowConfirmDialog(false);
     }
   };
 
@@ -392,17 +401,44 @@ const ReviewAndPublish = ({ formData, prevStep }: ReviewAndPublishProps) => {
             >
               <ChevronLeft size={18} className="mr-2" /> Back to Edit
             </Button>
-            <Button 
-              type="button"
-              onClick={createTournamentHandler}
-              disabled={isSubmitting || success}
-              className="bg-gaming-primary hover:bg-gaming-primary/90 w-full sm:w-auto order-1 sm:order-2 py-6 sm:py-2 rounded-xl sm:rounded-md text-base font-medium"
-            >
-              {isSubmitting ? "Creating..." : "Publish Tournament"}
-            </Button>
+            <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+              <AlertDialogTrigger asChild>
+                <Button 
+                  type="button"
+                  onClick={handlePublishClick}
+                  disabled={isSubmitting || success}
+                  className="bg-gaming-primary hover:bg-gaming-primary/90 w-full sm:w-auto order-1 sm:order-2 py-6 sm:py-2 rounded-xl sm:rounded-md text-base font-medium"
+                >
+                  {isSubmitting ? 'Creating...' : 'Publish Tournament'}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Confirm Hosting</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Hosting a tournament will cost <b>1 Host Credit</b>.<br />
+                    {isHostCreditsLoading ? 'Checking your balance...' : `You currently have ${hostCredits} Host Credit${hostCredits !== 1 ? 's' : ''}.`}
+                    <br />Do you want to proceed?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={isSubmitting}>Cancel</AlertDialogCancel>
+                  <AlertDialogAction disabled={isSubmitting || isHostCreditsLoading} onClick={() => createTournamentHandler(true)}>
+                    Yes, Host Tournament
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
       </div>
+      {hostCreditError && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{hostCreditError}</AlertDescription>
+        </Alert>
+      )}
     </div>
   );
 };

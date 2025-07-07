@@ -44,7 +44,7 @@ export interface Transaction {
 export interface CreditTransaction {
   id?: string;
   userId: string;
-  type: 'host_credit_purchase' | 'tournament_credit_purchase' | 'tournament_join' | 'tournament_win' | 'referral_bonus';
+  type: 'host_credit_purchase' | 'tournament_credit_purchase' | 'tournament_join' | 'tournament_win' | 'referral_bonus' | 'host_credit_use';
   amount: number;
   value?: number;
   balanceBefore: number;
@@ -633,6 +633,60 @@ export const addTournamentWinnings = async (
     return await addCreditTransaction(transaction);
   } catch (error) {
     console.error('Error adding tournament winnings:', error);
+    return { success: false, error };
+  }
+};
+
+/**
+ * Use host credits (for hosting a tournament)
+ * @param userId Firebase Auth UID of the user
+ * @param tournamentId ID of the tournament being hosted
+ * @param tournamentName Name of the tournament being hosted
+ * @returns Promise with the result of the operation
+ */
+export const useHostCredit = async (
+  userId: string,
+  tournamentId: string,
+  tournamentName: string
+) => {
+  try {
+    // Get the user's current host credit balance
+    const userRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userRef);
+    if (!userDoc.exists()) {
+      return { success: false, error: 'User not found' };
+    }
+    const userData = userDoc.data();
+    const currentCredits = userData.wallet?.hostCredits || 0;
+    // Check if user has at least 1 host credit
+    if (currentCredits < 1) {
+      return { success: false, error: 'Insufficient host credits' };
+    }
+    const newCredits = currentCredits - 1;
+    // Create a credit transaction
+    const transaction: CreditTransaction = {
+      userId,
+      type: 'host_credit_use',
+      amount: -1,
+      balanceBefore: currentCredits,
+      balanceAfter: newCredits,
+      walletType: 'hostCredits',
+      description: `Hosted tournament: ${tournamentName}`,
+      transactionDetails: {
+        tournamentId,
+        tournamentName
+      },
+      createdAt: new Date()
+    };
+    // Add the transaction
+    await addCreditTransaction(transaction);
+    // Update the user's host credits
+    await updateDoc(userRef, {
+      'wallet.hostCredits': newCredits
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Error using host credit:', error);
     return { success: false, error };
   }
 }; 
