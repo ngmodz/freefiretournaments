@@ -28,7 +28,7 @@ export interface Tournament {
   max_players: number;
   start_date: string;
   map: string;
-  room_type: "Classic" | "Clash Squad";
+  room_type: "Classic" | "Clash Squad" | "Lone Wolf";
   custom_settings: {
     auto_aim: boolean;
     [key: string]: any;
@@ -75,9 +75,10 @@ export const createTournament = async (tournamentData: Omit<TournamentFormData, 
     }
     
     // Check if prize distribution adds up to 100%
+    const totalPrizePool = tournamentData.entry_fee * tournamentData.max_players;
     const prizeTotal = Object.values(tournamentData.prize_distribution).reduce((sum, value) => sum + value, 0);
-    if (prizeTotal !== 100) {
-      throw new Error(`Prize distribution total must be 100%. Current total: ${prizeTotal}%`);
+    if (prizeTotal > totalPrizePool) {
+      throw new Error(`Prize distribution total cannot exceed the total expected prize pool. Current total: ${prizeTotal}`);
     }
     
     // Prepare tournament data

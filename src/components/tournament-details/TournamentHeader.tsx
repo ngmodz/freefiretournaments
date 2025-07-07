@@ -1,20 +1,36 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Calendar, Clock, Trophy, Check, Edit3, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TournamentHeaderProps } from "./types";
 import { cn } from "@/lib/utils";
+import { getUserProfile } from "@/lib/firebase/profile";
 
 const TournamentHeader: React.FC<TournamentHeaderProps> = ({
   tournament,
   isHost,
   onSetRoomDetails
 }) => {
-  // Mock organizer data
-  const mockOrganizer = {
-    name: "GamersHub",
-    verified: true,
-    tournaments: 45
-  };
+  const [hostName, setHostName] = useState<string | null>(null);
+  const [hostVerified, setHostVerified] = useState<boolean>(false);
+  const [hostIGN, setHostIGN] = useState<string | null>(null);
+  const [hostUID, setHostUID] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchHostName() {
+      try {
+        if (tournament.host_id) {
+          const profile = await getUserProfile(tournament.host_id);
+          setHostIGN(profile.ign || "Unknown Host");
+          setHostUID(profile.uid || "-");
+          setHostVerified(!!profile.isPremium);
+        }
+      } catch (e) {
+        setHostIGN("Unknown Host");
+        setHostUID("-");
+      }
+    }
+    fetchHostName();
+  }, [tournament.host_id]);
 
   // Format date and time
   const startDate = new Date(tournament.start_date);
@@ -37,7 +53,10 @@ const TournamentHeader: React.FC<TournamentHeaderProps> = ({
 
   return (
     <div className="w-full mb-6">
-      <div className="bg-gradient-to-r from-[#1A1A1A] to-[#1F2133] border border-[#333333] rounded-xl p-4 sm:p-6">
+      <div className="bg-gradient-to-b from-gaming-card to-gaming-bg text-gaming-text rounded-lg shadow-lg border border-gaming-primary/20 overflow-hidden backdrop-blur-sm relative">
+        <div className="absolute top-0 right-0 w-32 h-32 -mr-10 -mt-10 rounded-full bg-gaming-primary/5 blur-xl"></div>
+        <div className="absolute bottom-0 left-0 w-24 h-24 -ml-8 -mb-8 rounded-full bg-gaming-accent/5 blur-lg"></div>
+        <div className="p-4 sm:p-6 relative z-10">
         <div className="flex flex-col sm:flex-row sm:items-start justify-between mb-4">
           <div className="flex-grow">
             {/* Status badge */}
@@ -53,9 +72,9 @@ const TournamentHeader: React.FC<TournamentHeaderProps> = ({
               </div>
               
               {/* Organizer badge */}
-              <div className="flex items-center ml-2 bg-[#1A1A1A] px-2 py-1 rounded-md">
-                <span className="text-[#E0E0E0] text-xs">By {mockOrganizer.name}</span>
-                {mockOrganizer.verified && (
+                <div className="flex items-center ml-2 bg-[#1A1A1A]/60 backdrop-blur-sm px-2 py-1 rounded-md">
+                  <span className="text-[#E0E0E0] text-xs">By {hostIGN ? hostIGN : "..."} ({hostUID ? hostUID : "-"})</span>
+                  {hostVerified && (
                   <Check size={14} className="ml-1 text-gaming-primary" />
                 )}
               </div>
@@ -81,7 +100,7 @@ const TournamentHeader: React.FC<TournamentHeaderProps> = ({
         {/* Tournament details grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           {/* Prize pool */}
-          <div className="bg-[#1A1A1A] p-3 rounded-md">
+            <div className="bg-[#1A1A1A]/60 backdrop-blur-sm p-3 rounded-md border border-white/5">
             <div className="text-[#A0A0A0] text-xs mb-1">Prize Pool</div>
             <div className="flex items-center">
               <Trophy size={18} className="mr-2 text-gaming-accent" />
@@ -90,13 +109,13 @@ const TournamentHeader: React.FC<TournamentHeaderProps> = ({
           </div>
           
           {/* Entry fee */}
-          <div className="bg-[#1A1A1A] p-3 rounded-md">
+            <div className="bg-[#1A1A1A]/60 backdrop-blur-sm p-3 rounded-md border border-white/5">
             <div className="text-[#A0A0A0] text-xs mb-1">Entry Fee</div>
             <div className="text-[#D0D0D0] font-bold text-lg">{tournament.entry_fee} credits</div>
           </div>
           
           {/* Start date and time */}
-          <div className="bg-[#1A1A1A] p-3 rounded-md">
+            <div className="bg-[#1A1A1A]/60 backdrop-blur-sm p-3 rounded-md border border-white/5">
             <div className="text-[#A0A0A0] text-xs mb-1">Start Date & Time</div>
             <div className="flex items-center">
               <Calendar size={16} className="mr-2 text-[#C0C0C0]" />
@@ -107,11 +126,12 @@ const TournamentHeader: React.FC<TournamentHeaderProps> = ({
           </div>
           
           {/* Mode and max players */}
-          <div className="bg-[#1A1A1A] p-3 rounded-md">
+            <div className="bg-[#1A1A1A]/60 backdrop-blur-sm p-3 rounded-md border border-white/5">
             <div className="text-[#A0A0A0] text-xs mb-1">Mode & Players</div>
             <div className="flex items-center">
               <Users size={16} className="mr-2 text-[#C0C0C0]" />
               <span className="text-[#E0E0E0]">{tournament.mode} | Max: {tournament.max_players}</span>
+              </div>
             </div>
           </div>
         </div>

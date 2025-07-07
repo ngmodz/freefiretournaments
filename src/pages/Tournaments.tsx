@@ -157,10 +157,14 @@ const Tournaments = () => {
       />
       
       {/* Tabs */}
-      <Tabs defaultValue="joined-tournaments" className="mt-6" onValueChange={setActiveTab}>
-        <TabsList className="mb-4 bg-gaming-card">
-          <TabsTrigger value="joined-tournaments">Joined Tournaments</TabsTrigger>
-          <TabsTrigger value="hosted-tournaments">Hosted Tournaments</TabsTrigger>
+      <Tabs defaultValue="joined-tournaments" className="mt-6 flex flex-col items-center" onValueChange={setActiveTab}>
+        <TabsList className="mb-4 bg-gaming-card rounded-full shadow-lg flex justify-center items-center px-1 py-0.5">
+          <TabsTrigger value="joined-tournaments" className="transition-all duration-200 rounded-full px-4 py-1.5 text-sm font-semibold data-[state=active]:bg-gaming-primary data-[state=active]:text-white data-[state=active]:scale-105 data-[state=inactive]:text-[#A0A0A0] hover:scale-105 focus:outline-none">
+            Joined Tournaments
+          </TabsTrigger>
+          <TabsTrigger value="hosted-tournaments" className="transition-all duration-200 rounded-full px-4 py-1.5 text-sm font-semibold data-[state=active]:bg-gaming-primary data-[state=active]:text-white data-[state=active]:scale-105 data-[state=inactive]:text-[#A0A0A0] hover:scale-105 focus:outline-none">
+            Hosted Tournaments
+          </TabsTrigger>
         </TabsList>
         
         {/* Joined Tournaments Tab */}

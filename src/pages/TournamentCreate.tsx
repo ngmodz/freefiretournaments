@@ -23,7 +23,7 @@ export type TournamentFormData = {
 
   // Step 2: Game Settings
   map: string;
-  room_type: "Classic" | "Clash Squad";
+  room_type: "Classic" | "Clash Squad" | "Lone Wolf";
   custom_settings: {
     auto_aim: boolean;
     fall_damage?: boolean;
@@ -33,36 +33,7 @@ export type TournamentFormData = {
   // Step 3: Entry & Prizes
   entry_fee: number;
   prize_distribution: {
-    [key: string]: number; // e.g., "1st": 70
-  };
-  
-  // Prize Pool
-  prizePool?: {
-    enablePrizePool: boolean;
-    totalPrizeCredits: number;
-    prizeDistribution: {
-      first: number;
-      second: number;
-      third: number;
-    };
-    distributionPercentage: {
-      first: number;
-      second: number;
-      third: number;
-    };
-    prizeDistributionPercentage: {
-      first: number;
-      second: number;
-      third: number;
-    };
-    isDistributed: boolean;
-    distributedAt?: any;
-    distributedBy?: string;
-    winners?: {
-      first?: { uid: string; username: string; prizeCredits: number };
-      second?: { uid: string; username: string; prizeCredits: number };
-      third?: { uid: string; username: string; prizeCredits: number };
-    };
+    [key: string]: number;
   };
 
   // Step 4: Rules & Media
@@ -85,29 +56,10 @@ const TournamentCreate = () => {
     },
     entry_fee: 50,
     prize_distribution: {
-      "1st": 70,
-      "2nd": 20,
-      "3rd": 10,
-    },
-    prizePool: {
-      enablePrizePool: true,
-      totalPrizeCredits: 500,
-      prizeDistribution: {
-        first: 250,
-        second: 150,
-        third: 100
-      },
-      distributionPercentage: {
-        first: 50,
-        second: 30,
-        third: 20
-      },
-      prizeDistributionPercentage: {
-        first: 50,
-        second: 30,
-        third: 20
-      },
-      isDistributed: false
+      "1st": 250,
+      "2nd": 150,
+      "3rd": 100,
+      "4th": 50
     },
     rules: "",
   });
@@ -266,8 +218,12 @@ const TournamentCreate = () => {
         </div>
         
         {/* Current step content */}
-        <Card className="bg-gaming-card border border-purple-500/30 p-8 rounded-lg shadow-lg shadow-purple-500/10 transition-all duration-300 hover:border-purple-500/70 hover:shadow-purple-500/30">
-          {renderStep()}
+        <Card className="bg-gradient-to-b from-gaming-card to-gaming-bg text-gaming-text rounded-lg shadow-lg border border-gaming-primary/20 overflow-hidden backdrop-blur-sm p-8 relative transition-all duration-300 hover:border-purple-500/40 hover:shadow-purple-500/20">
+          <div className="absolute top-0 right-0 w-32 h-32 -mr-10 -mt-10 rounded-full bg-gaming-primary/5 blur-xl"></div>
+          <div className="absolute bottom-0 left-0 w-24 h-24 -ml-8 -mb-8 rounded-full bg-gaming-accent/5 blur-lg"></div>
+          <div className="relative z-10">
+            {renderStep()}
+          </div>
         </Card>
       </div>
     </div>

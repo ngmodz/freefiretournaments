@@ -74,6 +74,8 @@ const ReviewAndPublish = ({ formData, prevStep }: ReviewAndPublishProps) => {
   
   // Calculate total prize pool
   const totalPrizePool = formData.entry_fee * formData.max_players;
+  const totalPrizeCredits = Object.values(formData.prize_distribution).reduce((sum, value) => sum + value, 0);
+  const hostEarnings = Math.max(0, totalPrizePool - totalPrizeCredits);
 
   // Format date from ISO string
   const formatDate = (dateString: string): string => {
@@ -87,19 +89,13 @@ const ReviewAndPublish = ({ formData, prevStep }: ReviewAndPublishProps) => {
   // Helper to render prize distribution
   const renderPrizeDistribution = () => {
     return Object.entries(formData.prize_distribution)
-      .filter(([_, percentage]) => percentage > 0)
-      .map(([position, percentage]) => {
-        const amount = Math.round((percentage / 100) * totalPrizePool);
-        return (
-          <div key={position} className="flex justify-between items-center text-sm">
-            <span>{position} Place</span>
-            <div>
-              <span className="text-gaming-accent font-semibold">{percentage}%</span>
-              <span className="text-gaming-muted ml-2">₹{amount}</span>
-            </div>
-          </div>
-        );
-      });
+      .filter(([_, credits]) => credits > 0)
+      .map(([position, credits]) => (
+        <div key={position} className="flex justify-between items-center text-sm">
+          <span>{position} Place</span>
+          <span className="text-gaming-accent font-semibold">{credits} credits</span>
+        </div>
+      ));
   };
 
   // Validate tournament data
@@ -130,10 +126,10 @@ const ReviewAndPublish = ({ formData, prevStep }: ReviewAndPublishProps) => {
       return false;
     }
     
-    // Check if prize distribution adds up to 100%
-    const prizeTotal = Object.values(formData.prize_distribution).reduce((sum, value) => sum + value, 0);
-    if (prizeTotal !== 100) {
-      setError(`Prize distribution must total 100%. Current total: ${prizeTotal}%`);
+    // Validate prize distribution (credits mode)
+    const totalPrizeCredits = Object.values(formData.prize_distribution).reduce((sum, value) => sum + value, 0);
+    if (totalPrizeCredits > totalPrizePool) {
+      setError(`Total prize credits cannot exceed the total expected prize pool. Current total: ${totalPrizeCredits}`);
       return false;
     }
     
@@ -259,145 +255,152 @@ const ReviewAndPublish = ({ formData, prevStep }: ReviewAndPublishProps) => {
         </Alert>
       )}
       
-      <div className="bg-gaming-card-dark rounded-md p-6">
-        {/* Tournament Header */}
-        <div className="relative rounded-md overflow-hidden h-40 mb-4">
-          {/* Banner Image */}
-          <img 
-            src={bannerImages[selectedBannerIndex]}
-            alt={formData.name}
-            className="w-full h-full object-cover"
-          />
-          
-          {/* Overlay for text visibility */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent z-10"></div>
-          
-          {/* New Banner Change Button */}
-          <Button
-            type="button"
-            onClick={changeBannerImage}
-            className="absolute top-2 right-2 z-20 bg-black/60 hover:bg-black/80 text-white text-xs px-3 py-1 rounded-md"
-          >
-            Change Banner
-          </Button>
-          
-          <div className="absolute bottom-4 left-4 z-20">
-            <h3 className="text-xl font-bold text-white">{formData.name}</h3>
-            <div className="flex items-center text-white/80 text-sm">
-              <CalendarIcon size={14} className="mr-1" />
-              <span>{formData.start_date ? formatDate(formData.start_date) : "Date not set"}</span>
-            </div>
-          </div>
-        </div>
-        
-        {/* Tournament Details */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Left Column */}
-          <div>
-            <h4 className="font-semibold mb-3 flex items-center">
-              <Users size={16} className="mr-2 text-gaming-primary" />
-              Basic Information
-            </h4>
-            <div className="space-y-2 text-sm mb-6">
-              <div className="flex justify-between">
-                <span className="text-gaming-muted">Game Mode:</span>
-                <span>{formData.mode}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gaming-muted">Max Players:</span>
-                <span>{formData.max_players}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gaming-muted">Description:</span>
-              </div>
-              <p className="text-sm text-gaming-muted">{formData.description}</p>
-            </div>
+      <div className="bg-gradient-to-b from-gaming-card to-gaming-bg text-gaming-text rounded-lg shadow-lg border border-gaming-primary/20 overflow-hidden backdrop-blur-sm p-6 relative">
+        <div className="absolute top-0 right-0 w-32 h-32 -mr-10 -mt-10 rounded-full bg-gaming-primary/5 blur-xl"></div>
+        <div className="absolute bottom-0 left-0 w-24 h-24 -ml-8 -mb-8 rounded-full bg-gaming-accent/5 blur-lg"></div>
+        <div className="relative z-10">
+          {/* Tournament Header */}
+          <div className="relative rounded-md overflow-hidden h-40 mb-4">
+            {/* Banner Image */}
+            <img 
+              src={bannerImages[selectedBannerIndex]}
+              alt={formData.name}
+              className="w-full h-full object-cover"
+            />
             
-            <h4 className="font-semibold mb-3 flex items-center">
-              <MapPin size={16} className="mr-2 text-gaming-primary" />
-              Game Settings
-            </h4>
-            <div className="space-y-2 text-sm mb-6">
-              <div className="flex justify-between">
-                <span className="text-gaming-muted">Map:</span>
-                <span>{formData.map}</span>
+            {/* Overlay for text visibility */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent z-10"></div>
+            
+            {/* New Banner Change Button */}
+            <Button
+              type="button"
+              onClick={changeBannerImage}
+              className="absolute top-2 right-2 z-20 bg-black/60 hover:bg-black/80 text-white text-xs px-3 py-1 rounded-md"
+            >
+              Change Banner
+            </Button>
+            
+            <div className="absolute bottom-4 left-4 z-20">
+              <h3 className="text-xl font-bold text-white">{formData.name}</h3>
+              <div className="flex items-center text-white/80 text-sm">
+                <CalendarIcon size={14} className="mr-1" />
+                <span>{formData.start_date ? formatDate(formData.start_date) : "Date not set"}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gaming-muted">Room Type:</span>
-                <span>{formData.room_type}</span>
-              </div>
-              <Separator className="my-2" />
-              <h5 className="font-medium">Custom Settings:</h5>
-              <div className="flex justify-between">
-                <span className="text-gaming-muted">Auto-Aim:</span>
-                <span>{formData.custom_settings.auto_aim ? "Enabled" : "Disabled"}</span>
-              </div>
-              {formData.custom_settings.fall_damage !== undefined && (
-                <div className="flex justify-between">
-                  <span className="text-gaming-muted">Fall Damage:</span>
-                  <span>{formData.custom_settings.fall_damage ? "Enabled" : "Disabled"}</span>
-                </div>
-              )}
-              {formData.custom_settings.friendly_fire !== undefined && (
-                <div className="flex justify-between">
-                  <span className="text-gaming-muted">Friendly Fire:</span>
-                  <span>{formData.custom_settings.friendly_fire ? "Enabled" : "Disabled"}</span>
-                </div>
-              )}
             </div>
           </div>
           
-          {/* Right Column */}
-          <div>
-            <h4 className="font-semibold mb-3 flex items-center">
-              <Trophy size={16} className="mr-2 text-gaming-primary" />
-              Entry Fee & Prizes
-            </h4>
-            <div className="space-y-2 text-sm mb-6">
-              <div className="flex justify-between">
-                <span className="text-gaming-muted">Entry Fee:</span>
-                <span className="font-semibold">₹{formData.entry_fee}</span>
+          {/* Tournament Details */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Left Column */}
+            <div className="bg-gaming-bg/50 rounded-lg p-4 border border-white/5 backdrop-blur-sm">
+              <h4 className="font-semibold mb-3 flex items-center">
+                <Users size={16} className="mr-2 text-gaming-primary" />
+                Basic Information
+              </h4>
+              <div className="space-y-2 text-sm mb-6">
+                <div className="flex justify-between">
+                  <span className="text-gaming-muted">Game Mode:</span>
+                  <span>{formData.mode}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gaming-muted">Max Players:</span>
+                  <span>{formData.max_players}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gaming-muted">Description:</span>
+                </div>
+                <p className="text-sm text-gaming-muted">{formData.description}</p>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gaming-muted">Expected Prize Pool:</span>
-                <span className="font-semibold text-gaming-accent">₹{totalPrizePool}</span>
-              </div>
-              <Separator className="my-2" />
-              <h5 className="font-medium">Prize Distribution:</h5>
-              <div className="space-y-2 mt-2">
-                {renderPrizeDistribution()}
+              
+              <h4 className="font-semibold mb-3 flex items-center">
+                <MapPin size={16} className="mr-2 text-gaming-primary" />
+                Game Settings
+              </h4>
+              <div className="space-y-2 text-sm mb-6">
+                <div className="flex justify-between">
+                  <span className="text-gaming-muted">Map:</span>
+                  <span>{formData.map}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gaming-muted">Room Type:</span>
+                  <span>{formData.room_type}</span>
+                </div>
+                <Separator className="my-2" />
+                <h5 className="font-medium">Custom Settings:</h5>
+                <div className="flex justify-between">
+                  <span className="text-gaming-muted">Auto-Aim:</span>
+                  <span>{formData.custom_settings.auto_aim ? "Enabled" : "Disabled"}</span>
+                </div>
+                {formData.custom_settings.fall_damage !== undefined && (
+                  <div className="flex justify-between">
+                    <span className="text-gaming-muted">Fall Damage:</span>
+                    <span>{formData.custom_settings.fall_damage ? "Enabled" : "Disabled"}</span>
+                  </div>
+                )}
+                {formData.custom_settings.friendly_fire !== undefined && (
+                  <div className="flex justify-between">
+                    <span className="text-gaming-muted">Friendly Fire:</span>
+                    <span>{formData.custom_settings.friendly_fire ? "Enabled" : "Disabled"}</span>
+                  </div>
+                )}
               </div>
             </div>
             
-            <h4 className="font-semibold mb-3 flex items-center">
-              <Settings size={16} className="mr-2 text-gaming-primary" />
-              Tournament Rules
-            </h4>
-            <div className="bg-gaming-card rounded-md p-3 text-sm text-gaming-muted mb-4">
-              <p>{formData.rules || "No rules specified"}</p>
+            {/* Right Column */}
+            <div className="bg-gaming-bg/50 rounded-lg p-4 border border-white/5 backdrop-blur-sm">
+              <h4 className="font-semibold mb-3 flex items-center">
+                <Trophy size={16} className="mr-2 text-gaming-primary" />
+                Entry Fee & Prizes
+              </h4>
+              <div className="space-y-2 text-sm mb-6">
+                <div className="flex justify-between">
+                  <span className="text-gaming-muted">Entry Fee:</span>
+                  <span className="font-semibold">{formData.entry_fee} credits</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gaming-muted">Expected Prize Pool:</span>
+                  <span className="font-semibold text-gaming-accent">{totalPrizePool} credits</span>
+                </div>
+                <Separator className="my-2" />
+                <h5 className="font-medium">Prize Distribution:</h5>
+                <div className="space-y-2 mt-2">
+                  {renderPrizeDistribution()}
+                </div>
+                <div className="mt-2">
+                  <span className="font-semibold text-green-400">Host Earnings:</span> <span className="font-semibold text-green-300">{hostEarnings}</span> credits
+                </div>
+              </div>
+              
+              <h4 className="font-semibold mb-3 flex items-center">
+                <Settings size={16} className="mr-2 text-gaming-primary" />
+                Tournament Rules
+              </h4>
+              <div className="bg-gaming-card/70 rounded-md p-3 text-sm text-gaming-muted mb-4">
+                <p>{formData.rules || "No rules specified"}</p>
+              </div>
             </div>
           </div>
-        </div>
-        
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-3 sm:justify-between mt-8">
-          <Button 
-            type="button" 
-            variant="outline" 
-            onClick={prevStep}
-            disabled={isSubmitting || success}
-            className="border-gaming-primary text-gaming-primary w-full sm:w-auto order-2 sm:order-1 py-6 sm:py-2 rounded-xl sm:rounded-md text-base"
-          >
-            <ChevronLeft size={18} className="mr-2" /> Back to Edit
-          </Button>
-          <Button 
-            type="button"
-            onClick={createTournamentHandler}
-            disabled={isSubmitting || success}
-            className="bg-gaming-primary hover:bg-gaming-primary-dark w-full sm:w-auto order-1 sm:order-2 py-6 sm:py-2 rounded-xl sm:rounded-md text-base font-medium"
-          >
-            {isSubmitting ? "Creating..." : "Publish Tournament"}
-          </Button>
+          
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row gap-3 sm:justify-between mt-8">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={prevStep}
+              disabled={isSubmitting || success}
+              className="border-gaming-primary text-gaming-primary w-full sm:w-auto order-2 sm:order-1 py-6 sm:py-2 rounded-xl sm:rounded-md text-base"
+            >
+              <ChevronLeft size={18} className="mr-2" /> Back to Edit
+            </Button>
+            <Button 
+              type="button"
+              onClick={createTournamentHandler}
+              disabled={isSubmitting || success}
+              className="bg-gaming-primary hover:bg-gaming-primary/90 w-full sm:w-auto order-1 sm:order-2 py-6 sm:py-2 rounded-xl sm:rounded-md text-base font-medium"
+            >
+              {isSubmitting ? "Creating..." : "Publish Tournament"}
+            </Button>
+          </div>
         </div>
       </div>
     </div>

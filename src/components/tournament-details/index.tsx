@@ -313,7 +313,9 @@ const TournamentDetailsContent: React.FC<TournamentProps> = ({
 
             {/* Prize Pool Card - Show if tournament has prize pool */}
             {hasPrizePool() && (
-              <Card className="bg-gaming-card border-gaming-border mt-6">
+              <Card className="bg-gradient-to-b from-gaming-card to-gaming-bg text-gaming-text rounded-lg shadow-lg border border-gaming-primary/20 overflow-hidden backdrop-blur-sm mt-6 relative">
+                <div className="absolute top-0 right-0 w-32 h-32 -mr-10 -mt-10 rounded-full bg-gaming-primary/5 blur-xl"></div>
+                <div className="absolute bottom-0 left-0 w-24 h-24 -ml-8 -mb-8 rounded-full bg-gaming-accent/5 blur-lg"></div>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Trophy className="h-5 w-5 text-yellow-500" />
@@ -325,7 +327,7 @@ const TournamentDetailsContent: React.FC<TournamentProps> = ({
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="bg-gaming-bg/50 p-3 rounded-md">
+                    <div className="bg-gaming-bg/50 p-3 rounded-md backdrop-blur-sm border border-white/5">
                       <h4 className="font-medium mb-2">Total: {tournament?.prizePool?.totalPrizeCredits} Credits</h4>
                       <div className="grid grid-cols-3 gap-2 text-sm">
                         <div className="flex items-center gap-1">

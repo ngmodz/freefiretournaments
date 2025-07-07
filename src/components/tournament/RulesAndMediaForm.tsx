@@ -49,26 +49,31 @@ const RulesAndMediaForm = ({ formData, updateFormData, nextStep, prevStep }: Rul
       
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <FormField
-            control={form.control}
-            name="rules"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Tournament Rules</FormLabel>
-                <FormDescription>
-                  Add specific rules for your tournament (e.g., no emulators, no teaming)
-                </FormDescription>
-                <FormControl>
-                  <Textarea 
-                    placeholder="Enter tournament rules..." 
-                    className="bg-gaming-card text-white placeholder:text-gray-400 min-h-32" 
-                    {...field} 
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div className="bg-gradient-to-b from-gaming-card to-gaming-bg text-gaming-text rounded-lg shadow-lg border border-gaming-primary/20 overflow-hidden backdrop-blur-sm p-6 relative">
+            <div className="absolute top-0 right-0 w-32 h-32 -mr-10 -mt-10 rounded-full bg-gaming-primary/5 blur-xl"></div>
+            <div className="absolute bottom-0 left-0 w-24 h-24 -ml-8 -mb-8 rounded-full bg-gaming-accent/5 blur-lg"></div>
+            <div className="relative z-10">
+              <FormField
+                control={form.control}
+                name="rules"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormDescription>
+                      Add specific rules for your tournament (e.g., no emulators, no teaming)
+                    </FormDescription>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Enter tournament rules..." 
+                        className="bg-gaming-card text-white placeholder:text-gray-400 min-h-32" 
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </div>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-end mt-6">
             <Button 
@@ -81,7 +86,7 @@ const RulesAndMediaForm = ({ formData, updateFormData, nextStep, prevStep }: Rul
             </Button>
             <Button 
               type="submit" 
-              className="bg-gaming-primary hover:bg-gaming-primary-dark w-full sm:w-auto order-1 sm:order-2 py-6 sm:py-2 rounded-xl sm:rounded-md text-base font-medium"
+              className="bg-gaming-primary hover:bg-gaming-primary/90 w-full sm:w-auto order-1 sm:order-2 py-6 sm:py-2 rounded-xl sm:rounded-md text-base font-medium"
             >
               Next <ChevronRight size={18} className="ml-2" />
             </Button>

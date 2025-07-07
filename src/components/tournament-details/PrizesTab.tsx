@@ -37,8 +37,7 @@ const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
     <div>
       <h2 className="text-xl font-semibold mb-4">Prize Distribution</h2>
       <div className="space-y-4">
-        {sortedPrizes.map(([position, percentage], index) => {
-          const prizeAmount = (tournament.entry_fee * tournament.max_players * (percentage / 100)).toFixed(2);
+        {sortedPrizes.map(([position, credits], index) => {
           return (
             <div 
               key={position} 
@@ -62,10 +61,10 @@ const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
                 </div>
                 <div>
                   <div className="text-sm text-gaming-muted">
-                    {position} Place ({percentage}%)
+                    {position} Place
                   </div>
                   <div className="font-bold text-lg">
-                    {prizeAmount} credits
+                    {credits} credits
                   </div>
                 </div>
               </div>
