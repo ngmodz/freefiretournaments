@@ -157,7 +157,81 @@
   }
 
   .animate-pulse-glow {
-    animation: pulseGlow 2s infinite;
+    animation: pulseGlow 4s ease-in-out infinite alternate;
+  }
+
+  /* Premium gradient animations for tournament cards */
+  .animate-pulse-slow {
+    animation: pulseSlow 6s ease-in-out infinite alternate;
+  }
+
+  .animate-pulse-slower {
+    animation: pulseSlow 8s ease-in-out infinite alternate-reverse;
+  }
+
+  .animate-float {
+    animation: float 10s ease-in-out infinite;
+  }
+
+  .animate-float-delayed {
+    animation: float 12s ease-in-out infinite 2s;
+  }
+
+  .premium-card-border {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .premium-card-border::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(115deg, 
+      transparent 20%, 
+      rgba(155, 135, 245, 0.1) 40%, 
+      rgba(249, 115, 22, 0.1) 60%, 
+      transparent 80%
+    );
+    z-index: 1;
+    animation: shimmer 3s linear infinite;
+  }
+
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  @keyframes pulseSlow {
+    0% {
+      opacity: 0.4;
+      transform: scale(0.97);
+    }
+    100% {
+      opacity: 0.7;
+      transform: scale(1.03);
+    }
+  }
+
+  @keyframes float {
+    0% {
+      transform: translateY(0) translateX(0);
+    }
+    25% {
+      transform: translateY(-5px) translateX(5px);
+    }
+    50% {
+      transform: translateY(0) translateX(10px);
+    }
+    75% {
+      transform: translateY(5px) translateX(5px);
+    }
+    100% {
+      transform: translateY(0) translateX(0);
+    }
   }
 
   @keyframes animateIn {

@@ -72,9 +72,16 @@ const TournamentActivityList = ({ tournaments, type }: TournamentActivityListPro
         >
           {tournaments.map((tournament) => (
             <motion.div key={tournament.id} variants={itemVariants}>
-              <Card className="bg-[#111827] border-gaming-border hover:border-gaming-primary/50 transition-all duration-300">
-                <div className="p-4">
-                  <div className="flex justify-between items-start">
+              <Card className="bg-[#111827] border-gaming-border hover:border-gaming-primary/50 transition-all duration-300 overflow-hidden">
+                <div className="p-4 relative overflow-hidden premium-card-border backdrop-blur-sm">
+                  {/* Enhanced gradient effects */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-gaming-primary/5 via-transparent to-gaming-accent/5"></div>
+                  <div className="absolute top-0 right-0 w-28 h-28 bg-gaming-primary/10 rounded-full -mr-14 -mt-14 blur-xl animate-pulse-slow"></div>
+                  <div className="absolute bottom-0 left-0 w-20 h-20 bg-gaming-accent/10 rounded-full -ml-10 -mb-10 blur-xl animate-pulse-slower"></div>
+                  <div className="absolute top-1/2 left-1/4 w-12 h-12 bg-gaming-primary/5 rounded-full blur-xl animate-float"></div>
+                  <div className="absolute bottom-1/3 right-1/4 w-10 h-10 bg-gaming-accent/5 rounded-full blur-xl animate-float-delayed"></div>
+                  
+                  <div className="flex justify-between items-start relative z-10">
                     <h3 className="font-bold text-white">{tournament.title}</h3>
                     {tournament.status && (
                       <span className={cn(
@@ -89,7 +96,7 @@ const TournamentActivityList = ({ tournaments, type }: TournamentActivityListPro
                     )}
                   </div>
                   
-                  <div className="flex items-center text-xs text-[#A0AEC0] mt-2">
+                  <div className="flex items-center text-xs text-[#A0AEC0] mt-2 relative z-10">
                     <Calendar size={14} className="mr-1.5" />
                     <span>{tournament.date}</span>
                     {tournament.time && (
@@ -101,7 +108,7 @@ const TournamentActivityList = ({ tournaments, type }: TournamentActivityListPro
                   </div>
                   
                   {type === 'joined' && (
-                    <div className="mt-3 flex justify-between items-center">
+                    <div className="mt-3 flex justify-between items-center relative z-10">
                       <div className="text-sm">
                         <span className="text-[#A0AEC0]">Entry: </span>
                         <span className="text-white">{tournament.entryFee} credits</span>
@@ -120,7 +127,7 @@ const TournamentActivityList = ({ tournaments, type }: TournamentActivityListPro
                   )}
                   
                   {type === 'hosted' && (
-                    <div className="mt-3 flex justify-between items-center">
+                    <div className="mt-3 flex justify-between items-center relative z-10">
                       <div className="flex items-center text-sm">
                         <Users size={14} className="mr-1.5 text-[#A0AEC0]" />
                         <span className="text-white">{tournament.participants}/{tournament.totalSpots}</span>
@@ -133,7 +140,7 @@ const TournamentActivityList = ({ tournaments, type }: TournamentActivityListPro
                   )}
                   
                   {type === 'winnings' && tournament.prize > 0 && (
-                    <div className="mt-3 flex justify-between items-center">
+                    <div className="mt-3 flex justify-between items-center relative z-10">
                       <div className="flex items-center text-sm">
                         <Trophy size={14} className="mr-1.5 text-[#FFD700]" />
                         <span className="text-[#FFD700] font-semibold">Position #{tournament.position}</span>
@@ -145,7 +152,7 @@ const TournamentActivityList = ({ tournaments, type }: TournamentActivityListPro
                     </div>
                   )}
                   
-                  <div className="mt-4">
+                  <div className="mt-4 relative z-10">
                     <Link to={`/tournament/${tournament.id}`}>
                       <Button className="w-full bg-[#22C55E] hover:bg-[#22C55E]/90 text-white font-semibold">
                         View Details
@@ -275,4 +282,19 @@ const TournamentActivityList = ({ tournaments, type }: TournamentActivityListPro
                 )}
                 
                 <TableCell className="text-right">
-                  <Link to={`
+                  <Link to={`/tournament/${tournament.id}`}>
+                    <Button className="w-full bg-[#22C55E] hover:bg-[#22C55E]/90 text-white font-semibold">
+                      View Details
+                    </Button>
+                  </Link>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </>
+  );
+};
+
+export default TournamentActivityList;

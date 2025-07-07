@@ -114,7 +114,7 @@ const TournamentCard = ({ tournament }: TournamentCardProps) => {
           <img 
             src={getBannerImage()} 
             alt={title}
-            className="w-full h-full object-cover transition-transform duration-300 ease-in-out group-hover:scale-110"
+            className="w-full h-full object-cover"
           />
           
           {/* Prize and Entry Overlay - Top */}
@@ -142,11 +142,18 @@ const TournamentCard = ({ tournament }: TournamentCardProps) => {
         </div>
         
         {/* Tournament Title and Details */}
-        <div className="p-3 flex-grow">
-          <h3 className="font-semibold text-white mb-2 transition-colors duration-300 group-hover:text-purple-400">{title}</h3>
+        <div className="p-3 flex-grow relative overflow-hidden premium-card-border backdrop-blur-sm">
+          {/* Enhanced gradient effects */}
+          <div className="absolute inset-0 bg-gradient-to-br from-gaming-primary/5 via-transparent to-gaming-accent/5"></div>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-gaming-primary/10 rounded-full -mr-16 -mt-16 blur-xl animate-pulse-slow"></div>
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-gaming-accent/10 rounded-full -ml-12 -mb-12 blur-xl animate-pulse-slower"></div>
+          <div className="absolute top-1/2 left-1/4 w-16 h-16 bg-gaming-primary/5 rounded-full blur-xl animate-float"></div>
+          <div className="absolute bottom-1/3 right-1/4 w-12 h-12 bg-gaming-accent/5 rounded-full blur-xl animate-float-delayed"></div>
+          
+          <h3 className="font-semibold text-white mb-2 transition-colors duration-300 group-hover:text-purple-400 relative z-10">{title}</h3>
           
           {/* Tournament Info */}
-          <div className="space-y-1.5 text-sm text-gray-400">
+          <div className="space-y-1.5 text-sm text-gray-400 relative z-10">
             <div className="flex items-center transition-transform duration-300 hover:translate-x-1">
               <Calendar size={14} className="mr-1.5 transition-colors duration-300 group-hover:text-purple-400" />
               <span>{formatDate(date)}</span>
@@ -163,7 +170,7 @@ const TournamentCard = ({ tournament }: TournamentCardProps) => {
           
           {/* Join button */}
           {status === "active" && !isFullyBooked && (
-            <div className="mt-3">
+            <div className="mt-3 relative z-10">
               <Button 
                 variant="default" 
                 className="w-full bg-gaming-accent hover:bg-gaming-accent/90 text-white transition-all duration-300 transform group-hover:scale-[1.02] group-hover:shadow-md group-hover:shadow-purple-500/20"

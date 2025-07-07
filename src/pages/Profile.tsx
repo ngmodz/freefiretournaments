@@ -390,9 +390,16 @@ const Profile = () => {
                         <Link 
                           key={tournament.id} 
                           to={`/tournament/${tournament.id}`}
-                          className="block p-3 bg-gaming-bg rounded-lg border border-gaming-border hover:bg-gaming-bg/80 hover:border-gaming-primary/50 transition-colors cursor-pointer"
+                          className="block p-3 bg-gaming-bg rounded-lg border border-gaming-border hover:bg-gaming-bg/80 hover:border-gaming-primary/50 transition-colors cursor-pointer relative overflow-hidden premium-card-border backdrop-blur-sm"
                         >
-                          <div className="flex justify-between items-start">
+                          {/* Enhanced gradient effects */}
+                          <div className="absolute inset-0 bg-gradient-to-br from-gaming-primary/5 via-transparent to-gaming-accent/5"></div>
+                          <div className="absolute top-0 right-0 w-28 h-28 bg-gaming-primary/10 rounded-full -mr-14 -mt-14 blur-xl animate-pulse-slow"></div>
+                          <div className="absolute bottom-0 left-0 w-20 h-20 bg-gaming-accent/10 rounded-full -ml-10 -mb-10 blur-xl animate-pulse-slower"></div>
+                          <div className="absolute top-1/2 left-1/4 w-12 h-12 bg-gaming-primary/5 rounded-full blur-xl animate-float"></div>
+                          <div className="absolute bottom-1/3 right-1/4 w-10 h-10 bg-gaming-accent/5 rounded-full blur-xl animate-float-delayed"></div>
+                          
+                          <div className="flex justify-between items-start relative z-10">
                             <div>
                               <h4 className="font-semibold text-white">{tournament.name}</h4>
                               <p className="text-sm text-gaming-muted">{tournament.mode} • {tournament.map}</p>
@@ -450,9 +457,16 @@ const Profile = () => {
                         <Link 
                           key={tournament.id} 
                           to={`/tournament/${tournament.id}`}
-                          className="block p-3 bg-gaming-bg rounded-lg border border-gaming-border hover:bg-gaming-bg/80 hover:border-gaming-accent/50 transition-colors cursor-pointer"
+                          className="block p-3 bg-gaming-bg rounded-lg border border-gaming-border hover:bg-gaming-bg/80 hover:border-gaming-accent/50 transition-colors cursor-pointer relative overflow-hidden premium-card-border backdrop-blur-sm"
                         >
-                          <div className="flex justify-between items-start">
+                          {/* Enhanced gradient effects */}
+                          <div className="absolute inset-0 bg-gradient-to-br from-gaming-primary/5 via-transparent to-gaming-accent/5"></div>
+                          <div className="absolute top-0 right-0 w-28 h-28 bg-gaming-primary/10 rounded-full -mr-14 -mt-14 blur-xl animate-pulse-slow"></div>
+                          <div className="absolute bottom-0 left-0 w-20 h-20 bg-gaming-accent/10 rounded-full -ml-10 -mb-10 blur-xl animate-pulse-slower"></div>
+                          <div className="absolute top-1/2 left-1/4 w-12 h-12 bg-gaming-primary/5 rounded-full blur-xl animate-float"></div>
+                          <div className="absolute bottom-1/3 right-1/4 w-10 h-10 bg-gaming-accent/5 rounded-full blur-xl animate-float-delayed"></div>
+                          
+                          <div className="flex justify-between items-start relative z-10">
                             <div>
                               <h4 className="font-semibold text-white">{tournament.name}</h4>
                               <p className="text-sm text-gaming-muted">{tournament.mode} • {tournament.map}</p>
