@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { TournamentHeaderProps } from "./types";
 import { cn } from "@/lib/utils";
 import { getUserProfile } from "@/lib/firebase/profile";
+import TournamentCountdown from "../TournamentCountdown";
 
 const TournamentHeader: React.FC<TournamentHeaderProps> = ({
   tournament,
@@ -57,24 +58,24 @@ const TournamentHeader: React.FC<TournamentHeaderProps> = ({
         <div className="absolute top-0 right-0 w-32 h-32 -mr-10 -mt-10 rounded-full bg-gaming-primary/5 blur-xl"></div>
         <div className="absolute bottom-0 left-0 w-24 h-24 -ml-8 -mb-8 rounded-full bg-gaming-accent/5 blur-lg"></div>
         <div className="p-4 sm:p-6 relative z-10">
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between mb-4">
-          <div className="flex-grow">
-            {/* Status badge */}
-            <div className="flex items-center mb-3">
-              <div className={cn(
-                "text-white text-xs px-2 py-1 rounded-md inline-flex items-center",
-                getStatusColor(tournament.status)
-              )}>
-                {tournament.status === "ongoing" && (
-                  <span className="w-1.5 h-1.5 bg-white rounded-full mr-1 animate-pulse"></span>
-                )}
-                {tournament.status.toUpperCase()}
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between mb-4">
+            <div className="flex-grow">
+              {/* Status badge */}
+              <div className="flex items-center mb-3">
+                <div className={cn(
+                  "text-white text-xs px-2 py-1 rounded-md inline-flex items-center",
+                  getStatusColor(tournament.status)
+                )}>
+                  {tournament.status === "ongoing" && (
+                    <span className="w-1.5 h-1.5 bg-white rounded-full mr-1 animate-pulse"></span>
+                  )}
+                  {tournament.status.toUpperCase()}
+                </div>
               </div>
+              
+              {/* Tournament name */}
+              <h1 className="text-2xl md:text-3xl font-bold text-white mb-4">{tournament.name}</h1>
             </div>
-            
-            {/* Tournament name */}
-            <h1 className="text-2xl md:text-3xl font-bold text-white mb-4">{tournament.name}</h1>
-          </div>
           
           {/* Action button for host */}
           {isHost && (
@@ -92,7 +93,7 @@ const TournamentHeader: React.FC<TournamentHeaderProps> = ({
         {/* Tournament details grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           {/* Prize pool */}
-            <div className="bg-[#1A1A1A]/60 backdrop-blur-sm p-3 rounded-md border border-white/5">
+          <div className="bg-[#1A1A1A]/60 backdrop-blur-sm p-3 rounded-md border border-white/5">
             <div className="text-[#A0A0A0] text-xs mb-1">Prize Pool</div>
             <div className="flex items-center">
               <Trophy size={18} className="mr-2 text-gaming-accent" />
@@ -101,13 +102,13 @@ const TournamentHeader: React.FC<TournamentHeaderProps> = ({
           </div>
           
           {/* Entry fee */}
-            <div className="bg-[#1A1A1A]/60 backdrop-blur-sm p-3 rounded-md border border-white/5">
+          <div className="bg-[#1A1A1A]/60 backdrop-blur-sm p-3 rounded-md border border-white/5">
             <div className="text-[#A0A0A0] text-xs mb-1">Entry Fee</div>
             <div className="text-[#D0D0D0] font-bold text-lg">{tournament.entry_fee} credits</div>
           </div>
           
           {/* Start date and time */}
-            <div className="bg-[#1A1A1A]/60 backdrop-blur-sm p-3 rounded-md border border-white/5">
+          <div className="bg-[#1A1A1A]/60 backdrop-blur-sm p-3 rounded-md border border-white/5">
             <div className="text-[#A0A0A0] text-xs mb-1">Start Date & Time</div>
             <div className="flex items-center">
               <Calendar size={16} className="mr-2 text-[#C0C0C0]" />
@@ -118,14 +119,26 @@ const TournamentHeader: React.FC<TournamentHeaderProps> = ({
           </div>
           
           {/* Mode and max players */}
-            <div className="bg-[#1A1A1A]/60 backdrop-blur-sm p-3 rounded-md border border-white/5">
+          <div className="bg-[#1A1A1A]/60 backdrop-blur-sm p-3 rounded-md border border-white/5">
             <div className="text-[#A0A0A0] text-xs mb-1">Mode & Players</div>
             <div className="flex items-center">
               <Users size={16} className="mr-2 text-[#C0C0C0]" />
               <span className="text-[#E0E0E0]">{tournament.mode} | Max: {tournament.max_players}</span>
-              </div>
             </div>
           </div>
+        </div>
+        
+        {/* Tournament Auto-Delete Countdown */}
+        {tournament.ttl && (
+          <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-md">
+            <TournamentCountdown 
+              ttl={tournament.ttl.toDate().toISOString()} 
+              startDate={tournament.start_date}
+              className="text-yellow-400"
+              showWarning={true}
+            />
+          </div>
+        )}
         </div>
       </div>
     </div>

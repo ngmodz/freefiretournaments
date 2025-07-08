@@ -105,6 +105,16 @@
           "order": "DESCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "tournaments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ttl",
+          "order": "ASCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": []

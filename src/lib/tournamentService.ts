@@ -52,6 +52,8 @@ export interface Tournament {
       ign: string;
     };
   };
+  // TTL field for automatic deletion - 1 hour after scheduled time
+  ttl?: Timestamp;
 }
 
 // Create a new tournament
@@ -88,6 +90,11 @@ export const createTournament = async (tournamentData: Omit<TournamentFormData, 
       throw new Error(`Prize distribution total cannot exceed the total expected prize pool. Current total: ${prizeTotal}`);
     }
     
+    // Calculate TTL (2 minutes after scheduled start time for testing)
+    const startDate = new Date(tournamentData.start_date);
+    const ttlDate = new Date(startDate.getTime() + 2 * 60 * 1000); // Add 2 minutes for testing
+    const ttlTimestamp = Timestamp.fromDate(ttlDate);
+    
     // Prepare tournament data
     const tournament = {
       ...tournamentData,
@@ -96,6 +103,7 @@ export const createTournament = async (tournamentData: Omit<TournamentFormData, 
       created_at: serverTimestamp(),
       participants: [],
       filled_spots: 0,
+      ttl: ttlTimestamp, // Add TTL field for automatic deletion
     };
     
     console.log("Creating tournament:", tournament.name);

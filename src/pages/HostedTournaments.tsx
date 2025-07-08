@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Trash2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import TournamentList from "@/components/home/TournamentList";
@@ -7,15 +7,63 @@ import { TournamentType } from "@/components/home/types";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTournament } from "@/contexts/TournamentContext";
+import TournamentCleanupService from "@/lib/tournamentCleanupService";
 
 const HostedTournaments = () => {
   const [tournaments, setTournaments] = useState<TournamentType[]>([]);
   const [localLoading, setLocalLoading] = useState(false);
+  const [cleanupLoading, setCleanupLoading] = useState(false);
   const { toast } = useToast();
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const { hostedTournaments, isLoadingHostedTournaments, refreshHostedTournaments } = useTournament();
   const loadingTimeoutRef = useRef<number | null>(null);
+  
+  // Manual cleanup function
+  const handleManualCleanup = async () => {
+    setCleanupLoading(true);
+    try {
+      // First, do immediate cleanup
+      console.log('🚀 Starting immediate cleanup...');
+      const result = await TournamentCleanupService.deleteExpiredTournaments();
+      
+      // Wait a bit and try again to catch any that might have just expired
+      setTimeout(async () => {
+        try {
+          console.log('🔄 Second cleanup pass...');
+          await TournamentCleanupService.deleteExpiredTournaments();
+        } catch (error) {
+          console.error('Second cleanup pass failed:', error);
+        }
+      }, 1000);
+      
+      if (result.success) {
+        toast({
+          title: "Fast Cleanup Complete",
+          description: `${result.message} (Running aggressive cleanup mode)`,
+        });
+        
+        // Refresh tournaments after cleanup
+        if (refreshHostedTournaments) {
+          await refreshHostedTournaments();
+        }
+      } else {
+        toast({
+          title: "Cleanup Failed",
+          description: result.error || "Failed to clean up tournaments",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An error occurred during cleanup",
+        variant: "destructive",
+      });
+    } finally {
+      setCleanupLoading(false);
+    }
+  };
   
   // Cleanup timer on unmount
   useEffect(() => {
@@ -79,6 +127,7 @@ const HostedTournaments = () => {
               id: tournament.id || "",
               title: tournament.name || "Unnamed Tournament",
               mode: tournament.mode || "Unknown",
+              map: tournament.map || "",
               entryFee: tournament.entry_fee || 0,
               prizeMoney: (tournament.entry_fee || 0) * (tournament.max_players || 0),
               date: tournament.start_date || "",
@@ -88,7 +137,8 @@ const HostedTournaments = () => {
               status: tournament.status === 'active' ? 'active' : 
                       tournament.status === 'ongoing' ? 'ongoing' : 
                       tournament.status === 'completed' ? 'completed' : 'active',
-              isPremium: (tournament.entry_fee || 0) > 100 // Just an example condition for premium
+              isPremium: (tournament.entry_fee || 0) > 100, // Just an example condition for premium
+              ttl: tournament.ttl?.toDate().toISOString()
             };
           });
           
@@ -131,6 +181,18 @@ const HostedTournaments = () => {
             <p className="text-[#A0A0A0] text-sm">Tournaments you've created and manage</p>
           </div>
         </div>
+        
+        {/* Cleanup Button */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleManualCleanup}
+          disabled={cleanupLoading}
+          className="bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20"
+        >
+          <Trash2 size={16} className="mr-2" />
+          {cleanupLoading ? "Cleaning..." : "Clean Expired"}
+        </Button>
       </div>
       
       {/* Tournament List */}

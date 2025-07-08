@@ -59,7 +59,9 @@ service cloud.firestore {
       
       allow delete: if request.auth != null && 
                     (request.auth.token.admin == true || 
-                     resource.data.host_id == request.auth.uid);
+                     resource.data.host_id == request.auth.uid ||
+                     // Allow system deletion for expired tournaments
+                     (resource.data.ttl != null && resource.data.ttl <= request.time));
     }
     
     // Important: Allow users to list tournaments they host

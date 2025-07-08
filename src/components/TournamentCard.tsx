@@ -7,6 +7,7 @@ import { TournamentType, TournamentStatus } from "@/components/home/types";
 import { format, parseISO } from 'date-fns';
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import TournamentCountdown from "./TournamentCountdown";
 
 // Array of banner images to randomly assign to tournaments
 const bannerImages = [
@@ -141,12 +142,22 @@ const TournamentCard = ({ tournament }: TournamentCardProps) => {
             <div className="flex items-center transition-transform duration-300 hover:translate-x-1">
               <Clock size={14} className="mr-1.5 transition-colors duration-300 group-hover:text-purple-400" />
               <span>{time}</span>
-            </div>
-            <div className="flex items-center transition-transform duration-300 hover:translate-x-1">
-              <Users size={14} className="mr-1.5 transition-colors duration-300 group-hover:text-purple-400" />
-              <span>{filledSpots}/{totalSpots} Players</span>
-            </div>
+            </div>          <div className="flex items-center transition-transform duration-300 hover:translate-x-1">
+            <Users size={14} className="mr-1.5 transition-colors duration-300 group-hover:text-purple-400" />
+            <span>{filledSpots}/{totalSpots} Players</span>
           </div>
+          
+          {/* Tournament Auto-Delete Countdown */}
+          {tournament.ttl && (
+            <div className="transition-transform duration-300 hover:translate-x-1">
+              <TournamentCountdown 
+                ttl={tournament.ttl} 
+                startDate={`${tournament.date} ${tournament.time}`}
+                className="group-hover:text-purple-400 transition-colors duration-300" 
+              />
+            </div>
+          )}
+        </div>
           
           {/* Join button */}
           {status === "active" && !isFullyBooked && (
