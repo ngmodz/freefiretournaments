@@ -243,33 +243,50 @@ export default async function handler(req, res) {
       // Update order status in database and add credits if payment successful
       if (db && !skipCreditUpdate && orderData.order_tags && orderData.order_tags.userId) {
         try {
-          // Update order status in database
-          const orderRef = db.collection('paymentOrders').doc(orderId);
-          await orderRef.set({
-            orderId: orderData.order_id,
-            userId: orderData.order_tags.userId,
-            amount: parseInt(orderData.order_amount),
-            currency: orderData.order_currency,
-            orderStatus: orderData.order_status,
-            orderTags: orderData.order_tags,
-            customerDetails: orderData.customer_details,
-            paymentDetails: paymentDetails,
-            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-            verifiedAt: admin.firestore.FieldValue.serverTimestamp()
-          }, { merge: true });
+          // Check if credits have already been added to prevent duplicates
+          const existingOrder = await db.collection('paymentOrders').doc(orderId).get();
+          const alreadyProcessed = existingOrder.exists && existingOrder.data().creditsAdded === true;
           
-          // Update user wallet with credits
-          const userId = orderData.order_tags.userId;
-          const packageType = orderData.order_tags.packageType || 'tournament';
-          const priceAmount = parseInt(orderData.order_amount);
-          
-          // Get the actual credits amount from order tags, fallback to amount if not available
-          const creditsAmount = orderData.order_tags.creditsAmount 
-            ? parseInt(orderData.order_tags.creditsAmount) 
-            : priceAmount;
-          
-          await updateUserWallet(userId, packageType, creditsAmount, priceAmount, orderId, paymentDetails);
-          console.log('Order status updated and credits added for order:', orderId);
+          if (alreadyProcessed) {
+            console.log('✅ Credits already added for order:', orderId);
+          } else {
+            // Update order status in database
+            const orderRef = db.collection('paymentOrders').doc(orderId);
+            await orderRef.set({
+              orderId: orderData.order_id,
+              userId: orderData.order_tags.userId,
+              amount: parseInt(orderData.order_amount),
+              currency: orderData.order_currency,
+              orderStatus: orderData.order_status,
+              orderTags: orderData.order_tags,
+              customerDetails: orderData.customer_details,
+              paymentDetails: paymentDetails,
+              creditsAdded: true,
+              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+              verifiedAt: admin.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+            
+            // Update user wallet with credits
+            const userId = orderData.order_tags.userId;
+            const packageType = orderData.order_tags.packageType || 'tournament';
+            const priceAmount = parseInt(orderData.order_amount);
+            
+            // Get the actual credits amount from order tags, fallback to amount if not available
+            const creditsAmount = orderData.order_tags.creditsAmount 
+              ? parseInt(orderData.order_tags.creditsAmount) 
+              : priceAmount;
+            
+            console.log('🚨 MANUAL CREDIT ADDITION via verify-payment:', {
+              userId,
+              packageType,
+              creditsAmount,
+              priceAmount,
+              orderId
+            });
+            
+            await updateUserWallet(userId, packageType, creditsAmount, priceAmount, orderId, paymentDetails);
+            console.log('✅ Order status updated and credits added for order:', orderId);
+          }
         } catch (error) {
           console.error('Error updating order status or adding credits:', error);
         }

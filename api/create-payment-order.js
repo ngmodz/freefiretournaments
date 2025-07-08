@@ -91,12 +91,16 @@ export default async function handler(req, res) {
     const timestamp = Date.now().toString().slice(-8); // Last 8 digits of timestamp
     const orderId = `${(packageType || 'credits').substring(0, 4)}_${shortUserId}_${timestamp}`;
 
-    // Get application URLs
-    const appUrl = (process.env.VITE_APP_URL || process.env.APP_URL || 'http://localhost:5173').trim();
+    // Get application URLs with proper fallback for production
+    const appUrl = (process.env.VITE_APP_URL || process.env.APP_URL || 'https://freefiretournaments.vercel.app').trim();
     // Use the same URL for webhook as the return URL to ensure consistency
     const webhookUrl = appUrl;
 
     console.log('Using application URLs:', { appUrl, webhookUrl });
+    
+    // Log the exact webhook URL being sent to Cashfree
+    const exactWebhookUrl = `${webhookUrl}/api/payment-webhook`;
+    console.log('🔗 EXACT WEBHOOK URL being sent to Cashfree:', exactWebhookUrl);
 
     // Prepare CashFree order data
     const orderData = {

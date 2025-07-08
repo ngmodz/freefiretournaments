@@ -316,11 +316,16 @@ export default async function handler(req, res) {
       method: req.method,
       headers: req.headers,
       bodyType: typeof req.body,
-      bodyKeys: req.body ? Object.keys(req.body) : []
+      bodyKeys: req.body ? Object.keys(req.body) : [],
+      url: req.url
     });
     
     // Log the actual webhook data for debugging
     console.log('📦 Webhook payload:', JSON.stringify(req.body, null, 2));
+    
+    // Log the webhook URL that was called
+    console.log('🌐 Webhook URL called:', req.url);
+    console.log('🔗 Full webhook URL:', `${req.headers.host}${req.url}`);
 
     // Verify webhook signature - skip for SANDBOX environment
     const isSandbox = (process.env.CASHFREE_ENVIRONMENT || 'SANDBOX') === 'SANDBOX';
