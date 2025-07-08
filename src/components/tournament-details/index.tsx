@@ -9,8 +9,10 @@ import TournamentTabs from "./TournamentTabs";
 import TournamentSidebar from "./TournamentSidebar";
 import RoomDetailsDialog from "./RoomDetailsDialog";
 import PrizeDistributionDialog from "./PrizeDistributionDialog";
+import JoinTournamentDialog from "./JoinTournamentDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import JoinedUsersList from "./JoinedUsersList";
 
 // Extend the Tournament type to include prizePool
 declare module "@/lib/tournamentService" {
@@ -47,6 +49,7 @@ const TournamentDetailsContent: React.FC<TournamentProps> = ({
   const [isSavingRoomDetails, setIsSavingRoomDetails] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showJoinDialog, setShowJoinDialog] = useState(false);
 
   // Update room input fields when tournament changes
   useEffect(() => {
@@ -62,7 +65,7 @@ const TournamentDetailsContent: React.FC<TournamentProps> = ({
     : 0;
   const spotsLeft = tournament ? tournament.max_players - tournament.filled_spots : 0;
 
-  const handleJoinTournament = async () => {
+  const handleJoinTournament = () => {
     console.log("Join tournament button clicked");
     setError(null);
     
@@ -120,9 +123,14 @@ const TournamentDetailsContent: React.FC<TournamentProps> = ({
       return;
     }
     
-    console.log("Attempting to join tournament", { 
+    // Show the join dialog
+    setShowJoinDialog(true);
+  };
+
+  const handleConfirmJoin = async () => {
+    console.log("Confirming join tournament", { 
       tournamentId: id, 
-      userId: currentUser.uid,
+      userId: currentUser?.uid,
       isJoining
     });
     
@@ -138,6 +146,9 @@ const TournamentDetailsContent: React.FC<TournamentProps> = ({
         title: "Success",
         description: result.message || "You have successfully joined the tournament!",
       });
+      
+      // Close the dialog
+      setShowJoinDialog(false);
       
       // Refresh tournament data
       if (onRefresh) {
@@ -377,6 +388,10 @@ const TournamentDetailsContent: React.FC<TournamentProps> = ({
               onSetRoomDetails={() => setShowSetRoomModal(true)}
               onCopy={handleCopy}
             />
+            {/* Joined Users List (Host Only, below details) */}
+            {isHost && (
+              <JoinedUsersList participantUids={tournament.participants || []} />
+            )}
           </div>
         </div>
 
@@ -407,6 +422,15 @@ const TournamentDetailsContent: React.FC<TournamentProps> = ({
             onSuccess={onRefresh}
           />
         )}
+
+        {/* Join Tournament Dialog */}
+        <JoinTournamentDialog
+          open={showJoinDialog}
+          onOpenChange={setShowJoinDialog}
+          tournament={tournament}
+          onConfirm={handleConfirmJoin}
+          isJoining={isJoining}
+        />
       </div>
     );
   } catch (error) {

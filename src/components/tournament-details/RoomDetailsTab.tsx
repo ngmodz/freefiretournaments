@@ -1,14 +1,28 @@
 import React from "react";
-import { Edit3, AlertCircle, Copy } from "lucide-react";
+import { Edit3, AlertCircle, Copy, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RoomDetailsProps } from "./types";
 
 const RoomDetailsTab: React.FC<RoomDetailsProps> = ({
   tournament,
   isHost,
+  isParticipant,
   onSetRoomDetails,
   onCopy
 }) => {
+  // If not host or participant, show locked/blurred placeholder
+  if (!isHost && !isParticipant) {
+    return (
+      <div className="bg-gaming-card-deep border border-gaming-border rounded-md p-8 flex flex-col items-center justify-center text-center" style={{ minHeight: 220 }}>
+        <Lock size={36} className="text-gaming-muted mb-3" />
+        <h3 className="font-semibold text-lg mb-2">Room Details Locked</h3>
+        <p className="text-gaming-muted mb-2">Join the tournament to view the Room ID and Password.</p>
+        <div className="w-full h-10 bg-gaming-muted/20 rounded mb-2 blur-sm" />
+        <div className="w-full h-10 bg-gaming-muted/20 rounded blur-sm" />
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
@@ -25,7 +39,6 @@ const RoomDetailsTab: React.FC<RoomDetailsProps> = ({
           </Button>
         )}
       </div>
-      
       {(!tournament.room_id && !tournament.room_password) ? (
         <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-md p-4 mb-6 text-center">
           <AlertCircle size={24} className="text-yellow-500 mx-auto mb-2" />
@@ -45,7 +58,6 @@ const RoomDetailsTab: React.FC<RoomDetailsProps> = ({
             </div>
             <div className="font-mono text-xl font-semibold text-white">{tournament.room_id || "N/A"}</div>
           </div>
-          
           <div className="bg-gaming-card-deep border border-gaming-border rounded-md p-4">
             <div className="flex justify-between items-center mb-2">
               <div className="text-sm text-gaming-muted">Password</div>
@@ -55,7 +67,6 @@ const RoomDetailsTab: React.FC<RoomDetailsProps> = ({
             </div>
             <div className="font-mono text-xl font-semibold text-white">{tournament.room_password || "N/A"}</div>
           </div>
-          
           <div className="bg-gaming-primary/10 border border-gaming-primary/20 rounded-md p-4 mt-6">
             <h3 className="font-semibold mb-2">How to join the custom room</h3>
             <ol className="list-decimal list-inside text-gaming-muted space-y-2 pl-2">

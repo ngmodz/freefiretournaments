@@ -18,6 +18,7 @@ import {
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage, auth } from "./firebase";
 import { TournamentFormData } from "@/pages/TournamentCreate";
+import { useTournamentCredits } from "./walletService";
 
 // Tournament type definition
 export interface Tournament {
@@ -372,6 +373,21 @@ export const joinTournament = async (tournamentId: string) => {
       // Check if the user is the host
       if (tournament.host_id === currentUser.uid) {
         throw new Error("You cannot join your own tournament as you are the host");
+      }
+      
+      // Deduct tournament credits
+      const entryFee = tournament.entry_fee || 0;
+      if (entryFee > 0) {
+        const creditResult = await useTournamentCredits(
+          currentUser.uid,
+          tournamentId,
+          tournament.name,
+          entryFee
+        );
+        
+        if (!creditResult.success) {
+          throw new Error(creditResult.error || "Failed to deduct tournament credits");
+        }
       }
       
       // Prepare update data

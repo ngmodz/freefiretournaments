@@ -1,14 +1,12 @@
 import { Calendar, Clock, Users, Trophy } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { TournamentType, TournamentStatus } from "@/components/home/types";
 import { format, parseISO } from 'date-fns';
-import { joinTournament } from "@/lib/tournamentService";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
 
 // Array of banner images to randomly assign to tournaments
 const bannerImages = [
@@ -29,8 +27,7 @@ interface TournamentCardProps {
 }
 
 const TournamentCard = ({ tournament }: TournamentCardProps) => {
-  const [isJoining, setIsJoining] = useState(false);
-  
+  const navigate = useNavigate();
   const {
     id,
     title,
@@ -87,23 +84,6 @@ const TournamentCard = ({ tournament }: TournamentCardProps) => {
   
   const spotsLeft = totalSpots - filledSpots;
   const isFullyBooked = spotsLeft === 0;
-
-  // Handle join tournament action
-  const handleJoinTournament = async (e: React.MouseEvent) => {
-    e.preventDefault(); // Prevent navigation to tournament details
-    
-    try {
-      setIsJoining(true);
-      const result = await joinTournament(id);
-      if (result.success) {
-        toast.success(result.message);
-      }
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to join tournament");
-    } finally {
-      setIsJoining(false);
-    }
-  };
 
   return (
     <Link to={`/tournament/${id}`} className="block h-full">
@@ -174,10 +154,12 @@ const TournamentCard = ({ tournament }: TournamentCardProps) => {
               <Button 
                 variant="default" 
                 className="w-full bg-gaming-accent hover:bg-gaming-accent/90 text-white transition-all duration-300 transform group-hover:scale-[1.02] group-hover:shadow-md group-hover:shadow-purple-500/20"
-                disabled={isJoining}
-                onClick={handleJoinTournament}
+                onClick={e => {
+                  e.preventDefault();
+                  navigate(`/tournament/${id}`);
+                }}
               >
-                {isJoining ? "Joining..." : "Join Tournament"}
+                Join Tournament
               </Button>
             </div>
           )}

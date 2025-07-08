@@ -6,6 +6,8 @@ import RulesTab from "./RulesTab";
 import PrizesTab from "./PrizesTab";
 import RoomDetailsTab from "./RoomDetailsTab";
 import ResultsTab from "./ResultsTab";
+import { useContext } from "react";
+import AuthContext from "@/contexts/AuthContext";
 
 const TournamentTabs: React.FC<TournamentTabsProps> = ({
   tournament,
@@ -13,6 +15,9 @@ const TournamentTabs: React.FC<TournamentTabsProps> = ({
   onSetRoomDetails,
   onCopy
 }) => {
+  const auth = useContext(AuthContext);
+  const currentUser = auth?.currentUser;
+  const isParticipant = tournament.participants?.includes(currentUser?.uid) || false;
   return (
     <Tabs defaultValue="info" className="w-full">
       <TabsList className="bg-gradient-to-b from-gaming-card to-gaming-bg rounded-full flex justify-center items-center px-1 py-1 shadow-md border border-gaming-primary/20 overflow-hidden backdrop-blur-sm relative">
@@ -73,6 +78,7 @@ const TournamentTabs: React.FC<TournamentTabsProps> = ({
             <RoomDetailsTab 
               tournament={tournament}
               isHost={isHost}
+              isParticipant={isParticipant}
               onSetRoomDetails={onSetRoomDetails}
               onCopy={onCopy}
             />

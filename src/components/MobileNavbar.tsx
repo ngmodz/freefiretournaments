@@ -111,10 +111,6 @@ const MobileNavbar = ({ currentPath }: MobileNavbarProps) => {
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
       className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-gaming-bg/90 border-t border-gaming-border backdrop-blur-lg py-1 pb-safe"
     >
-      {/* Credit Display Bar - Using the CreditDisplay component */}
-      <div className="px-4 py-2 border-b border-gaming-border/50">
-        <CreditDisplay />
-      </div>
 
       <nav className="grid grid-cols-5 max-w-md mx-auto">
         {navItems.map((item, index) => (

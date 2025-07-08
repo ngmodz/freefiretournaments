@@ -25,6 +25,7 @@ export interface TournamentDetailsSidebarProps {
 export interface RoomDetailsProps {
   tournament: Tournament;
   isHost: boolean;
+  isParticipant: boolean;
   onSetRoomDetails: () => void;
   onCopy: (text: string) => void;
 }

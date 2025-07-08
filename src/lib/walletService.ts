@@ -579,7 +579,14 @@ export const useTournamentCredits = async (
     };
     
     // Add the transaction
-    return await addCreditTransaction(transaction);
+    await addCreditTransaction(transaction);
+    
+    // Update the user's tournament credits
+    await updateDoc(userRef, {
+      'wallet.tournamentCredits': newCredits
+    });
+    
+    return { success: true };
   } catch (error) {
     console.error('Error using tournament credits:', error);
     return { success: false, error };
@@ -630,7 +637,14 @@ export const addTournamentWinnings = async (
     };
     
     // Add the transaction
-    return await addCreditTransaction(transaction);
+    await addCreditTransaction(transaction);
+    
+    // Update the user's tournament credits
+    await updateDoc(userRef, {
+      'wallet.tournamentCredits': newCredits
+    });
+    
+    return { success: true };
   } catch (error) {
     console.error('Error adding tournament winnings:', error);
     return { success: false, error };
