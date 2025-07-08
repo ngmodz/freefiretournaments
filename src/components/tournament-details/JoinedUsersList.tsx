@@ -99,17 +99,20 @@ const JoinedUsersList: React.FC<JoinedUsersListProps> = ({ participantUids }) =>
           >
             <div className="font-bold text-gaming-primary mb-2">{idx + 1}.</div>
             <div className="flex flex-col gap-1">
-              <div>
+              <div className="flex items-center">
                 <span className="font-semibold text-gaming-muted">UID:</span>
                 <span className="ml-2 font-mono text-sm">{user.uid}</span>
+                <CopyButton value={user.uid} />
               </div>
-              <div>
+              <div className="flex items-center">
                 <span className="font-semibold text-gaming-muted">IGN:</span>
                 <span className="ml-2 text-sm">{user.ign}</span>
+                <CopyButton value={user.ign} />
               </div>
-              <div>
+              <div className="flex items-center">
                 <span className="font-semibold text-gaming-muted">Email:</span>
                 <span className="ml-2 text-sm">{user.email}</span>
+                <CopyButton value={user.email} />
               </div>
               {user._notFound && (
                 <div className="text-xs text-red-400 mt-1">User profile not found</div>
