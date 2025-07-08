@@ -53,12 +53,11 @@ export const getTournamentTimeRemaining = (tournament: Tournament) => {
 
 /**
  * Calculate the scheduled deletion time for a tournament
- * @param startDate Tournament start date string
+ * @param startedAt When the tournament was started by the host
  * @returns Date object representing when the tournament will be deleted
  */
-export const calculateTournamentDeletionTime = (startDate: string): Date => {
-  const start = new Date(startDate);
-  return new Date(start.getTime() + 2 * 60 * 1000); // Add 2 minutes for testing
+export const calculateTournamentDeletionTime = (startedAt: Date): Date => {
+  return new Date(startedAt.getTime() + 2 * 60 * 60 * 1000); // Add 2 hours
 };
 
 /**
@@ -79,17 +78,17 @@ export const shouldTournamentBeDeleted = (tournament: Tournament): boolean => {
 export const getTournamentDeletionWarning = (tournament: Tournament): string | null => {
   const { timeRemaining, hasExpired, formattedTime } = getTournamentTimeRemaining(tournament);
   
-  // Check if tournament has started
-  const now = new Date();
-  const tournamentStartTime = new Date(tournament.start_date);
-  const hasStarted = now.getTime() >= tournamentStartTime.getTime();
+  // Only show warnings for tournaments that have been started by host (have TTL)
+  if (!tournament.ttl) {
+    return null;
+  }
   
   if (hasExpired) {
     return "⚠️ This tournament has expired and will be automatically deleted soon.";
   }
 
-  // Only show warning if tournament has started and less than 1 minute remaining (for testing)
-  if (hasStarted && timeRemaining < 1 * 60 * 1000) {
+  // Show warning when less than 30 minutes remaining
+  if (timeRemaining < 30 * 60 * 1000) {
     return `⚠️ This tournament will be automatically deleted in ${formattedTime}.`;
   }
 

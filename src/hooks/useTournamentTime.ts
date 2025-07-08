@@ -63,8 +63,8 @@ export const useTournamentTime = (tournament?: Tournament) => {
       formattedTime += `${seconds}s`;
     }
 
-    // Show warning when less than 1 minute remaining (for testing)
-    const warning = timeRemaining < 1 * 60 * 1000 
+    // Show warning when less than 30 minutes remaining
+    const warning = timeRemaining < 30 * 60 * 1000 
       ? `⚠️ This tournament will be automatically deleted in ${formattedTime.trim()}.`
       : null;
 

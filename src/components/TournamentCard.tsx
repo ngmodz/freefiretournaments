@@ -8,6 +8,7 @@ import { format, parseISO } from 'date-fns';
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import TournamentCountdown from "./TournamentCountdown";
+import TournamentStatusBadge from "./TournamentStatusBadge";
 
 // Array of banner images to randomly assign to tournaments
 const bannerImages = [
@@ -56,6 +57,8 @@ const TournamentCard = ({ tournament }: TournamentCardProps) => {
     switch (status) {
       case "ongoing": 
         return { text: "LIVE NOW", bgColor: "bg-gaming-accent" };
+      case "ended": 
+        return { text: "ENDED", bgColor: "bg-red-500" };
       case "active": 
         return { text: "UPCOMING", bgColor: "bg-blue-500" };
       case "completed": 
@@ -107,13 +110,10 @@ const TournamentCard = ({ tournament }: TournamentCardProps) => {
             </div>
             
             {/* Status Badge */}
-            <div className={cn(
-              "text-xs font-bold px-1.5 py-0.5 rounded text-white transition-all duration-300",
-              statusBgColor,
-              "group-hover:shadow-md group-hover:shadow-purple-500/20 group-hover:scale-105"
-            )}>
-              {statusText}
-            </div>
+            <TournamentStatusBadge 
+              status={status} 
+              className="transition-all duration-300 group-hover:shadow-md group-hover:shadow-purple-500/20 group-hover:scale-105"
+            />
           </div>
           
           {/* Entry Fee - Bottom right */}

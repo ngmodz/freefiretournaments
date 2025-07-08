@@ -1,5 +1,5 @@
 import React from "react";
-import { Trophy, User, Gamepad2, CheckCircle2, XCircle } from "lucide-react";
+import { Trophy, User, Gamepad2, CheckCircle2, XCircle, Lock } from "lucide-react";
 import { Tournament } from "@/lib/tournamentService";
 import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
@@ -220,7 +220,7 @@ const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
   return (
     <div>
       <h2 className="text-xl font-semibold mb-4">Prize Distribution</h2>
-      {isHost && tournament.status !== "cancelled" && (
+      {isHost && tournament.status === "ended" && (
         <div className="mb-6">
           <h3 className="text-lg font-semibold mb-1">Distribute Prizes</h3>
           <p className="text-gaming-muted text-sm mb-2">
@@ -228,7 +228,24 @@ const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
           </p>
         </div>
       )}
-      <div className="space-y-4">
+      
+      {/* Prize Distribution Container with Blur Effect */}
+      <div className={`relative ${isHost && tournament.status !== "ended" ? 'pointer-events-none' : ''}`}>
+        {/* Blur Overlay for Locked State */}
+        {isHost && tournament.status !== "ended" && (
+          <div className="absolute inset-0 backdrop-blur-sm bg-black/30 rounded-xl z-10 flex items-center justify-center">
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <span className="text-yellow-400 text-lg">🔒</span>
+                <div className="text-yellow-400 text-lg font-semibold">Locked</div>
+              </div>
+              <div className="text-yellow-300 text-sm">Prize distribution locked until tournament ends</div>
+            </div>
+          </div>
+        )}
+        
+        {/* Prize Distribution Content */}
+        <div className={`space-y-4 ${isHost && tournament.status !== "ended" ? 'blur-sm' : ''}`}>
         {sortedPrizes.map(([position, credits], index) => {
           // Check if this position has a saved winner
           const savedWinner = tournament.winners?.[position];
@@ -281,7 +298,7 @@ const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
               {/* Winner entry or display */}
               {isHost && tournament.status !== "cancelled" ? (
                 hasWinner ? (
-                  // Show saved winner with option to edit
+                  // Show saved winner with option to edit only if tournament is ended
                   <div className="mt-2 md:mt-0 flex items-center gap-2">
                     <CheckCircle2 className="text-green-500 w-5 h-5" />
                     <div className="text-sm">UID: <span className="font-mono font-semibold">{savedWinner.uid}</span></div>
@@ -289,18 +306,19 @@ const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
                     <span className="text-xs text-green-600 font-medium bg-green-100 px-2 py-1 rounded">Credits Sent</span>
                   </div>
                 ) : (
-                  // Show input fields for entering new winner
-                  <div className="flex flex-col gap-3 mt-2 md:mt-0 w-full md:w-auto">
-                    {/* Show duplicate error message */}
-                    {duplicateErrors[position] && (
-                      <div className="flex items-start gap-3 text-red-600 text-sm w-full p-3 bg-red-50 rounded-lg border-l-4 border-red-500 shadow-sm">
-                        <XCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <div className="font-semibold mb-1">Duplicate Entry Detected</div>
-                          <div className="text-red-500">This UID and IGN combination is already used in: <span className="font-medium">{duplicateErrors[position].replace('This UID+IGN combination is already used in: ', '')}</span></div>
+                  // Show input fields only if tournament is ended
+                  tournament.status === "ended" ? (
+                    <div className="flex flex-col gap-3 mt-2 md:mt-0 w-full md:w-auto">
+                      {/* Show duplicate error message */}
+                      {duplicateErrors[position] && (
+                        <div className="flex items-start gap-3 text-red-600 text-sm w-full p-3 bg-red-50 rounded-lg border-l-4 border-red-500 shadow-sm">
+                          <XCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <div className="font-semibold mb-1">Duplicate Entry Detected</div>
+                            <div className="text-red-500">This UID and IGN combination is already used in: <span className="font-medium">{duplicateErrors[position].replace('This UID+IGN combination is already used in: ', '')}</span></div>
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
                     <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
                       <div className="relative w-32">
                         <User className="absolute left-2 top-2.5 w-4 h-4 text-gaming-muted" />
@@ -330,6 +348,13 @@ const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
                       </Button>
                     </div>
                   </div>
+                  ) : (
+                    // Show locked message for non-ended tournaments
+                    <div className="mt-2 md:mt-0 flex items-center gap-2 text-yellow-600">
+                      <Lock className="w-4 h-4" />
+                      <div className="text-sm">Prize distribution locked until tournament ends</div>
+                    </div>
+                  )
                 )
               ) : (
                 // For non-hosts, show saved winners if any
@@ -366,6 +391,7 @@ const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
             </div>
           </div>
         )}
+        </div>
       </div>
     </div>
   );

@@ -29,33 +29,25 @@ const TournamentCountdown: React.FC<TournamentCountdownProps> = ({
       const now = new Date();
       const deletionTime = new Date(ttl);
       
-      // Check if tournament has started
-      if (startDate) {
-        const tournamentStartTime = new Date(startDate);
-        const hasStarted = now.getTime() >= tournamentStartTime.getTime();
-        setTournamentStarted(hasStarted);
-        
-        // If tournament hasn't started yet, don't show deletion countdown
-        if (!hasStarted) {
-          setTimeRemaining("Not started");
-          setIsExpired(false);
-          setIsWarning(false);
-          return;
-        }
-      }
-
+      // For the new system: TTL is only set when host starts the tournament
+      // So if there's a TTL, the tournament has been started by the host
+      
       const timeDiff = deletionTime.getTime() - now.getTime();
 
       if (timeDiff <= 0) {
         setTimeRemaining("Expired");
         setIsExpired(true);
         setIsWarning(false);
+        setTournamentStarted(true);
         
         // Trigger immediate cleanup when tournament expires
         TournamentCleanupService.deleteExpiredTournaments().catch(console.error);
         
         return;
       }
+
+      // Tournament has TTL, so it has been started by host
+      setTournamentStarted(true);
 
       // Calculate time components
       const hours = Math.floor(timeDiff / (1000 * 60 * 60));
@@ -77,8 +69,8 @@ const TournamentCountdown: React.FC<TournamentCountdownProps> = ({
       setTimeRemaining(timeString.trim());
       setIsExpired(false);
 
-      // Set warning if less than 1 minute remaining (for testing)
-      setIsWarning(timeDiff < 1 * 60 * 1000);
+      // Set warning if less than 30 minutes remaining
+      setIsWarning(timeDiff < 30 * 60 * 1000);
       
       // Trigger ultra-aggressive cleanup when tournament is about to expire (within 30 seconds)
       if (timeDiff <= 30 * 1000) {
@@ -116,9 +108,10 @@ const TournamentCountdown: React.FC<TournamentCountdownProps> = ({
   };
 
   const getDisplayText = () => {
-    if (!tournamentStarted) return "Tournament not started";
+    if (!ttl) return "No expiration set";
     if (isExpired) return "Expired";
-    return `Auto-delete in ${timeRemaining}`;
+    if (tournamentStarted) return `Auto-delete in ${timeRemaining}`;
+    return "Tournament not started by host";
   };
 
   return (

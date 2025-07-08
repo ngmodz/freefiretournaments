@@ -13,6 +13,7 @@ export interface TournamentHeaderProps {
   tournament: Tournament;
   isHost: boolean;
   onSetRoomDetails: () => void;
+  onRefresh?: () => void;
 }
 
 export interface TournamentDetailsSidebarProps {

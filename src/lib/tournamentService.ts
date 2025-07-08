@@ -40,8 +40,11 @@ export interface Tournament {
   };
   rules: string;
   host_id: string;
-  status: "active" | "ongoing" | "completed" | "cancelled";
+  status: "active" | "ongoing" | "ended" | "completed" | "cancelled";
   created_at: Timestamp;
+  started_at?: Timestamp; // When the tournament was manually started by host
+  ended_at?: Timestamp; // When the tournament was manually ended by host
+  completed_at?: Timestamp; // When the tournament was marked as completed with winners
   participants: string[];
   filled_spots: number;
   room_id?: string | null;
@@ -90,10 +93,8 @@ export const createTournament = async (tournamentData: Omit<TournamentFormData, 
       throw new Error(`Prize distribution total cannot exceed the total expected prize pool. Current total: ${prizeTotal}`);
     }
     
-    // Calculate TTL (2 minutes after scheduled start time for testing)
-    const startDate = new Date(tournamentData.start_date);
-    const ttlDate = new Date(startDate.getTime() + 2 * 60 * 1000); // Add 2 minutes for testing
-    const ttlTimestamp = Timestamp.fromDate(ttlDate);
+    // Don't set TTL during creation - only when tournament is started by host
+    // The TTL will be set when the host manually starts the tournament
     
     // Prepare tournament data
     const tournament = {
@@ -103,7 +104,7 @@ export const createTournament = async (tournamentData: Omit<TournamentFormData, 
       created_at: serverTimestamp(),
       participants: [],
       filled_spots: 0,
-      ttl: ttlTimestamp, // Add TTL field for automatic deletion
+      // ttl will be set when host starts the tournament
     };
     
     console.log("Creating tournament:", tournament.name);
@@ -575,4 +576,179 @@ export const updateTournamentRoomDetails = async (
     const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
     return { success: false, message: errorMessage };
   }
-}; 
+};
+
+// Start tournament (only for host)
+export const startTournament = async (tournamentId: string) => {
+  try {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      throw new Error("You must be logged in to start a tournament");
+    }
+
+    // Get the tournament to verify ownership and check timing
+    const tournament = await getTournamentById(tournamentId);
+    
+    if (!tournament) {
+      throw new Error("Tournament not found");
+    }
+
+    // Verify the current user is the host
+    if (tournament.host_id !== currentUser.uid) {
+      throw new Error("Only the tournament host can start the tournament");
+    }
+
+    // Check if tournament can be started (20 minutes before scheduled time)
+    const now = new Date();
+    const scheduledStartTime = new Date(tournament.start_date);
+    const twentyMinutesBeforeStart = new Date(scheduledStartTime.getTime() - 20 * 60 * 1000);
+
+    if (now.getTime() < twentyMinutesBeforeStart.getTime()) {
+      const timeUntilStartWindow = twentyMinutesBeforeStart.getTime() - now.getTime();
+      const minutesUntilStart = Math.ceil(timeUntilStartWindow / (1000 * 60));
+      throw new Error(`Tournament can only be started 20 minutes before scheduled time. You can start it in ${minutesUntilStart} minutes.`);
+    }
+
+    // Check if tournament is in the correct status
+    if (tournament.status !== "active") {
+      throw new Error(`Tournament cannot be started. Current status: ${tournament.status}`);
+    }
+
+    // Calculate TTL (2 hours after scheduled start time)
+    const ttlDate = new Date(scheduledStartTime.getTime() + 2 * 60 * 60 * 1000); // Add 2 hours to scheduled time
+    const ttlTimestamp = Timestamp.fromDate(ttlDate);
+
+    // Update tournament status to "ongoing" and set TTL
+    const docRef = doc(db, "tournaments", tournamentId);
+    await updateDoc(docRef, { 
+      status: "ongoing",
+      started_at: serverTimestamp(), // Add timestamp when tournament was started
+      ttl: ttlTimestamp // Set TTL to 2 hours after scheduled start time
+    });
+
+    console.log(`Tournament ${tournamentId} started successfully with TTL set to ${ttlDate.toISOString()} (2 hours after scheduled time)`);
+    
+    return {
+      success: true,
+      message: "Tournament started successfully",
+      tournament: {
+        ...tournament,
+        status: "ongoing" as const,
+        ttl: ttlTimestamp
+      }
+    };
+  } catch (error) {
+    console.error("Error starting tournament:", error);
+    throw error;
+  }
+};
+
+// Check if tournament can be started by host
+export const canStartTournament = (tournament: Tournament, currentUserId?: string) => {
+  if (!currentUserId || tournament.host_id !== currentUserId) {
+    return {
+      canStart: false,
+      reason: "Only the tournament host can start the tournament"
+    };
+  }
+
+  if (tournament.status !== "active") {
+    return {
+      canStart: false,
+      reason: `Tournament cannot be started. Current status: ${tournament.status}`
+    };
+  }
+
+  const now = new Date();
+  const scheduledStartTime = new Date(tournament.start_date);
+  const twentyMinutesBeforeStart = new Date(scheduledStartTime.getTime() - 20 * 60 * 1000);
+
+  if (now.getTime() < twentyMinutesBeforeStart.getTime()) {
+    const timeUntilStartWindow = twentyMinutesBeforeStart.getTime() - now.getTime();
+    const minutesUntilStart = Math.ceil(timeUntilStartWindow / (1000 * 60));
+    return {
+      canStart: false,
+      reason: `Tournament can only be started 20 minutes before scheduled time. You can start it in ${minutesUntilStart} minutes.`
+    };
+  }
+
+  return {
+    canStart: true,
+    reason: "Tournament is ready to start"
+  };
+};
+
+// End tournament (only for host)
+export const endTournament = async (tournamentId: string) => {
+  try {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      throw new Error("You must be logged in to end a tournament");
+    }
+
+    // Get the tournament to verify ownership
+    const tournament = await getTournamentById(tournamentId);
+    
+    if (!tournament) {
+      throw new Error("Tournament not found");
+    }
+
+    // Verify the current user is the host
+    if (tournament.host_id !== currentUser.uid) {
+      throw new Error("Only the tournament host can end the tournament");
+    }
+
+    // Check if tournament is in the correct status (must be ongoing)
+    if (tournament.status !== "ongoing") {
+      throw new Error(`Tournament cannot be ended. Current status: ${tournament.status}`);
+    }
+
+    // Update tournament status to "ended" and set TTL for 10 minutes (for prize distribution)
+    const endedAt = new Date();
+    const ttlDate = new Date(endedAt.getTime() + 10 * 60 * 1000); // Add 10 minutes for prize distribution
+    const ttlTimestamp = Timestamp.fromDate(ttlDate);
+    
+    const docRef = doc(db, "tournaments", tournamentId);
+    await updateDoc(docRef, { 
+      status: "ended",
+      ended_at: serverTimestamp(), // Add timestamp when tournament was ended
+      ttl: ttlTimestamp // Set TTL to 10 minutes after ending for prize distribution
+    });
+
+    console.log(`Tournament ${tournamentId} ended successfully with TTL set to ${ttlDate.toISOString()} (10 minutes for prize distribution)`);
+    
+    return {
+      success: true,
+      message: "Tournament ended successfully",
+      tournament: {
+        ...tournament,
+        status: "ended" as const
+      }
+    };
+  } catch (error) {
+    console.error("Error ending tournament:", error);
+    throw error;
+  }
+};
+
+// Check if tournament can be ended by host
+export const canEndTournament = (tournament: Tournament, currentUserId?: string) => {
+  if (!currentUserId || tournament.host_id !== currentUserId) {
+    return {
+      canEnd: false,
+      reason: "Only the tournament host can end the tournament"
+    };
+  }
+
+  if (tournament.status !== "ongoing") {
+    return {
+      canEnd: false,
+      reason: `Tournament cannot be ended. Current status: ${tournament.status}`
+    };
+  }
+
+  return {
+    canEnd: true,
+    reason: "Tournament is ready to be ended"
+  };
+};

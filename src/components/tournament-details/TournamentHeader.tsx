@@ -5,16 +5,22 @@ import { TournamentHeaderProps } from "./types";
 import { cn } from "@/lib/utils";
 import { getUserProfile } from "@/lib/firebase/profile";
 import TournamentCountdown from "../TournamentCountdown";
+import TournamentStatusBadge from "../TournamentStatusBadge";
+import StartTournamentButton from "../StartTournamentButton";
+import EndTournamentButton from "../EndTournamentButton";
+import { useTournament } from "@/contexts/TournamentContext";
 
 const TournamentHeader: React.FC<TournamentHeaderProps> = ({
   tournament,
   isHost,
-  onSetRoomDetails
+  onSetRoomDetails,
+  onRefresh
 }) => {
   const [hostName, setHostName] = useState<string | null>(null);
   const [hostVerified, setHostVerified] = useState<boolean>(false);
   const [hostIGN, setHostIGN] = useState<string | null>(null);
   const [hostUID, setHostUID] = useState<string | null>(null);
+  const { refreshHostedTournaments } = useTournament();
 
   useEffect(() => {
     async function fetchHostName() {
@@ -62,32 +68,52 @@ const TournamentHeader: React.FC<TournamentHeaderProps> = ({
             <div className="flex-grow">
               {/* Status badge */}
               <div className="flex items-center mb-3">
-                <div className={cn(
-                  "text-white text-xs px-2 py-1 rounded-md inline-flex items-center",
-                  getStatusColor(tournament.status)
-                )}>
-                  {tournament.status === "ongoing" && (
-                    <span className="w-1.5 h-1.5 bg-white rounded-full mr-1 animate-pulse"></span>
-                  )}
-                  {tournament.status.toUpperCase()}
-                </div>
+                <TournamentStatusBadge status={tournament.status} />
               </div>
               
               {/* Tournament name */}
               <h1 className="text-2xl md:text-3xl font-bold text-white mb-4">{tournament.name}</h1>
             </div>
           
-          {/* Action button for host */}
-          {isHost && (
-            <Button 
-              onClick={onSetRoomDetails} 
-              size="sm" 
-              className="mt-3 sm:mt-0 bg-gaming-accent hover:bg-gaming-accent/90 text-white"
-            >
-              <Edit3 size={16} className="mr-1.5" />
-              Set Room Details
-            </Button>
-          )}
+          {/* Action buttons for host */}
+          <div className="flex flex-col gap-2">
+            {isHost && (
+              <Button 
+                onClick={onSetRoomDetails} 
+                size="sm" 
+                className="bg-gaming-accent hover:bg-gaming-accent/90 text-white"
+              >
+                <Edit3 size={16} className="mr-1.5" />
+                Set Room Details
+              </Button>
+            )}
+            
+            {/* Start Tournament Button */}
+            <StartTournamentButton 
+              tournament={tournament}
+              onTournamentStarted={async () => {
+                // Refresh tournaments data
+                await refreshHostedTournaments();
+                // Refresh current tournament details
+                if (onRefresh) {
+                  onRefresh();
+                }
+              }}
+            />
+            
+            {/* End Tournament Button */}
+            <EndTournamentButton 
+              tournament={tournament}
+              onTournamentEnded={async () => {
+                // Refresh tournaments data
+                await refreshHostedTournaments();
+                // Refresh current tournament details
+                if (onRefresh) {
+                  onRefresh();
+                }
+              }}
+            />
+          </div>
         </div>
         
         {/* Tournament details grid */}

@@ -342,6 +342,7 @@ const TournamentDetailsContent: React.FC<TournamentProps> = ({
           tournament={tournament} 
           isHost={isHost}
           onSetRoomDetails={() => setShowSetRoomModal(true)}
+          onRefresh={onRefresh}
         />
 
         {/* Main content */}

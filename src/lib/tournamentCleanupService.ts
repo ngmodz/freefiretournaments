@@ -37,7 +37,30 @@ export class TournamentCleanupService {
       
       const expiredTournaments = await getDocs(expiredQuery);
       
-      if (expiredTournaments.empty) {
+      // Also check for ended tournaments without TTL that should have expired
+      const endedTournamentsQuery = query(
+        collection(db, 'tournaments'),
+        where('status', '==', 'ended'),
+        limit(maxBatchSize)
+      );
+      
+      const endedTournaments = await getDocs(endedTournamentsQuery);
+      
+      // Filter ended tournaments without TTL that should have expired (10 minutes after ending)
+      const expiredEndedTournaments = endedTournaments.docs.filter(doc => {
+        const data = doc.data();
+        if (data.ended_at && !data.ttl) {
+          const endedAt = data.ended_at.toDate();
+          const shouldExpireAt = new Date(endedAt.getTime() + 10 * 60 * 1000);
+          return now.toDate() > shouldExpireAt;
+        }
+        return false;
+      });
+      
+      // Combine both sets of tournaments to delete
+      const allExpiredTournaments = [...expiredTournaments.docs, ...expiredEndedTournaments];
+      
+      if (allExpiredTournaments.length === 0) {
         console.log('✅ No expired tournaments found');
         return {
           success: true,
@@ -46,13 +69,13 @@ export class TournamentCleanupService {
         };
       }
       
-      console.log(`🔍 Found ${expiredTournaments.size} expired tournaments to delete`);
+      console.log(`🔍 Found ${allExpiredTournaments.length} expired tournaments to delete`);
       
       // Use batch write for better performance
       const batch = writeBatch(db);
       let deletedCount = 0;
       
-      expiredTournaments.forEach((docSnap) => {
+      allExpiredTournaments.forEach((docSnap) => {
         const tournamentData = docSnap.data();
         console.log(`🗑️ Marking tournament for deletion: ${docSnap.id} - ${tournamentData.name}`);
         batch.delete(docSnap.ref);
