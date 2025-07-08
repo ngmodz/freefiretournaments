@@ -32,6 +32,38 @@ declare module "@/lib/tournamentService" {
   }
 }
 
+// Robust clipboard copy utility for all browsers and iOS
+function copyToClipboard(text: string): Promise<void> {
+  if (navigator.clipboard && window.isSecureContext) {
+    // Modern API
+    return navigator.clipboard.writeText(text);
+  } else {
+    // Fallback for iOS/Safari/older browsers
+    return new Promise((resolve, reject) => {
+      try {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        // Prevent scrolling to bottom
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        textarea.setAttribute('readonly', '');
+        document.body.appendChild(textarea);
+        textarea.select();
+        textarea.setSelectionRange(0, textarea.value.length);
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textarea);
+        if (successful) {
+          resolve();
+        } else {
+          reject(new Error('Fallback: Copy command was unsuccessful'));
+        }
+      } catch (err) {
+        reject(err);
+      }
+    });
+  }
+}
+
 const TournamentDetailsContent: React.FC<TournamentProps> = ({
   id,
   tournament,
@@ -219,13 +251,14 @@ const TournamentDetailsContent: React.FC<TournamentProps> = ({
       });
       return;
     }
-    
-    navigator.clipboard.writeText(text).then(() => {
-      toast({ title: "Copied!", description: `${text} copied to clipboard.` });
-    }).catch(err => {
-      console.error("Failed to copy:", err);
-      toast({ title: "Error", description: "Failed to copy.", variant: "destructive" });
-    });
+    copyToClipboard(text)
+      .then(() => {
+        toast({ title: "Copied!", description: `${text} copied to clipboard.` });
+      })
+      .catch(err => {
+        console.error("Failed to copy:", err);
+        toast({ title: "Error", description: "Failed to copy.", variant: "destructive" });
+      });
   };
 
   const handleGoHome = () => {

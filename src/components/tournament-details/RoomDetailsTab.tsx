@@ -1,5 +1,5 @@
 import React from "react";
-import { Edit3, AlertCircle, Copy, Lock } from "lucide-react";
+import { Edit3, AlertCircle, Copy, Lock, KeyRound, Hash, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RoomDetailsProps } from "./types";
 
@@ -27,17 +27,6 @@ const RoomDetailsTab: React.FC<RoomDetailsProps> = ({
     <div>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold">Custom Room Details</h2>
-        {isHost && (
-          <Button 
-            onClick={onSetRoomDetails} 
-            size="sm" 
-            variant="outline"
-            className="border-gaming-accent text-gaming-accent hover:bg-gaming-accent/10"
-          >
-            <Edit3 size={16} className="mr-1.5" />
-            {tournament.room_id ? 'Update' : 'Set'} Room Details
-          </Button>
-        )}
       </div>
       {(!tournament.room_id && !tournament.room_password) ? (
         <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-md p-4 mb-6 text-center">
@@ -49,32 +38,59 @@ const RoomDetailsTab: React.FC<RoomDetailsProps> = ({
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="bg-gaming-card-deep border border-gaming-border rounded-md p-4">
-            <div className="flex justify-between items-center mb-2">
-              <div className="text-sm text-gaming-muted">Room ID</div>
-              <button onClick={() => onCopy(tournament.room_id || "")} className="text-gaming-primary hover:text-gaming-primary/80 flex items-center text-sm">
-                <Copy size={14} className="mr-1" /> Copy
-              </button>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-gradient-to-br from-orange-500/10 to-gaming-card-deep border-2 border-orange-400/30 rounded-xl p-5 shadow flex flex-col justify-between relative">
+              <div className="flex items-center mb-2">
+                <Hash size={20} className="text-orange-400 mr-2" />
+                <span className="uppercase tracking-wide text-xs font-semibold text-orange-300">Room ID</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="font-mono text-2xl font-bold text-white tracking-wider">{tournament.room_id || "N/A"}</div>
+                <button onClick={() => onCopy(tournament.room_id || "")} className="ml-2 px-2 py-1 rounded bg-orange-400/20 hover:bg-orange-400/40 text-orange-300 hover:text-white transition flex items-center text-xs font-medium focus:outline-none">
+                  <Copy size={14} className="mr-1" /> Copy
+                </button>
+              </div>
             </div>
-            <div className="font-mono text-xl font-semibold text-white">{tournament.room_id || "N/A"}</div>
-          </div>
-          <div className="bg-gaming-card-deep border border-gaming-border rounded-md p-4">
-            <div className="flex justify-between items-center mb-2">
-              <div className="text-sm text-gaming-muted">Password</div>
-              <button onClick={() => onCopy(tournament.room_password || "")} className="text-gaming-primary hover:text-gaming-primary/80 flex items-center text-sm">
-                <Copy size={14} className="mr-1" /> Copy
-              </button>
+            <div className="bg-gradient-to-br from-purple-500/10 to-gaming-card-deep border-2 border-purple-400/30 rounded-xl p-5 shadow flex flex-col justify-between relative">
+              <div className="flex items-center mb-2">
+                <KeyRound size={20} className="text-purple-400 mr-2" />
+                <span className="uppercase tracking-wide text-xs font-semibold text-purple-300">Password</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="font-mono text-2xl font-bold text-white tracking-wider">{tournament.room_password || "N/A"}</div>
+                <button onClick={() => onCopy(tournament.room_password || "")} className="ml-2 px-2 py-1 rounded bg-purple-400/20 hover:bg-purple-400/40 text-purple-300 hover:text-white transition flex items-center text-xs font-medium focus:outline-none">
+                  <Copy size={14} className="mr-1" /> Copy
+                </button>
+              </div>
             </div>
-            <div className="font-mono text-xl font-semibold text-white">{tournament.room_password || "N/A"}</div>
           </div>
-          <div className="bg-gaming-primary/10 border border-gaming-primary/20 rounded-md p-4 mt-6">
-            <h3 className="font-semibold mb-2">How to join the custom room</h3>
-            <ol className="list-decimal list-inside text-gaming-muted space-y-2 pl-2">
-              <li>Open Free Fire and go to the game lobby</li>
-              <li>Click on the "Custom Room" button</li>
-              <li>Select "Enter Room" and input the Room ID</li>
-              <li>Enter the Password when prompted</li>
-              <li>Select your character and wait for the match to start</li>
+          {isHost && (
+            <div className="flex justify-center mt-4">
+              <Button 
+                onClick={onSetRoomDetails} 
+                size="sm" 
+                variant="outline"
+                className="border-gaming-accent text-gaming-accent hover:bg-gaming-accent/10"
+              >
+                <Edit3 size={16} className="mr-1.5" />
+                {tournament.room_id ? 'Update' : 'Set'} Room Details
+              </Button>
+            </div>
+          )}
+          <div className="flex items-center bg-blue-500/10 border border-blue-400/20 rounded-md p-3 mt-2 text-blue-300 text-sm">
+            <Info size={16} className="mr-2 text-blue-400" />
+            <span>Share these details only with your team. Do not post them publicly.</span>
+          </div>
+          <div className="bg-gaming-primary/10 border border-gaming-primary/20 rounded-md p-5 mt-6">
+            <h3 className="font-semibold mb-3 flex items-center text-gaming-primary">
+              <KeyRound size={18} className="mr-2 text-gaming-primary" /> How to join the custom room
+            </h3>
+            <ol className="list-decimal list-inside text-gaming-muted space-y-1 pl-2">
+              <li className="flex items-center"><span className="w-5 h-5 rounded-full bg-gaming-primary/20 text-gaming-primary flex items-center justify-center mr-2 text-xs font-bold">1</span>Open Free Fire and go to the game lobby</li>
+              <li className="flex items-center"><span className="w-5 h-5 rounded-full bg-gaming-primary/20 text-gaming-primary flex items-center justify-center mr-2 text-xs font-bold">2</span>Click on the "Custom Room" button</li>
+              <li className="flex items-center"><span className="w-5 h-5 rounded-full bg-gaming-primary/20 text-gaming-primary flex items-center justify-center mr-2 text-xs font-bold">3</span>Select "Enter Room" and input the Room ID</li>
+              <li className="flex items-center"><span className="w-5 h-5 rounded-full bg-gaming-primary/20 text-gaming-primary flex items-center justify-center mr-2 text-xs font-bold">4</span>Enter the Password when prompted</li>
+              <li className="flex items-center"><span className="w-5 h-5 rounded-full bg-gaming-primary/20 text-gaming-primary flex items-center justify-center mr-2 text-xs font-bold">5</span>Select your character and wait for the match to start</li>
             </ol>
           </div>
         </div>
