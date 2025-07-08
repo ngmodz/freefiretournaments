@@ -16,13 +16,53 @@ interface UserProfile {
 
 function CopyButton({ value }: { value: string }) {
   const [copied, setCopied] = React.useState(false);
+  
+  const copyToClipboard = async (text: string) => {
+    try {
+      // Try the modern clipboard API first
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } else {
+        // Fallback for older browsers and iOS
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        try {
+          const successful = document.execCommand('copy');
+          document.body.removeChild(textArea);
+          return successful;
+        } catch (err) {
+          document.body.removeChild(textArea);
+          return false;
+        }
+      }
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+      return false;
+    }
+  };
+
+  const handleCopy = async () => {
+    const success = await copyToClipboard(value);
+    if (success) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1000);
+    } else {
+      // Fallback: show the text in an alert for manual copying
+      alert(`Copy this text: ${value}`);
+    }
+  };
+
   return (
     <button
-      onClick={() => {
-        navigator.clipboard.writeText(value);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1000);
-      }}
+      onClick={handleCopy}
       title="Copy"
       className="inline-flex items-center justify-center mr-1 text-gaming-muted hover:text-gaming-primary focus:outline-none"
       style={{ fontSize: '1em', verticalAlign: 'middle' }}
