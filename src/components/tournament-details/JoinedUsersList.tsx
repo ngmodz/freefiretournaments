@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { getUserProfile } from "@/lib/firebase/profile";
+import { ClipboardCopyIcon } from '@radix-ui/react-icons';
 
 interface JoinedUsersListProps {
   participantUids: string[];
@@ -10,6 +11,30 @@ interface UserProfile {
   uid: string;
   ign: string;
   email: string;
+  _notFound?: boolean;
+}
+
+function CopyButton({ value }: { value: string }) {
+  const [copied, setCopied] = React.useState(false);
+  return (
+    <button
+      onClick={() => {
+        navigator.clipboard.writeText(value);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1000);
+      }}
+      title="Copy"
+      className="inline-flex items-center justify-center mr-1 text-gaming-muted hover:text-gaming-primary focus:outline-none"
+      style={{ fontSize: '1em', verticalAlign: 'middle' }}
+      tabIndex={0}
+    >
+      <ClipboardCopyIcon />
+      <span className="sr-only">Copy</span>
+      {copied && (
+        <span className="ml-1 text-xs text-gaming-primary">Copied!</span>
+      )}
+    </button>
+  );
 }
 
 const JoinedUsersList: React.FC<JoinedUsersListProps> = ({ participantUids }) => {
@@ -18,14 +43,16 @@ const JoinedUsersList: React.FC<JoinedUsersListProps> = ({ participantUids }) =>
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!participantUids || participantUids.length === 0) {
+    // Deduplicate UIDs
+    const uniqueUids = Array.from(new Set(participantUids));
+    if (!uniqueUids || uniqueUids.length === 0) {
       setUsers([]);
       return;
     }
     setLoading(true);
     setError(null);
     Promise.all(
-      participantUids.map(async (uid) => {
+      uniqueUids.map(async (uid) => {
         try {
           const profile = await getUserProfile(uid);
           return {
@@ -35,12 +62,19 @@ const JoinedUsersList: React.FC<JoinedUsersListProps> = ({ participantUids }) =>
             email: profile.email,
           };
         } catch (err) {
-          return null;
+          // If profile not found, still show UID
+          return {
+            id: uid,
+            uid: uid,
+            ign: "N/A",
+            email: "N/A",
+            _notFound: true,
+          };
         }
       })
     )
       .then((results) => {
-        setUsers(results.filter(Boolean) as UserProfile[]);
+        setUsers(results as UserProfile[]);
         setLoading(false);
       })
       .catch((err) => {
@@ -77,6 +111,9 @@ const JoinedUsersList: React.FC<JoinedUsersListProps> = ({ participantUids }) =>
                 <span className="font-semibold text-gaming-muted">Email:</span>
                 <span className="ml-2 text-sm">{user.email}</span>
               </div>
+              {user._notFound && (
+                <div className="text-xs text-red-400 mt-1">User profile not found</div>
+              )}
             </div>
           </div>
         ))}
@@ -97,9 +134,18 @@ const JoinedUsersList: React.FC<JoinedUsersListProps> = ({ participantUids }) =>
               {users.map((user, idx) => (
                 <tr key={user.id} className={idx % 2 === 0 ? "bg-gaming-bg/80" : "bg-gaming-card/80"}>
                   <td className="px-4 py-2 font-mono text-gaming-muted text-sm">{idx + 1}</td>
-                  <td className="px-4 py-2 font-mono text-sm whitespace-pre-wrap break-all">{user.uid}</td>
-                  <td className="px-4 py-2 text-sm whitespace-pre-wrap break-all">{user.ign}</td>
-                  <td className="px-4 py-2 text-sm whitespace-pre-wrap break-all">{user.email}</td>
+                  <td className="px-4 py-2 font-mono text-sm whitespace-pre-wrap break-all">
+                    {user.uid}
+                    <CopyButton value={user.uid} />
+                  </td>
+                  <td className="px-4 py-2 text-sm whitespace-pre-wrap break-all">
+                    {user.ign}
+                    <CopyButton value={user.ign} />
+                  </td>
+                  <td className="px-4 py-2 text-sm whitespace-pre-wrap break-all">
+                    {user.email}
+                    <CopyButton value={user.email} />
+                  </td>
                 </tr>
               ))}
             </tbody>
