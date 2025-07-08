@@ -41,6 +41,8 @@ const PrizeDistributionDialog: React.FC<PrizeDistributionDialogProps> = ({
   hostUid,
   onSuccess
 }) => {
+  console.log('🔥 PrizeDistributionDialog RENDERED', { open, tournament: tournament.id });
+  
   const { toast } = useToast();
   const [isDistributing, setIsDistributing] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
@@ -50,15 +52,81 @@ const PrizeDistributionDialog: React.FC<PrizeDistributionDialogProps> = ({
     second?: { uid: string; username: string };
     third?: { uid: string; username: string };
   }>({});
+  const [inputValues, setInputValues] = useState<{
+    first: string;
+    second: string;
+    third: string;
+  }>({ first: '', second: '', third: '' });
+  const [duplicateErrors, setDuplicateErrors] = useState<{
+    first: boolean;
+    second: boolean;
+    third: boolean;
+  }>({ first: false, second: false, third: false });
 
   // Reset state when dialog opens
   React.useEffect(() => {
     if (open) {
       setWinners({});
       setErrors([]);
+      setInputValues({ first: '', second: '', third: '' });
+      setDuplicateErrors({ first: false, second: false, third: false });
       setIsDistributing(false);
     }
   }, [open]);
+
+  // Function to check for duplicates and update errors immediately
+  const validateAndUpdateInput = (position: 'first' | 'second' | 'third', uid: string) => {
+    console.log('✅ validateAndUpdateInput called:', { position, uid });
+    
+    // Update input values
+    const newInputValues = { ...inputValues, [position]: uid };
+    setInputValues(newInputValues);
+    
+    // Check for duplicates
+    const allUids = Object.values(newInputValues).filter(v => v.trim() !== '');
+    const uniqueUids = new Set(allUids);
+    const hasDuplicates = allUids.length !== uniqueUids.size;
+    
+    console.log('🔍 Duplicate check:', { allUids, hasDuplicates });
+    
+    if (hasDuplicates && uid.trim()) {
+      console.log('🚨 DUPLICATES DETECTED!!!');
+      // Find which positions have duplicates
+      const newDuplicateErrors = { first: false, second: false, third: false };
+      
+      Object.entries(newInputValues).forEach(([pos, value]) => {
+        if (value.trim()) {
+          const otherPositions = Object.entries(newInputValues).filter(([otherPos]) => otherPos !== pos);
+          const isDuplicate = otherPositions.some(([_, otherValue]) => otherValue.trim() === value.trim());
+          newDuplicateErrors[pos as 'first' | 'second' | 'third'] = isDuplicate;
+        }
+      });
+      
+      setDuplicateErrors(newDuplicateErrors);
+      setErrors(['This UID is already used for another position. Each player can only win one position.']);
+    } else {
+      console.log('✅ No duplicates, clearing errors');
+      setDuplicateErrors({ first: false, second: false, third: false });
+      setErrors([]);
+    }
+    
+    // Update winners state
+    setWinners(prev => ({
+      ...prev,
+      [position]: uid ? { uid, username: '' } : undefined
+    }));
+  };
+
+  // Helper function to check if a position has errors
+  const hasPositionError = (position: 'first' | 'second' | 'third') => {
+    return duplicateErrors[position] || errors.some(error => 
+      error.includes(position) || 
+      (position === 'first' && error.includes('1st')) || 
+      (position === 'second' && error.includes('2nd')) || 
+      (position === 'third' && error.includes('3rd')) ||
+      error.includes('already used for another position')
+    );
+  };
 
   const validateWinners = () => {
     const newErrors: string[] = [];
@@ -68,13 +136,30 @@ const PrizeDistributionDialog: React.FC<PrizeDistributionDialogProps> = ({
       newErrors.push("Please select at least one winner");
     }
     
-    // Check for duplicate winners
-    const winnerIds = Object.values(winners)
-      .filter(winner => winner?.uid)
-      .map(winner => winner?.uid);
+    // Get all winners that have both UID and username
+    const completeWinners = Object.entries(winners)
+      .filter(([_, winner]) => winner?.uid && winner?.username)
+      .map(([position, winner]) => ({ position, ...winner! }));
     
-    if (winnerIds.length !== new Set(winnerIds).size) {
-      newErrors.push("A player cannot win multiple positions");
+    // Check for duplicate UIDs
+    const uids = completeWinners.map(w => w.uid);
+    const duplicateUids = uids.filter((uid, index) => uids.indexOf(uid) !== index);
+    if (duplicateUids.length > 0) {
+      newErrors.push("A player cannot win multiple positions (duplicate UID found)");
+    }
+    
+    // Check for duplicate UID+username combinations
+    const combinations = completeWinners.map(w => `${w.uid}-${w.username}`);
+    const duplicateCombinations = combinations.filter((combo, index) => combinations.indexOf(combo) !== index);
+    if (duplicateCombinations.length > 0) {
+      newErrors.push("The same UID and username combination cannot be used for multiple positions");
+    }
+    
+    // Check for incomplete entries (UID without username lookup)
+    const incompleteEntries = Object.entries(winners)
+      .filter(([_, winner]) => winner?.uid && !winner?.username);
+    if (incompleteEntries.length > 0) {
+      newErrors.push("Please wait for user lookup to complete for all entries");
     }
     
     setErrors(newErrors);
@@ -87,6 +172,12 @@ const PrizeDistributionDialog: React.FC<PrizeDistributionDialogProps> = ({
         ...prev,
         [position]: undefined
       }));
+      setInputValues(prev => ({ ...prev, [position]: '' }));
+      return;
+    }
+
+    // Don't lookup if there's a duplicate error
+    if (duplicateErrors[position]) {
       return;
     }
 
@@ -107,6 +198,7 @@ const PrizeDistributionDialog: React.FC<PrizeDistributionDialogProps> = ({
       const userData = userDoc.data();
       const username = userData.username || userData.displayName || uid;
 
+      // Set the winner with username
       setWinners(prev => ({
         ...prev,
         [position]: { uid, username }
@@ -168,6 +260,7 @@ const PrizeDistributionDialog: React.FC<PrizeDistributionDialogProps> = ({
 
   // If prizes already distributed, show a different UI
   if (tournament.prizePool.isDistributed) {
+    console.log('Prizes already distributed, showing read-only UI');
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-md bg-gaming-card border-gaming-border">
@@ -187,6 +280,10 @@ const PrizeDistributionDialog: React.FC<PrizeDistributionDialogProps> = ({
       </Dialog>
     );
   }
+
+  console.log('Tournament prize pool:', tournament.prizePool);
+  console.log('Is distributed?', tournament.prizePool.isDistributed);
+  console.log('Winners:', tournament.prizePool.winners);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -245,17 +342,20 @@ const PrizeDistributionDialog: React.FC<PrizeDistributionDialogProps> = ({
                 <div className="relative flex-1">
                   <Input
                     id="firstPlaceWinner"
+                    value={inputValues.first}
                     placeholder="Enter player UID"
-                    className="bg-gaming-bg text-white"
+                    className={`bg-gaming-bg text-white ${hasPositionError('first') ? 'border-red-500 focus:border-red-500' : ''}`}
                     onChange={(e) => {
                       const uid = e.target.value;
-                      if (uid === winners.first?.uid) return;
-                      setWinners(prev => ({
-                        ...prev,
-                        first: uid ? { uid, username: '' } : undefined
-                      }));
+                      console.log('🚨 FIRST PLACE INPUT CHANGED:', uid);
+                      validateAndUpdateInput('first', uid);
                     }}
-                    onBlur={(e) => lookupUser(e.target.value, 'first')}
+                    onBlur={(e) => {
+                      const uid = e.target.value.trim();
+                      if (uid && !duplicateErrors.first) {
+                        lookupUser(uid, 'first');
+                      }
+                    }}
                   />
                   {isSearching.first && (
                     <Loader2 className="h-4 w-4 animate-spin absolute right-3 top-3" />
@@ -279,6 +379,11 @@ const PrizeDistributionDialog: React.FC<PrizeDistributionDialogProps> = ({
                   Found: {winners.first.username}
                 </p>
               )}
+              {duplicateErrors.first && (
+                <p className="text-sm text-red-500 mt-1 font-bold">
+                  ⚠️ DUPLICATE UID DETECTED!
+                </p>
+              )}
             </div>
           )}
 
@@ -293,17 +398,20 @@ const PrizeDistributionDialog: React.FC<PrizeDistributionDialogProps> = ({
                 <div className="relative flex-1">
                   <Input
                     id="secondPlaceWinner"
+                    value={inputValues.second}
                     placeholder="Enter player UID"
-                    className="bg-gaming-bg text-white"
+                    className={`bg-gaming-bg text-white ${hasPositionError('second') ? 'border-red-500 focus:border-red-500' : ''}`}
                     onChange={(e) => {
                       const uid = e.target.value;
-                      if (uid === winners.second?.uid) return;
-                      setWinners(prev => ({
-                        ...prev,
-                        second: uid ? { uid, username: '' } : undefined
-                      }));
+                      console.log('🚨 SECOND PLACE INPUT CHANGED:', uid);
+                      validateAndUpdateInput('second', uid);
                     }}
-                    onBlur={(e) => lookupUser(e.target.value, 'second')}
+                    onBlur={(e) => {
+                      const uid = e.target.value.trim();
+                      if (uid && !duplicateErrors.second) {
+                        lookupUser(uid, 'second');
+                      }
+                    }}
                   />
                   {isSearching.second && (
                     <Loader2 className="h-4 w-4 animate-spin absolute right-3 top-3" />
@@ -327,6 +435,11 @@ const PrizeDistributionDialog: React.FC<PrizeDistributionDialogProps> = ({
                   Found: {winners.second.username}
                 </p>
               )}
+              {duplicateErrors.second && (
+                <p className="text-sm text-red-500 mt-1 font-bold">
+                  ⚠️ DUPLICATE UID DETECTED!
+                </p>
+              )}
             </div>
           )}
 
@@ -341,17 +454,19 @@ const PrizeDistributionDialog: React.FC<PrizeDistributionDialogProps> = ({
                 <div className="relative flex-1">
                   <Input
                     id="thirdPlaceWinner"
+                    value={inputValues.third}
                     placeholder="Enter player UID"
-                    className="bg-gaming-bg text-white"
+                    className={`bg-gaming-bg text-white ${hasPositionError('third') ? 'border-red-500 focus:border-red-500' : ''}`}
                     onChange={(e) => {
                       const uid = e.target.value;
-                      if (uid === winners.third?.uid) return;
-                      setWinners(prev => ({
-                        ...prev,
-                        third: uid ? { uid, username: '' } : undefined
-                      }));
+                      validateAndUpdateInput('third', uid);
                     }}
-                    onBlur={(e) => lookupUser(e.target.value, 'third')}
+                    onBlur={(e) => {
+                      const uid = e.target.value.trim();
+                      if (uid && !duplicateErrors.third) {
+                        lookupUser(uid, 'third');
+                      }
+                    }}
                   />
                   {isSearching.third && (
                     <Loader2 className="h-4 w-4 animate-spin absolute right-3 top-3" />
@@ -375,6 +490,11 @@ const PrizeDistributionDialog: React.FC<PrizeDistributionDialogProps> = ({
                   Found: {winners.third.username}
                 </p>
               )}
+              {duplicateErrors.third && (
+                <p className="text-sm text-red-500 mt-1 font-bold">
+                  ⚠️ DUPLICATE UID DETECTED!
+                </p>
+              )}
             </div>
           )}
         </div>
@@ -389,8 +509,8 @@ const PrizeDistributionDialog: React.FC<PrizeDistributionDialogProps> = ({
           </Button>
           <Button
             onClick={handleDistributePrizes}
-            disabled={isDistributing}
-            className="bg-yellow-500 hover:bg-yellow-600 text-black"
+            disabled={isDistributing || errors.length > 0}
+            className="bg-yellow-500 hover:bg-yellow-600 text-black disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isDistributing ? (
               <>

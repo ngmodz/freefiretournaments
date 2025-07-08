@@ -136,6 +136,20 @@ export class PrizeDistributionService {
         throw new Error('Prize pool not configured or already distributed');
       }
 
+      // Validate no duplicate UID+username combinations to prevent abuse
+      const winnerEntries = Object.entries(winners).filter(([_, winner]) => winner);
+      const winnerCombinations = winnerEntries.map(([_, winner]) => `${winner!.uid}-${winner!.username}`);
+      
+      if (winnerCombinations.length !== new Set(winnerCombinations).size) {
+        throw new Error('The same UID and username combination cannot be used for multiple positions');
+      }
+
+      // Validate no duplicate UIDs 
+      const winnerUids = winnerEntries.map(([_, winner]) => winner!.uid);
+      if (winnerUids.length !== new Set(winnerUids).size) {
+        throw new Error('A player cannot win multiple positions');
+      }
+
       // Distribute prizes for each position
       const positions: Array<'first' | 'second' | 'third'> = ['first', 'second', 'third'];
 

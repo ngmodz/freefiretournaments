@@ -46,6 +46,12 @@ export interface Tournament {
   filled_spots: number;
   room_id?: string | null;
   room_password?: string | null;
+  winners?: {
+    [position: string]: {
+      uid: string;
+      ign: string;
+    };
+  };
 }
 
 // Create a new tournament
