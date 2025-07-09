@@ -34,7 +34,9 @@ const Index = () => {
           filledSpots: tournament.filled_spots || 0,
           status: tournament.status === 'active' ? 'active' : 
                   tournament.status === 'ongoing' ? 'ongoing' : 
-                  tournament.status === 'completed' ? 'completed' : 'active',
+                  tournament.status === 'ended' ? 'ended' :
+                  tournament.status === 'completed' ? 'completed' :
+                  tournament.status === 'cancelled' ? 'cancelled' : 'active',
           isPremium: tournament.entry_fee > 100 // Just an example condition for premium
         }));
         
