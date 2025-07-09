@@ -18,12 +18,13 @@ interface ForgotPasswordDialogProps {
   trigger?: React.ReactNode;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  initialEmail?: string;
 }
 
-const ForgotPasswordDialog = ({ trigger, open, onOpenChange }: ForgotPasswordDialogProps) => {
+const ForgotPasswordDialog = ({ trigger, open, onOpenChange, initialEmail }: ForgotPasswordDialogProps) => {
   const { toast } = useToast();
   const { sendPasswordReset, currentUser } = useAuth();
-  const [email, setEmail] = useState(currentUser?.email || "");
+  const [email, setEmail] = useState(initialEmail ?? currentUser?.email ?? "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [emailError, setEmailError] = useState("");
@@ -32,6 +33,13 @@ const ForgotPasswordDialog = ({ trigger, open, onOpenChange }: ForgotPasswordDia
   // Use external open state if provided, otherwise use internal state
   const isOpen = open !== undefined ? open : internalOpen;
   const setIsOpen = onOpenChange || setInternalOpen;
+
+  // If initialEmail changes while dialog is closed, update email state
+  React.useEffect(() => {
+    if (!(open ?? false)) {
+      setEmail(initialEmail ?? currentUser?.email ?? "");
+    }
+  }, [initialEmail, currentUser?.email, open]);
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

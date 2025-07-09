@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { signInWithEmail, signInWithGoogle } from "@/lib/firebase";
+import ForgotPasswordDialog from "@/components/settings/ForgotPasswordDialog";
 
 interface LoginFormProps {
   setActiveTab: (tab: string) => void;
@@ -22,6 +23,7 @@ const LoginForm = ({ setActiveTab }: LoginFormProps) => {
   const [rememberMe, setRememberMe] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loginErrors, setLoginErrors] = useState({ email: "", password: "" });
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
 
   // Simplified password handling - no validation needed for login
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -171,13 +173,20 @@ const LoginForm = ({ setActiveTab }: LoginFormProps) => {
             Remember me
           </label>
         </div>
-        <Link 
-          to="/forgot-password" 
-          className="text-xs text-gaming-primary hover:text-gaming-primary/90 hover:underline transition-colors"
+        <button
+          type="button"
+          className="text-xs text-gaming-primary hover:text-gaming-primary/90 hover:underline transition-colors bg-transparent border-none outline-none p-0"
+          onClick={() => setShowForgotPassword(true)}
         >
           Forgot password?
-        </Link>
+        </button>
       </div>
+      <ForgotPasswordDialog
+        open={showForgotPassword}
+        onOpenChange={setShowForgotPassword}
+        trigger={undefined}
+        initialEmail={loginEmail}
+      />
       
       <Button 
         type="submit" 
