@@ -61,7 +61,7 @@ const TournamentCreate = () => {
       "3rd": 100,
       "4th": 50
     },
-    rules: "",
+    rules: `Don't change your slot in the custom room as it will make it difficult for the host to verify participants.\nNo use of unauthorized third-party apps or mods.\nNo teaming with other squads during matches.\nIntentionally disconnecting to avoid elimination is prohibited.\nAny form of harassment or toxic behavior will not be tolerated.`,
   });
 
   // Handle form data updates

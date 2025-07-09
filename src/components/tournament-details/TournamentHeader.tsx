@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Calendar, Clock, Trophy, Check, Edit3, Users } from "lucide-react";
+import { Calendar, Clock, Trophy, Check, Edit3, Users, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TournamentHeaderProps } from "./types";
 import { cn } from "@/lib/utils";
@@ -9,6 +9,7 @@ import TournamentStatusBadge from "../TournamentStatusBadge";
 import StartTournamentButton from "../StartTournamentButton";
 import EndTournamentButton from "../EndTournamentButton";
 import { useTournament } from "@/contexts/TournamentContext";
+import { useToast } from "@/hooks/use-toast";
 
 const TournamentHeader: React.FC<TournamentHeaderProps> = ({
   tournament,
@@ -21,6 +22,7 @@ const TournamentHeader: React.FC<TournamentHeaderProps> = ({
   const [hostIGN, setHostIGN] = useState<string | null>(null);
   const [hostUID, setHostUID] = useState<string | null>(null);
   const { refreshHostedTournaments } = useTournament();
+  const { toast } = useToast();
 
   useEffect(() => {
     async function fetchHostName() {
@@ -58,6 +60,26 @@ const TournamentHeader: React.FC<TournamentHeaderProps> = ({
     }
   };
 
+  const handleShare = () => {
+    const shareUrl = `${window.location.origin}/tournament/${tournament.id}`;
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(shareUrl).then(() => {
+        toast({ title: "Link Copied!", description: "Tournament link copied to clipboard." });
+      });
+    } else {
+      // fallback
+      const textarea = document.createElement('textarea');
+      textarea.value = shareUrl;
+      textarea.style.position = 'fixed';
+      textarea.style.left = '-9999px';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      toast({ title: "Link Copied!", description: "Tournament link copied to clipboard." });
+    }
+  };
+
   return (
     <div className="w-full mb-6">
       <div className="bg-gradient-to-b from-gaming-card to-gaming-bg text-gaming-text rounded-lg shadow-lg border border-gaming-primary/20 overflow-hidden backdrop-blur-sm relative">
@@ -77,6 +99,15 @@ const TournamentHeader: React.FC<TournamentHeaderProps> = ({
           
           {/* Action buttons for host */}
           <div className="flex flex-col gap-2">
+            <Button 
+              onClick={handleShare}
+              size="sm"
+              variant="outline"
+              className="text-white border-gaming-accent hover:bg-gaming-accent/20"
+            >
+              <Share2 size={16} className="mr-1.5" />
+              Share
+            </Button>
             {isHost && (
               <Button 
                 onClick={onSetRoomDetails} 

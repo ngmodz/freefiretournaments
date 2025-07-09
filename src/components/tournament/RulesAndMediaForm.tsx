@@ -59,11 +59,11 @@ const RulesAndMediaForm = ({ formData, updateFormData, nextStep, prevStep }: Rul
                 render={({ field }) => (
                   <FormItem>
                     <FormDescription>
-                      Add specific rules for your tournament (e.g., no emulators, no teaming)
+                      Default rules are provided below. You can edit, add, or remove rules as needed for your tournament (e.g., no emulators, no teaming).
                     </FormDescription>
                     <FormControl>
                       <Textarea 
-                        placeholder="Enter tournament rules..." 
+                        placeholder={`1. Don't change your slot in the custom room as it will make it difficult for the host to verify participants.\n2. No use of unauthorized third-party apps or mods.\n3. No teaming with other squads during matches.\n4. Intentionally disconnecting to avoid elimination is prohibited.\n5. Any form of harassment or toxic behavior will not be tolerated.`}
                         className="bg-gaming-card text-white placeholder:text-gray-400 min-h-32" 
                         {...field} 
                       />

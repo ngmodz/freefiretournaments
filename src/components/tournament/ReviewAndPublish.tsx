@@ -385,7 +385,15 @@ const ReviewAndPublish = ({ formData, prevStep }: ReviewAndPublishProps) => {
                 Tournament Rules
               </h4>
               <div className="bg-gaming-card/70 rounded-md p-3 text-sm text-gaming-muted mb-4">
-                <p>{formData.rules || "No rules specified"}</p>
+                {formData.rules ? (
+                  <ul className="list-decimal pl-5 space-y-1 text-left">
+                    {formData.rules.split(/\n/).filter(rule => rule.trim()).map((rule, idx) => (
+                      <li key={idx}>{rule.trim()}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <span>No rules specified</span>
+                )}
               </div>
             </div>
           </div>
