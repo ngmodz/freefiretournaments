@@ -46,8 +46,13 @@ const firebaseConfig = {
 
 // Log the config we're using (without exposing full API key)
 console.log("Using Firebase config:", {
-  apiKey: firebaseConfig.apiKey ? `${firebaseConfig.apiKey.substring(0, 5)}...` : "not set",
-  projectId: firebaseConfig.projectId,
+  apiKey: firebaseConfig.apiKey ? `${firebaseConfig.apiKey.substring(0, 6)}...` : "not set",
+  authDomain: firebaseConfig.authDomain || "not set",
+  projectId: firebaseConfig.projectId || "not set",
+  storageBucket: firebaseConfig.storageBucket || "not set",
+  messagingSenderId: firebaseConfig.messagingSenderId ? "set" : "not set",
+  appId: firebaseConfig.appId ? `${firebaseConfig.appId.substring(0, 10)}...` : "not set",
+  measurementId: firebaseConfig.measurementId ? "set" : "not set",
   usingEnvVars: !!import.meta.env.VITE_FIREBASE_API_KEY
 });
 

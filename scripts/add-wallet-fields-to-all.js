@@ -3,9 +3,17 @@ import admin from 'firebase-admin';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import path from 'path';
+import { config } from 'dotenv';
+import { resolve } from 'path';
 
-// Read the service account file
-const serviceAccountPath = 'D:/freefire-tournaments-ba2a6-firebase-adminsdk-fbsvc-2ede2bbed8.json';
+// Load environment variables
+config({ path: resolve(process.cwd(), '.env') });
+
+// Read the service account file from environment variable
+const serviceAccountPath = process.env.SERVICE_ACCOUNT_KEY_PATH;
+if (!serviceAccountPath) {
+  throw new Error('SERVICE_ACCOUNT_KEY_PATH environment variable is required');
+}
 const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath));
 
 // Initialize Firebase Admin SDK

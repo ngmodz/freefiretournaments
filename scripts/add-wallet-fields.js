@@ -1,13 +1,8 @@
 // Script to add wallet fields to all user documents
-const admin = require('firebase-admin');
-const serviceAccount = require('../firebase-admin-key.json'); // You'll need to provide this
+const { getFirestore } = require('./secure-firebase-admin');
 
-// Initialize Firebase Admin SDK
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
-
-const db = admin.firestore();
+// Get Firestore instance
+const db = getFirestore();
 
 async function addWalletFieldsToUsers() {
   try {

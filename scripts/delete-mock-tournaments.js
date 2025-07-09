@@ -1,21 +1,7 @@
 // Script to delete all mock tournaments from Firestore
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, getDocs, deleteDoc, doc } from 'firebase/firestore';
-import * as dotenv from 'dotenv';
-
-// Load environment variables
-dotenv.config();
-
-// Initialize Firebase
-const firebaseConfig = {
-  apiKey: process.env.FIREBASE_API_KEY,
-  authDomain: "freefire-tournaments-ba2a6.firebaseapp.com",
-  projectId: "freefire-tournaments-ba2a6",
-  storageBucket: "freefire-tournaments-ba2a6.firebasestorage.app",
-  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.FIREBASE_APP_ID,
-  measurementId: process.env.FIREBASE_MEASUREMENT_ID
-};
+import { firebaseConfig } from './firebase-config.js';
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);

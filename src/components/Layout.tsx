@@ -5,6 +5,7 @@ import DesktopSidebar from "./DesktopSidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Layout = () => {
   const location = useLocation();
@@ -15,6 +16,7 @@ const Layout = () => {
   const isSettingsPage = currentPath === "/settings";
   const isCreditsPage = currentPath === "/credits" || currentPath === "/packages" || currentPath === "/subscription";
   const isHomePage = currentPath === "/" || currentPath === "/index";
+  const { currentUser } = useAuth();
 
   // Listen for hover state changes from the sidebar
   const handleSidebarHover = (hovered: boolean) => {
@@ -31,11 +33,12 @@ const Layout = () => {
   }, [location.pathname]);
 
   // For debugging
-  console.log("Layout - Current Path:", currentPath, "isHomePage:", isHomePage);
+  // console.log("Layout - Current Path:", currentPath, "isHomePage:", isHomePage);
 
   return (
     <div className="min-h-screen bg-gaming-bg flex w-full overflow-hidden">
-      {!isMobile && (
+      {/* Only show sidebar if logged in */}
+      {!isMobile && currentUser && (
         <DesktopSidebar 
           currentPath={currentPath} 
           onHoverChange={handleSidebarHover}
@@ -84,8 +87,8 @@ const Layout = () => {
           </AnimatePresence>
         </div>
       </motion.div>
-      
-      {isMobile && (isTermsPage ? <BlankNavbar /> : <MobileNavbar currentPath={currentPath} />)}
+      {/* Only show navbars if logged in */}
+      {isMobile && currentUser && (isTermsPage ? <BlankNavbar /> : <MobileNavbar currentPath={currentPath} />)}
     </div>
   );
 };

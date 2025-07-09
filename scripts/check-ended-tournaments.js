@@ -1,15 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
-
-// Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyDtMRCW8yZjbhL6PSJHrIx7qzJlWHJJ9e8",
-  authDomain: "freefire-tournaments-ba2a6.firebaseapp.com",
-  projectId: "freefire-tournaments-ba2a6",
-  storageBucket: "freefire-tournaments-ba2a6.appspot.com",
-  messagingSenderId: "1096983059652",
-  appId: "1:1096983059652:web:a3a8c9c4f2a3b6c7d8e9f0"
-};
+import { firebaseConfig } from './firebase-config.js';
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);

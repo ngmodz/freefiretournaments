@@ -30,14 +30,19 @@ dist-ssr
 .env.development
 .env.production
 .env.test
+scripts/.env
 
 # Firebase service account keys and credentials
 *-firebase-adminsdk-*.json
 firebase-service-account*.json
 *serviceAccount*.json
 *service-account*.json
+*-firebase-key.json
+firebase-admin-key.json
 
-# Other sensitive files
+# API keys and secrets
+*api-key*
+*secret*
 *.pem
 *.key
 *.p8
@@ -46,7 +51,36 @@ firebase-service-account*.json
 *.cert
 *.crt
 
-# Local Mac folder
-.DS_Store
+# Backup files that might contain sensitive data
+*.bak
+*.backup
+
+# Configuration files with sensitive data
+*config*.json
+*credentials*.json
+*-key.json
+*-secret*.json
+
+# Payment and webhook secrets
+*webhook-secret*
+*payment-secret*
+*cashfree-secret*
+
+# User-specific data files
+*user-data*.json
+*user-info*.json
+
+# Temporary sensitive files
+*temp-secret*
+*tmp-key*
+*staging-key*
+
+# Firebase config and cache
+.firebase/
+.firebaserc
+firebase-debug.log
+firebase-debug.*.log
+
+# Vercel specific
 .vercel
-.env*.local
+.vercel/*.json

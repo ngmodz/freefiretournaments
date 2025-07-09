@@ -420,7 +420,7 @@ const TermsAndPolicy = () => {
                 <p className="mb-4">If you have any questions about these Terms or our services, please contact us:</p>
                 <div className="flex items-center text-gaming-primary mb-2">
                   <Mail size={18} className="mr-2" />
-                  <a href="mailto:ngmodz05@gmail.com" className="hover:underline">ngmodz05@gmail.com</a>
+                  <a href="mailto:freefiretournaments03@gmail.com" className="hover:underline">freefiretournaments03@gmail.com</a>
                 </div>
                 
                 <div className="mt-6 p-4 bg-yellow-900/20 border border-yellow-500/30 rounded-lg">
