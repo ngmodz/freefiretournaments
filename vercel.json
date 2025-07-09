@@ -1,21 +1,21 @@
 {
   "version": 2,
-  "builds": [
+  "buildCommand": "npm ci && npm run build",
+  "installCommand": "npm ci",
+  "rewrites": [
     {
-      "src": "src/main.tsx",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    },
     {
-      "src": "/(.*)",
-      "dest": "/src/main.tsx"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ],
   "crons": [
     {
       "path": "/api/tournament-notifications",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 0 * * *"
     }
   ]
 }

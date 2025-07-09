@@ -31,42 +31,42 @@ const createTransporter = () => {
 };
 
 /**
- * Send notifications for tournaments starting soon (20 minutes from now)
+ * Send notifications for tournaments that will start in the next 24 hours
+ * and need a notification (20 minutes before start time)
  */
 async function sendTournamentNotifications() {
   // Initialize Firebase for this request
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
-  const results = { success: true, notifications: 0, errors: [] };
+  const results = { success: true, notifications: 0, errors: [], checked: 0 };
   
   try {
     const now = new Date();
     
-    // Calculate the time 20 minutes from now
-    const twentyMinutesFromNow = new Date(now.getTime() + 20 * 60 * 1000);
-    // Add a small buffer (30 seconds) to avoid missing tournaments
-    const twentyMinutesPlusBuffer = new Date(now.getTime() + 20 * 60 * 1000 + 30 * 1000);
+    // Get tournaments starting in the next 24 hours
+    const twentyFourHoursFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
     
-    console.log(`Looking for tournaments starting between ${twentyMinutesFromNow.toISOString()} and ${twentyMinutesPlusBuffer.toISOString()}`);
+    console.log(`Looking for tournaments starting between ${now.toISOString()} and ${twentyFourHoursFromNow.toISOString()}`);
     
     try {
-      // Query for tournaments that are starting in approximately 20 minutes
+      // Query for active tournaments in the next 24 hours
       const tournamentsQuery = query(
         collection(db, 'tournaments'),
         where('status', '==', 'active'),
-        where('start_date', '>=', twentyMinutesFromNow),
-        where('start_date', '<=', twentyMinutesPlusBuffer)
+        where('start_date', '>=', now),
+        where('start_date', '<=', twentyFourHoursFromNow)
       );
       
       const upcomingTournamentsSnapshot = await getDocs(tournamentsQuery);
       
       if (upcomingTournamentsSnapshot.empty) {
-        console.log('No upcoming tournaments found for notification');
+        console.log('No upcoming tournaments found in the next 24 hours');
         results.message = 'No upcoming tournaments found';
         return results;
       }
       
-      console.log(`Found ${upcomingTournamentsSnapshot.size} upcoming tournaments for notification`);
+      console.log(`Found ${upcomingTournamentsSnapshot.size} upcoming tournaments in the next 24 hours`);
+      results.checked = upcomingTournamentsSnapshot.size;
       
       // Create email transporter
       const emailTransporter = createTransporter();
@@ -89,6 +89,20 @@ async function sendTournamentNotifications() {
           continue;
         }
         
+        // Calculate if it's time to send notification (between 19-21 minutes before start)
+        const startDate = tournament.start_date instanceof Date ? tournament.start_date : 
+                        (tournament.start_date.toDate ? tournament.start_date.toDate() : new Date(tournament.start_date));
+        
+        const minutesToStart = (startDate.getTime() - now.getTime()) / (1000 * 60);
+        
+        // Only send notification if tournament starts in 19-21 minutes (20 minutes ± 1 minute buffer)
+        if (minutesToStart < 19 || minutesToStart > 21) {
+          console.log(`Tournament ${tournamentId} starts in ${minutesToStart.toFixed(1)} minutes, outside notification window (19-21 minutes), skipping`);
+          continue;
+        }
+        
+        console.log(`Tournament ${tournamentId} starts in ${minutesToStart.toFixed(1)} minutes, sending notification`);
+        
         // Get host user document to get email
         const hostDocRef = doc(db, 'users', hostId);
         const hostDocSnapshot = await getDoc(hostDocRef);
@@ -109,8 +123,6 @@ async function sendTournamentNotifications() {
         console.log(`Sending notification for tournament ${tournamentId} to host ${hostEmail}`);
         
         // Format tournament start time
-        const startDate = tournament.start_date instanceof Date ? tournament.start_date : 
-                        (tournament.start_date.toDate ? tournament.start_date.toDate() : new Date(tournament.start_date));
         const formattedTime = startDate.toLocaleString('en-US', {
           hour: 'numeric', 
           minute: 'numeric',
@@ -181,6 +193,11 @@ async function sendTournamentNotifications() {
       }
       
       console.log('Email notification process completed');
+      
+      if (results.notifications === 0 && results.errors.length === 0) {
+        results.message = `Checked ${results.checked} tournaments, but none needed notifications at this time`;
+      }
+      
     } catch (error) {
       if (error.code === 'failed-precondition' && error.toString().includes('requires an index')) {
         results.success = false;
