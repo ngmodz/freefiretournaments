@@ -20,6 +20,35 @@ import { db, storage, auth } from "./firebase";
 import { TournamentFormData } from "@/pages/TournamentCreate";
 import { useTournamentCredits } from "./walletService";
 
+/**
+ * Tournament Service
+ * 
+ * This service handles all tournament-related operations such as creation,
+ * updates, deletion, and querying.
+ * 
+ * IMPORTANT NOTES:
+ * 
+ * 1. Tournament Notifications:
+ *    - Tournaments have automatic email notifications sent to hosts
+ *    - Email notifications are sent 20 minutes before the scheduled start time
+ *    - Notifications are managed by a Firebase Cloud Function (sendUpcomingTournamentNotifications)
+ *    - This happens automatically based on the 'start_date' field and 'status' being 'active'
+ *    - When a notification is sent, a 'notificationSent' field is set to true
+ * 
+ * 2. Tournament Lifecycle:
+ *    - Newly created tournaments have status 'active'
+ *    - When started manually by host, status changes to 'ongoing' 
+ *    - When ended manually by host, status changes to 'ended'
+ *    - When results are finalized, status changes to 'completed'
+ *    - Tournaments have TTL (Time to Live) for automatic cleanup
+ *
+ * 3. Important Fields:
+ *    - start_date: ISO string for the scheduled tournament date and time
+ *    - status: Current state of the tournament ('active', 'ongoing', 'ended', 'completed', 'cancelled')
+ *    - host_id: Firebase User ID of the tournament creator
+ *    - notificationSent: Boolean indicating if the notification has been sent (added by the cloud function)
+ */
+
 // Tournament type definition
 export interface Tournament {
   id: string;
@@ -57,6 +86,8 @@ export interface Tournament {
   };
   // TTL field for automatic deletion - 1 hour after scheduled time
   ttl?: Timestamp;
+  // Added by notification cloud function when email is sent
+  notificationSent?: boolean;
 }
 
 // Create a new tournament

@@ -4,11 +4,12 @@ A gaming tournament platform for FreeFire with integrated credit system and paym
 
 ## Features
 
-- 🎮 Create and join FreeFire tournaments
-- 💳 Credit system for tournament entry and hosting
-- 💰 Payment integration with UPI withdrawals
-- 📱 PWA with responsive design
-- 🔄 Real-time updates and notifications
+- **User Authentication**: Secure login and registration system using Firebase Authentication
+- **Tournament Management**: Create, browse, join, and manage tournaments
+- **Virtual Currency**: In-app credits for tournament entry and prizes
+- **Real-time Updates**: Live tournament data with Firebase Realtime Database
+- **Responsive Design**: Mobile-first interface with Tailwind CSS
+- **Tournament Notifications**: Automated email reminders sent to hosts 20 minutes before tournament start
 
 ## Tech Stack
 
@@ -39,6 +40,16 @@ api/                # Vercel serverless functions
 - **CreditService**: Credit balance and conversion
 - **PaymentService**: Payment processing
 - **WalletService**: Wallet operations
+
+## Firebase Cloud Functions
+
+The project uses Firebase Cloud Functions for background processing and automation:
+
+1. **Email Notifications**: Sends reminders to tournament hosts 20 minutes before their tournament starts
+2. **Tournament Cleanup**: Automatically removes expired tournaments 
+3. **Payment Processing**: Handles payment webhooks from Cashfree payment gateway
+
+See the `functions/README.md` file for detailed instructions on setting up email notifications.
 
 ## Scripts
 
