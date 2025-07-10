@@ -40,12 +40,12 @@ async function sendTournamentNotifications() {
     const now = new Date();
     const istNow = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
     
-    // Calculate the notification window: 19-21 minutes from now in IST
+    // Calculate the notification window: tournaments that start in 19-21 minutes from now in IST
     const nineteenMinutesFromNow = new Date(istNow.getTime() + 19 * 60 * 1000);
     const twentyOneMinutesFromNow = new Date(istNow.getTime() + 21 * 60 * 1000);
     
     console.log(`Current IST time: ${istNow.toLocaleString()}`);
-    console.log(`Looking for tournaments starting between ${nineteenMinutesFromNow.toLocaleString()} and ${twentyOneMinutesFromNow.toLocaleString()} IST`);
+    console.log(`Looking for tournaments that will start in 19-21 minutes from now (window: ${nineteenMinutesFromNow.toLocaleString()} to ${twentyOneMinutesFromNow.toLocaleString()} IST)`);
     
     try {
       // Query for tournaments that are starting in the notification window (19-21 minutes)

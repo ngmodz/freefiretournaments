@@ -1,20 +1,15 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, query, where, getDocs, updateDoc, doc, getDoc } from 'firebase/firestore';
+import { getFirestore, collection, query, where, getDocs, updateDoc, doc, getDoc, Timestamp } from 'firebase/firestore';
 import nodemailer from 'nodemailer';
+import { getFirebaseConfig, getEmailConfig, debugEnvironment } from './firebase-config-helper.js';
 
 // Initialize Firebase
-const firebaseConfig = {
-  apiKey: process.env.VITE_FIREBASE_API_KEY,
-  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.VITE_FIREBASE_APP_ID
-};
+const firebaseConfig = getFirebaseConfig();
 
 // Email configuration
-const emailUser = process.env.EMAIL_USER;
-const emailPass = process.env.EMAIL_PASSWORD;
+const emailConfig = getEmailConfig();
+const emailUser = emailConfig.user;
+const emailPass = emailConfig.pass;
 
 // Configure email transporter
 const createTransporter = () => {
@@ -35,6 +30,19 @@ const createTransporter = () => {
  * and need a notification (20 minutes before start time)
  */
 async function sendTournamentNotifications() {
+  // Log environment info to help debug
+  console.log('Environment details:', debugEnvironment());
+  console.log('Firebase config:', {
+    projectId: firebaseConfig.projectId,
+    configValid: !!(firebaseConfig.apiKey && firebaseConfig.projectId)
+  });
+  
+  // Log email config (safely)
+  console.log('Email config available:', {
+    user: !!emailUser,
+    pass: !!emailPass
+  });
+  
   // Initialize Firebase for this request
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
@@ -52,23 +60,27 @@ async function sendTournamentNotifications() {
     console.log(`Current IST time: ${istNow.toLocaleString()}, Email credentials available: ${!!emailUser && !!emailPass}`);
     
     try {
-      // Query for active tournaments in the next 24 hours (using IST)
+      // Calculate the notification window bounds in IST
+      const notificationWindowStart = new Date(istNow.getTime() + 19 * 60 * 1000); // 19 minutes from now
+      const notificationWindowEnd = new Date(istNow.getTime() + 21 * 60 * 1000);   // 21 minutes from now
+      
+      console.log(`Notification window: ${notificationWindowStart.toLocaleString()} to ${notificationWindowEnd.toLocaleString()} IST`);
+      
+      // Query for active tournaments that will start in 19-21 minutes
       const tournamentsQuery = query(
         collection(db, 'tournaments'),
-        where('status', '==', 'active'),
-        where('start_date', '>=', istNow),
-        where('start_date', '<=', twentyFourHoursFromNow)
+        where('status', '==', 'active')
       );
       
       const upcomingTournamentsSnapshot = await getDocs(tournamentsQuery);
       
       if (upcomingTournamentsSnapshot.empty) {
-        console.log('No upcoming tournaments found in the next 24 hours');
-        results.message = 'No upcoming tournaments found';
+        console.log('No active tournaments found');
+        results.message = 'No active tournaments found';
         return results;
       }
       
-      console.log(`Found ${upcomingTournamentsSnapshot.size} upcoming tournaments in the next 24 hours`);
+      console.log(`Found ${upcomingTournamentsSnapshot.size} active tournaments, checking each for notification window`);
       results.checked = upcomingTournamentsSnapshot.size;
       
       // Log all tournaments found
@@ -108,7 +120,8 @@ async function sendTournamentNotifications() {
         
         console.log(`Tournament ${tournamentId} - Minutes to start: ${minutesToStart.toFixed(1)}, Start time: ${startDate.toLocaleString()}`);
         
-        // Only send notification if tournament starts in 19-21 minutes (20 minutes ± 1 minute buffer)
+        // This is the key logic: Check if tournament starts in 19-21 minutes
+        // We want to send notifications EXACTLY when tournaments enter this window
         if (minutesToStart < 19 || minutesToStart > 21) {
           console.log(`Tournament ${tournamentId} starts in ${minutesToStart.toFixed(1)} minutes, outside notification window (19-21 minutes), skipping`);
           continue;
@@ -239,11 +252,15 @@ async function sendTournamentNotifications() {
 
 // Export the serverless function for Vercel
 export default async function handler(req, res) {
+  console.log('API endpoint called:', new Date().toISOString());
+  console.log('Query params:', req.query);
+  
   try {
     // Check for API key authentication (optional but recommended)
     const apiKey = req.headers['x-api-key'] || req.query.key;
     
     if (process.env.API_KEY && apiKey !== process.env.API_KEY) {
+      console.log('API key validation failed');
       return res.status(401).json({ 
         success: false,
         error: 'Unauthorized. Invalid API key.'
@@ -251,12 +268,22 @@ export default async function handler(req, res) {
     }
     
     // Process the request
+    console.log('Starting notification processing');
     const results = await sendTournamentNotifications();
     
     // Return the results
+    console.log('Notification processing completed:', results);
     return res.status(200).json(results);
   } catch (error) {
     console.error('Error in notification endpoint:', error);
+    // Log the full error object to capture stack traces
+    console.error('Error details:', JSON.stringify({
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+      code: error.code
+    }, null, 2));
+    
     return res.status(500).json({ 
       success: false,
       error: error.message || 'Internal server error'
