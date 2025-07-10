@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, query, where, getDocs, updateDoc, doc, getDoc, Timestamp, runTransaction } from 'firebase/firestore';
+import { getFirestore, collection, query, where, getDocs, updateDoc, doc, getDoc, Timestamp } from 'firebase/firestore';
 import nodemailer from 'nodemailer';
 import { getFirebaseConfig, getEmailConfig, debugEnvironment } from './firebase-config-helper.js';
 
@@ -148,101 +148,76 @@ async function sendTournamentNotifications() {
           continue;
         }
         
-        // Use a transaction to check and update notificationSent status to prevent duplicates
+        console.log(`Sending notification for tournament ${tournamentId} to host ${hostEmail}`);
+        
+        // Format tournament start time
+        const formattedTime = startDate.toLocaleString('en-US', {
+          hour: 'numeric', 
+          minute: 'numeric',
+          hour12: true
+        });
+        const formattedDate = startDate.toLocaleDateString('en-US', {
+          weekday: 'long',
+          month: 'long',
+          day: 'numeric'
+        });
+        
+        // Prepare email content
+        const mailOptions = {
+          from: `"Tournament Host" <${emailUser}>`,
+          to: hostEmail,
+          subject: `🏆 Reminder: Your Tournament "${tournament.name}" Starts Soon!`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
+              <div style="text-align: center; margin-bottom: 20px;">
+                <h1 style="color: #6200EA;">Tournament Starting Soon!</h1>
+              </div>
+              
+              <p>Hello Tournament Host,</p>
+              
+              <p>Your hosted tournament <strong>${tournament.name}</strong> is scheduled to start in about <strong>20 minutes</strong>!</p>
+              
+              <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                <h2 style="color: #6200EA; margin-top: 0;">${tournament.name}</h2>
+                <p><strong>Start Time:</strong> ${formattedTime} on ${formattedDate}</p>
+                <p><strong>Mode:</strong> ${tournament.mode}</p>
+                <p><strong>Map:</strong> ${tournament.map}</p>
+                <p><strong>Room Type:</strong> ${tournament.room_type}</p>
+                <p><strong>Participants:</strong> ${tournament.filled_spots || 0}/${tournament.max_players}</p>
+              </div>
+              
+              <p><strong>Don't forget to:</strong></p>
+              <ul>
+                <li>Create the room a few minutes before the start time</li>
+                <li>Share the room ID and password with participants</li>
+                <li>Ensure all settings match the tournament requirements</li>
+                <li>Keep track of results for prize distribution</li>
+              </ul>
+              
+              <p>Good luck and have fun!</p>
+              
+              <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
+                <p style="font-size: 12px; color: #666;">This is an automated reminder. Please do not reply to this email.</p>
+              </div>
+            </div>
+          `
+        };
+        
+        // Send the email and update the notification status
         try {
-          await runTransaction(db, async (transaction) => {
-            // Get the latest tournament data in the transaction
-            const tournamentRef = doc(db, 'tournaments', tournamentId);
-            const freshTournamentDoc = await transaction.get(tournamentRef);
-            
-            if (!freshTournamentDoc.exists()) {
-              throw new Error(`Tournament ${tournamentId} no longer exists`);
-            }
-            
-            const freshTournament = freshTournamentDoc.data();
-            
-            // Double-check notification status - someone else might have sent it already
-            if (freshTournament.notificationSent === true) {
-              console.log(`Transaction check: Notification already sent for tournament ${tournamentId}, skipping`);
-              throw new Error("ALREADY_NOTIFIED"); // Use error to exit transaction without changes
-            }
-            
-            // If we get here, we need to send the notification and mark it as sent
-            console.log(`Sending notification for tournament ${tournamentId} to host ${hostEmail}`);
-            
-            // Format tournament start time
-            const formattedTime = startDate.toLocaleString('en-US', {
-              hour: 'numeric', 
-              minute: 'numeric',
-              hour12: true
-            });
-            const formattedDate = startDate.toLocaleDateString('en-US', {
-              weekday: 'long',
-              month: 'long',
-              day: 'numeric'
-            });
-            
-            // Prepare email content
-            const mailOptions = {
-              from: `"Tournament Host" <${emailUser}>`,
-              to: hostEmail,
-              subject: `🏆 Reminder: Your Tournament "${tournament.name}" Starts Soon!`,
-              html: `
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
-                  <div style="text-align: center; margin-bottom: 20px;">
-                    <h1 style="color: #6200EA;">Tournament Starting Soon!</h1>
-                  </div>
-                  
-                  <p>Hello Tournament Host,</p>
-                  
-                  <p>Your hosted tournament <strong>${tournament.name}</strong> is scheduled to start in about <strong>20 minutes</strong>!</p>
-                  
-                  <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
-                    <h2 style="color: #6200EA; margin-top: 0;">${tournament.name}</h2>
-                    <p><strong>Start Time:</strong> ${formattedTime} on ${formattedDate}</p>
-                    <p><strong>Mode:</strong> ${tournament.mode}</p>
-                    <p><strong>Map:</strong> ${tournament.map}</p>
-                    <p><strong>Room Type:</strong> ${tournament.room_type}</p>
-                    <p><strong>Participants:</strong> ${tournament.filled_spots || 0}/${tournament.max_players}</p>
-                  </div>
-                  
-                  <p><strong>Don't forget to:</strong></p>
-                  <ul>
-                    <li>Create the room a few minutes before the start time</li>
-                    <li>Share the room ID and password with participants</li>
-                    <li>Ensure all settings match the tournament requirements</li>
-                    <li>Keep track of results for prize distribution</li>
-                  </ul>
-                  
-                  <p>Good luck and have fun!</p>
-                  
-                  <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
-                    <p style="font-size: 12px; color: #666;">This is an automated reminder. Please do not reply to this email.</p>
-                  </div>
-                </div>
-              `
-            };
-            
-            // Send the email first
-            console.log(`Attempting to send email from ${emailUser} to ${hostEmail} for tournament ${tournamentId}`);
-            await emailTransporter.sendMail(mailOptions);
-            console.log(`Successfully sent email notification to ${hostEmail} for tournament ${tournamentId}`);
-            
-            // If email was sent successfully, mark as notified
-            transaction.update(tournamentRef, {
-              notificationSent: true
-            });
+          console.log(`Attempting to send email from ${emailUser} to ${hostEmail} for tournament ${tournamentId}`);
+          await emailTransporter.sendMail(mailOptions);
+          console.log(`Successfully sent email notification to ${hostEmail} for tournament ${tournamentId}`);
+          
+          // Update the tournament document to mark notification as sent
+          await updateDoc(doc(db, 'tournaments', tournamentId), {
+            notificationSent: true
           });
           
-          console.log(`Transaction completed: Tournament ${tournamentId} was notified and marked`);
+          console.log(`Marked tournament ${tournamentId} as notified`);
           results.notifications++;
         } catch (error) {
-          // If it's our "already notified" error, it's not a real error
-          if (error.message === "ALREADY_NOTIFIED") {
-            console.log(`Skipped duplicate notification for ${tournamentId}`);
-          } else {
-            results.errors.push(`Error processing tournament ${tournamentId}: ${error.message}`);
-          }
+          results.errors.push(`Error sending email to ${hostEmail}: ${error.message}`);
         }
       }
       

@@ -43,8 +43,6 @@ const emailTransporter = nodemailer.createTransport({
 logger.info(`Email configuration: ${emailConfig.user ? 'Found email user' : 'Missing email user'}, ${emailConfig.pass ? 'Found password' : 'Missing password'}`);
 
 // Cloud Function to send email notifications for upcoming tournaments (20 minutes before start time)
-// DISABLED TO PREVENT DUPLICATE NOTIFICATIONS - Using cron-job.org instead (calling /api/tournament-notifications endpoint)
-/*
 exports.sendUpcomingTournamentNotifications = onSchedule("every 5 minutes", async (context) => {
   try {
     logger.info("Checking for upcoming tournaments to send notifications");
@@ -191,7 +189,6 @@ exports.sendUpcomingTournamentNotifications = onSchedule("every 5 minutes", asyn
     throw error;
   }
 });
-*/
 
 // Cloud Function to automatically delete expired tournaments
 exports.deleteExpiredTournaments = onSchedule("every 5 minutes", async (context) => {

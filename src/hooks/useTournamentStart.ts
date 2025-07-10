@@ -6,15 +6,12 @@ import { Timestamp } from 'firebase/firestore';
 /**
  * Hook to monitor tournament start availability
  * Updates every minute to check if tournament can be started
- * 
- * NOTE: Automatic notification is now handled by the server-side cron job
- * to prevent duplicate emails
+ * Also checks if notification needs to be sent when approaching start time
  */
 export const useTournamentStart = (tournament: Tournament, currentUserId?: string) => {
   const [startInfo, setStartInfo] = useState(() => 
     getTournamentStartInfo(tournament, currentUserId)
   );
-  // We still track notification state, but don't trigger notifications from client
   const [notificationSent, setNotificationSent] = useState(
     tournament?.notificationSent === true
   );
@@ -24,14 +21,6 @@ export const useTournamentStart = (tournament: Tournament, currentUserId?: strin
       const info = getTournamentStartInfo(tournament, currentUserId);
       setStartInfo(info);
       
-      // Update local state if server has already marked notification as sent
-      if (tournament?.notificationSent === true && !notificationSent) {
-        setNotificationSent(true);
-      }
-
-      // DISABLED CLIENT-SIDE NOTIFICATION TRIGGER TO PREVENT DUPLICATE EMAILS
-      // Server-side cron job now handles all tournament notifications
-      /*
       // Check if we need to send a notification (if tournament is starting in ~20 minutes)
       if (tournament && 
           tournament.host_id === currentUserId && 
@@ -74,7 +63,6 @@ export const useTournamentStart = (tournament: Tournament, currentUserId?: strin
           }
         }
       }
-      */
     };
 
     // Update immediately
