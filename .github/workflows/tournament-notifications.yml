@@ -1,0 +1,43 @@
+name: Tournament Notifications
+
+on:
+  schedule:
+    # Run every 2 minutes
+    - cron: '*/2 * * * *'
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  send-notifications:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Send Tournament Notifications
+      run: |
+        echo "Checking for tournaments that need notifications..."
+        
+        # Make API call to trigger notifications
+        response=$(curl -s -w "%{http_code}" \
+          -X GET \
+          -H "Content-Type: application/json" \
+          -H "User-Agent: GitHub-Actions-Tournament-Notifier" \
+          "https://freefiretournaments-lu349yvtw-nishus-projects-70e433b8.vercel.app/api/public-notify?key=tournament-notify-2025-secure-key-943827")
+        
+        http_code="${response: -3}"
+        response_body="${response%???}"
+        
+        echo "HTTP Status: $http_code"
+        echo "Response: $response_body"
+        
+        # Check if request was successful
+        if [ "$http_code" = "200" ]; then
+          echo "✅ Tournament notification check completed successfully"
+        else
+          echo "❌ Tournament notification check failed with status $http_code"
+          echo "Response body: $response_body"
+          exit 1
+        fi
+        
+    - name: Report Status
+      if: always()
+      run: |
+        echo "Tournament notification job completed at $(date -u)"
