@@ -23,23 +23,10 @@ try {
     const serviceAccountFile = fs.readFileSync(process.env.SERVICE_ACCOUNT_KEY_PATH, 'utf8');
     serviceAccount = JSON.parse(serviceAccountFile);
   }
-  // Manual fallback for this project
+  // Manual fallback for this project - load from service account file or exit
   else {
-    serviceAccount = {
-      "type": "service_account",
-      "project_id": "freefire-tournaments-ba2a6",
-      "private_key_id": "2ede2bbed81ac8e5c809ae3961bc688b455eefda",
-      "private_key": "-----BEGIN PRIVATE KEY-----
-REDACTED_PRIVATE_KEY
------END PRIVATE KEY-----\n",
-      "client_email": "firebase-adminsdk-fbsvc@freefire-tournaments-ba2a6.iam.gserviceaccount.com",
-      "client_id": "113510107770544525831",
-      "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-      "token_uri": "https://oauth2.googleapis.com/token",
-      "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-      "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40freefire-tournaments-ba2a6.iam.gserviceaccount.com",
-      "universe_domain": "googleapis.com"
-    };
+    console.error('No Firebase service account found. Please set SERVICE_ACCOUNT_KEY_PATH in your .env file');
+    process.exit(1);
   }
 
   if (!serviceAccount.project_id) {

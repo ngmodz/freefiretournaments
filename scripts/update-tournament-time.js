@@ -1,21 +1,42 @@
 import admin from 'firebase-admin';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import fs from 'fs';
+
+// Get directory name in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load environment variables from .env file
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 // Initialize Firebase Admin SDK
-const serviceAccount = {
-  "type": "service_account",
-  "project_id": "freefire-tournaments-ba2a6",
-  "private_key_id": "2ede2bbed81ac8e5c809ae3961bc688b455eefda",
-  "private_key": "-----BEGIN PRIVATE KEY-----
-REDACTED_PRIVATE_KEY
------END PRIVATE KEY-----\n",
-  "client_email": "firebase-adminsdk-fbsvc@freefire-tournaments-ba2a6.iam.gserviceaccount.com",
-  "client_id": "113510107770544525831",
-  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-  "token_uri": "https://oauth2.googleapis.com/token",
-  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40freefire-tournaments-ba2a6.iam.gserviceaccount.com",
-  "universe_domain": "googleapis.com"
-};
+let serviceAccount;
+try {
+  // Try to read from environment variable first
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+  } 
+  // Fallback to service account file if environment variable fails
+  else if (process.env.SERVICE_ACCOUNT_KEY_PATH && fs.existsSync(process.env.SERVICE_ACCOUNT_KEY_PATH)) {
+    const serviceAccountFile = fs.readFileSync(process.env.SERVICE_ACCOUNT_KEY_PATH, 'utf8');
+    serviceAccount = JSON.parse(serviceAccountFile);
+  }
+  // Manual fallback for this project - load from service account file or exit
+  else {
+    console.error('No Firebase service account found. Please set SERVICE_ACCOUNT_KEY_PATH in your .env file');
+    process.exit(1);
+  }
+
+  if (!serviceAccount.project_id) {
+    throw new Error('Invalid service account configuration');
+  }
+} catch (error) {
+  console.error('❌ Error parsing Firebase service account:', error);
+  console.log('💡 Make sure Firebase credentials are properly configured');
+  process.exit(1);
+}
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
