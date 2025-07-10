@@ -73,6 +73,26 @@ app.get('/api/health-check', async (req, res) => {
   }
 });
 
+app.get('/api/tournament-notifications', async (req, res) => {
+  try {
+    const { default: handler } = await import('./api/tournament-notifications.js');
+    await handler(req, res);
+  } catch (error) {
+    console.error('API Error:', error);
+    res.status(500).json({ error: error.message, success: false });
+  }
+});
+
+app.get('/api/check-tournament', async (req, res) => {
+  try {
+    const { default: handler } = await import('./api/check-tournament.js');
+    await handler(req, res);
+  } catch (error) {
+    console.error('API Error:', error);
+    res.status(500).json({ error: error.message, success: false });
+  }
+});
+
 app.options('/api/*', (req, res) => {
   res.status(200).end();
 });

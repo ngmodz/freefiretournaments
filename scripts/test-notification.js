@@ -37,6 +37,9 @@ const emailTransporter = nodemailer.createTransport({
 });
 
 // Sample tournament data for testing
+// Use IST timezone for proper scheduling
+const now = new Date();
+const istNow = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
 const sampleTournament = {
   name: "Test Tournament",
   mode: "Solo",
@@ -44,20 +47,22 @@ const sampleTournament = {
   room_type: "Classic",
   max_players: 12,
   filled_spots: 8,
-  start_date: new Date(Date.now() + 20 * 60 * 1000)
+  start_date: new Date(istNow.getTime() + 20 * 60 * 1000)
 };
 
-// Format tournament start time
+// Format tournament start time in IST
 const startDate = sampleTournament.start_date;
 const formattedTime = startDate.toLocaleString('en-US', {
   hour: 'numeric', 
   minute: 'numeric',
-  hour12: true
+  hour12: true,
+  timeZone: 'Asia/Kolkata'
 });
 const formattedDate = startDate.toLocaleDateString('en-US', {
   weekday: 'long',
   month: 'long',
-  day: 'numeric'
+  day: 'numeric',
+  timeZone: 'Asia/Kolkata'
 });
 
 async function sendTestEmail(recipientEmail) {

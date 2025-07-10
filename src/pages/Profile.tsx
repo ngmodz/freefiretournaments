@@ -404,7 +404,18 @@ const Profile = () => {
                               <h4 className="font-semibold text-white">{tournament.name}</h4>
                               <p className="text-sm text-gaming-muted">{tournament.mode} • {tournament.map}</p>
                               <p className="text-xs text-gaming-muted">
-                                {new Date(tournament.start_date).toLocaleDateString()}
+                                {(() => {
+                                  const startDate = tournament.start_date;
+                                  if (!startDate) return 'No date set';
+                                  try {
+                                    if ((startDate as any)?.toDate) {
+                                      return (startDate as any).toDate().toLocaleDateString();
+                                    }
+                                    return new Date(startDate as string).toLocaleDateString();
+                                  } catch {
+                                    return 'Invalid date';
+                                  }
+                                })()}
                               </p>
                             </div>
                             <div className="text-right">
@@ -471,7 +482,18 @@ const Profile = () => {
                               <h4 className="font-semibold text-white">{tournament.name}</h4>
                               <p className="text-sm text-gaming-muted">{tournament.mode} • {tournament.map}</p>
                               <p className="text-xs text-gaming-muted">
-                                {new Date(tournament.start_date).toLocaleDateString()}
+                                {(() => {
+                                  const startDate = tournament.start_date;
+                                  if (!startDate) return 'No date set';
+                                  try {
+                                    if ((startDate as any)?.toDate) {
+                                      return (startDate as any).toDate().toLocaleDateString();
+                                    }
+                                    return new Date(startDate as string).toLocaleDateString();
+                                  } catch {
+                                    return 'Invalid date';
+                                  }
+                                })()}
                               </p>
                             </div>
                             <div className="text-right">

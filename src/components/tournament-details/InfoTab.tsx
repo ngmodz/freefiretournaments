@@ -25,15 +25,15 @@ const InfoTab: React.FC<InfoTabProps> = ({ tournament }) => {
       <div className="space-y-2 text-gaming-muted mb-6">
         <div className="flex justify-between">
           <span>Registration closes:</span>
-          <span>{new Date(new Date(tournament.start_date).getTime() - 30 * 60000).toLocaleString()} (Example)</span>
+          <span>{new Date(new Date(tournament.start_date).getTime() - 30 * 60000).toLocaleString('en-US', {timeZone: 'Asia/Kolkata'})} (Example)</span>
         </div>
         <div className="flex justify-between">
           <span>Room details shared:</span>
-          <span>{new Date(new Date(tournament.start_date).getTime() - 15 * 60000).toLocaleString()} (Example)</span>
+          <span>{new Date(new Date(tournament.start_date).getTime() - 15 * 60000).toLocaleString('en-US', {timeZone: 'Asia/Kolkata'})} (Example)</span>
         </div>
         <div className="flex justify-between">
           <span>Tournament starts:</span>
-          <span>{new Date(tournament.start_date).toLocaleString()}</span>
+          <span>{new Date(tournament.start_date).toLocaleString('en-US', {timeZone: 'Asia/Kolkata'})}</span>
         </div>
       </div>
       

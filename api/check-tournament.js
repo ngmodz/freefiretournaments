@@ -4,12 +4,12 @@ import nodemailer from 'nodemailer';
 
 // Initialize Firebase
 const firebaseConfig = {
-  apiKey: process.env.FIREBASE_API_KEY,
-  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.FIREBASE_PROJECT_ID,
-  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.FIREBASE_APP_ID
+  apiKey: process.env.VITE_FIREBASE_API_KEY,
+  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.VITE_FIREBASE_APP_ID
 };
 
 // Email configuration
@@ -41,6 +41,7 @@ async function checkSpecificTournament(tournamentId) {
   
   try {
     const now = new Date();
+    const istNow = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
     
     // Get the specific tournament
     const tournamentRef = doc(db, 'tournaments', tournamentId);
@@ -78,7 +79,7 @@ async function checkSpecificTournament(tournamentId) {
     const startDate = tournament.start_date instanceof Date ? tournament.start_date : 
                     (tournament.start_date.toDate ? tournament.start_date.toDate() : new Date(tournament.start_date));
     
-    const minutesToStart = (startDate.getTime() - now.getTime()) / (1000 * 60);
+    const minutesToStart = (startDate.getTime() - istNow.getTime()) / (1000 * 60);
     
     // Only send notification if tournament starts in 19-21 minutes (20 minutes ± 1 minute buffer)
     // Or if force=true is passed in the query
@@ -121,7 +122,7 @@ async function checkSpecificTournament(tournamentId) {
     
     // Prepare email content
     const mailOptions = {
-      from: `"Tournament Host" <${emailUser}>`,
+      from: `"Freefire Tournaments" <${emailUser}>`,
       to: hostEmail,
       subject: `🏆 Reminder: Your Tournament "${tournament.name}" Starts Soon!`,
       html: `

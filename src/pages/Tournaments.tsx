@@ -39,38 +39,64 @@ const Tournaments = () => {
   }, [refreshJoinedTournaments, refreshHostedTournaments]);
   
   // Format joined tournaments for display
-  const formattedJoinedTournaments: TournamentType[] = joinedTournaments.map(tournament => ({
-    id: tournament.id,
-    title: tournament.name,
-    mode: tournament.mode,
-    map: tournament.map || "",
-    entryFee: tournament.entry_fee,
-    prizeMoney: tournament.entry_fee * tournament.max_players,
-    date: tournament.start_date,
-    time: new Date(tournament.start_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    totalSpots: tournament.max_players,
-    filledSpots: tournament.filled_spots || 0,
-    status: tournament.status as TournamentStatus,
-    isPremium: tournament.entry_fee > 100,
-    ttl: tournament.ttl?.toDate().toISOString()
-  }));
+  const formattedJoinedTournaments: TournamentType[] = joinedTournaments.map(tournament => {
+    // Convert Firestore timestamp to proper date string
+    let startDate: Date;
+    if (typeof tournament.start_date === 'string') {
+      startDate = new Date(tournament.start_date);
+    } else if (tournament.start_date && typeof tournament.start_date === 'object' && 'toDate' in tournament.start_date) {
+      // Handle Firestore Timestamp
+      startDate = (tournament.start_date as any).toDate();
+    } else {
+      startDate = new Date(); // Fallback
+    }
+    
+    return {
+      id: tournament.id,
+      title: tournament.name,
+      mode: tournament.mode,
+      map: tournament.map || "",
+      entryFee: tournament.entry_fee,
+      prizeMoney: tournament.entry_fee * tournament.max_players,
+      date: startDate.toISOString(),
+      time: startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      totalSpots: tournament.max_players,
+      filledSpots: tournament.filled_spots || 0,
+      status: tournament.status as TournamentStatus,
+      isPremium: tournament.entry_fee > 100,
+      ttl: tournament.ttl?.toDate().toISOString()
+    };
+  });
   
   // Format hosted tournaments for display
-  const formattedHostedTournaments: TournamentType[] = hostedTournaments.map(tournament => ({
-    id: tournament.id,
-    title: tournament.name,
-    mode: tournament.mode,
-    map: tournament.map || "",
-    entryFee: tournament.entry_fee,
-    prizeMoney: tournament.entry_fee * tournament.max_players,
-    date: tournament.start_date,
-    time: new Date(tournament.start_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    totalSpots: tournament.max_players,
-    filledSpots: tournament.filled_spots || 0,
-    status: tournament.status as TournamentStatus,
-    isPremium: tournament.entry_fee > 100,
-    ttl: tournament.ttl?.toDate().toISOString()
-  }));
+  const formattedHostedTournaments: TournamentType[] = hostedTournaments.map(tournament => {
+    // Convert Firestore timestamp to proper date string
+    let startDate: Date;
+    if (typeof tournament.start_date === 'string') {
+      startDate = new Date(tournament.start_date);
+    } else if (tournament.start_date && typeof tournament.start_date === 'object' && 'toDate' in tournament.start_date) {
+      // Handle Firestore Timestamp
+      startDate = (tournament.start_date as any).toDate();
+    } else {
+      startDate = new Date(); // Fallback
+    }
+    
+    return {
+      id: tournament.id,
+      title: tournament.name,
+      mode: tournament.mode,
+      map: tournament.map || "",
+      entryFee: tournament.entry_fee,
+      prizeMoney: tournament.entry_fee * tournament.max_players,
+      date: startDate.toISOString(),
+      time: startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      totalSpots: tournament.max_players,
+      filledSpots: tournament.filled_spots || 0,
+      status: tournament.status as TournamentStatus,
+      isPremium: tournament.entry_fee > 100,
+      ttl: tournament.ttl?.toDate().toISOString()
+    };
+  });
   
   // Apply search filter
   const applySearchFilter = (tournaments: TournamentType[]) => {

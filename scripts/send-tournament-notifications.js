@@ -36,22 +36,24 @@ async function sendTournamentNotifications() {
   try {
     console.log('Checking for upcoming tournaments to send notifications...');
     
+    // Use IST timezone consistently
     const now = new Date();
+    const istNow = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
     
-    // Calculate the time 20 minutes from now
-    const twentyMinutesFromNow = new Date(now.getTime() + 20 * 60 * 1000);
-    // Add a small buffer (30 seconds) to avoid missing tournaments
-    const twentyMinutesPlusBuffer = new Date(now.getTime() + 20 * 60 * 1000 + 30 * 1000);
+    // Calculate the notification window: 19-21 minutes from now in IST
+    const nineteenMinutesFromNow = new Date(istNow.getTime() + 19 * 60 * 1000);
+    const twentyOneMinutesFromNow = new Date(istNow.getTime() + 21 * 60 * 1000);
     
-    console.log(`Looking for tournaments starting between ${twentyMinutesFromNow.toISOString()} and ${twentyMinutesPlusBuffer.toISOString()}`);
+    console.log(`Current IST time: ${istNow.toLocaleString()}`);
+    console.log(`Looking for tournaments starting between ${nineteenMinutesFromNow.toLocaleString()} and ${twentyOneMinutesFromNow.toLocaleString()} IST`);
     
     try {
-      // Query for tournaments that are starting in approximately 20 minutes
+      // Query for tournaments that are starting in the notification window (19-21 minutes)
       const tournamentsQuery = query(
         collection(db, 'tournaments'),
         where('status', '==', 'active'),
-        where('start_date', '>=', twentyMinutesFromNow),
-        where('start_date', '<=', twentyMinutesPlusBuffer)
+        where('start_date', '>=', nineteenMinutesFromNow),
+        where('start_date', '<=', twentyOneMinutesFromNow)
       );
       
       const upcomingTournamentsSnapshot = await getDocs(tournamentsQuery);
@@ -118,7 +120,7 @@ async function sendTournamentNotifications() {
         
         // Prepare email content
         const mailOptions = {
-          from: `"Tournament Host" <${process.env.EMAIL_USER || 'freefiretournaments03@gmail.com'}>`,
+          from: `"Freefire Tournaments" <${process.env.EMAIL_USER || 'freefiretournaments03@gmail.com'}>`,
           to: hostEmail,
           subject: `🏆 Reminder: Your Tournament "${tournament.name}" Starts Soon!`,
           html: `
@@ -213,7 +215,9 @@ async function sendTournamentNotifications() {
 // Function to send a test notification (used when index is missing)
 async function sendTestNotification(email) {
   try {
-    // Sample tournament data for testing
+    // Sample tournament data for testing using IST
+    const now = new Date();
+    const istNow = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
     const sampleTournament = {
       name: "Test Tournament",
       mode: "Solo",
@@ -221,20 +225,22 @@ async function sendTestNotification(email) {
       room_type: "Classic",
       max_players: 12,
       filled_spots: 8,
-      start_date: new Date(Date.now() + 20 * 60 * 1000)
+      start_date: new Date(istNow.getTime() + 20 * 60 * 1000)
     };
     
-    // Format tournament start time
+    // Format tournament start time in IST
     const startDate = sampleTournament.start_date;
     const formattedTime = startDate.toLocaleString('en-US', {
       hour: 'numeric', 
       minute: 'numeric',
-      hour12: true
+      hour12: true,
+      timeZone: 'Asia/Kolkata'
     });
     const formattedDate = startDate.toLocaleDateString('en-US', {
       weekday: 'long',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
+      timeZone: 'Asia/Kolkata'
     });
     
     // Prepare email content

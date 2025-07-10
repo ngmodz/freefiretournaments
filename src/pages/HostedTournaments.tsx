@@ -122,6 +122,17 @@ const HostedTournaments = () => {
             // Safely calculate prize total, handling potential undefined values
             const prizeTotal = tournament.prize_distribution ? 
               Object.values(tournament.prize_distribution).reduce((total, amount) => total + amount, 0) : 0;
+            
+            // Convert Firestore timestamp to proper date string
+            let startDate: Date;
+            if (typeof tournament.start_date === 'string') {
+              startDate = new Date(tournament.start_date);
+            } else if (tournament.start_date && typeof tournament.start_date === 'object' && 'toDate' in tournament.start_date) {
+              // Handle Firestore Timestamp
+              startDate = (tournament.start_date as any).toDate();
+            } else {
+              startDate = new Date(); // Fallback
+            }
               
             return {
               id: tournament.id || "",
@@ -130,8 +141,8 @@ const HostedTournaments = () => {
               map: tournament.map || "",
               entryFee: tournament.entry_fee || 0,
               prizeMoney: (tournament.entry_fee || 0) * (tournament.max_players || 0),
-              date: tournament.start_date || "",
-              time: tournament.start_date ? new Date(tournament.start_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "",
+              date: startDate.toISOString(),
+              time: startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
               totalSpots: tournament.max_players || 0,
               filledSpots: tournament.filled_spots || 0,
               status: tournament.status === 'active' ? 'active' : 

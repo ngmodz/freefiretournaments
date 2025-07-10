@@ -119,7 +119,7 @@ exports.sendUpcomingTournamentNotifications = onSchedule("every 5 minutes", asyn
       
       // Prepare email content
       const mailOptions = {
-        from: `"Tournament Host" <${emailConfig.user}>`,
+        from: `"Freefire Tournaments" <${emailConfig.user}>`,
         to: hostEmail,
         subject: `🏆 Reminder: Your Tournament "${tournament.name}" Starts Soon!`,
         html: `
@@ -344,7 +344,7 @@ exports.testTournamentNotification = onRequest(async (req, res) => {
     
     // Prepare email content
     const mailOptions = {
-      from: `"Tournament Host" <${emailConfig.user}>`,
+      from: `"Freefire Tournaments" <${emailConfig.user}>`,
       to: email,
       subject: `🏆 Reminder: Your Tournament "${tournamentData.name}" Starts Soon!`,
       html: `

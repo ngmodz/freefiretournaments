@@ -4,12 +4,12 @@ import nodemailer from 'nodemailer';
 
 // Initialize Firebase
 const firebaseConfig = {
-  apiKey: process.env.FIREBASE_API_KEY,
-  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.FIREBASE_PROJECT_ID,
-  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.FIREBASE_APP_ID
+  apiKey: process.env.VITE_FIREBASE_API_KEY,
+  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.VITE_FIREBASE_APP_ID
 };
 
 // Email configuration
@@ -41,19 +41,22 @@ async function sendTournamentNotifications() {
   const results = { success: true, notifications: 0, errors: [], checked: 0 };
   
   try {
+    // Use IST timezone consistently
     const now = new Date();
+    const istNow = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
     
-    // Get tournaments starting in the next 24 hours
-    const twentyFourHoursFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    // Get tournaments starting in the next 24 hours (IST)
+    const twentyFourHoursFromNow = new Date(istNow.getTime() + 24 * 60 * 60 * 1000);
     
-    console.log(`Looking for tournaments starting between ${now.toISOString()} and ${twentyFourHoursFromNow.toISOString()}`);
+    console.log(`Looking for tournaments starting between ${istNow.toLocaleString()} and ${twentyFourHoursFromNow.toLocaleString()} IST`);
+    console.log(`Current IST time: ${istNow.toLocaleString()}, Email credentials available: ${!!emailUser && !!emailPass}`);
     
     try {
-      // Query for active tournaments in the next 24 hours
+      // Query for active tournaments in the next 24 hours (using IST)
       const tournamentsQuery = query(
         collection(db, 'tournaments'),
         where('status', '==', 'active'),
-        where('start_date', '>=', now),
+        where('start_date', '>=', istNow),
         where('start_date', '<=', twentyFourHoursFromNow)
       );
       
@@ -67,6 +70,14 @@ async function sendTournamentNotifications() {
       
       console.log(`Found ${upcomingTournamentsSnapshot.size} upcoming tournaments in the next 24 hours`);
       results.checked = upcomingTournamentsSnapshot.size;
+      
+      // Log all tournaments found
+      upcomingTournamentsSnapshot.docs.forEach(doc => {
+        const t = doc.data();
+        const startDate = t.start_date instanceof Date ? t.start_date : 
+                        (t.start_date.toDate ? t.start_date.toDate() : new Date(t.start_date));
+        console.log(`Tournament ${doc.id}: ${t.name}, Start: ${startDate}, Host: ${t.host_id}, Notification sent: ${t.notificationSent}`);
+      });
       
       // Create email transporter
       const emailTransporter = createTransporter();
@@ -93,7 +104,9 @@ async function sendTournamentNotifications() {
         const startDate = tournament.start_date instanceof Date ? tournament.start_date : 
                         (tournament.start_date.toDate ? tournament.start_date.toDate() : new Date(tournament.start_date));
         
-        const minutesToStart = (startDate.getTime() - now.getTime()) / (1000 * 60);
+        const minutesToStart = (startDate.getTime() - istNow.getTime()) / (1000 * 60);
+        
+        console.log(`Tournament ${tournamentId} - Minutes to start: ${minutesToStart.toFixed(1)}, Start time: ${startDate.toLocaleString()}`);
         
         // Only send notification if tournament starts in 19-21 minutes (20 minutes ± 1 minute buffer)
         if (minutesToStart < 19 || minutesToStart > 21) {
@@ -114,6 +127,8 @@ async function sendTournamentNotifications() {
         
         const hostData = hostDocSnapshot.data();
         const hostEmail = hostData.email;
+        
+        console.log(`Host data for ${hostId}: Email=${hostEmail}, Name=${hostData.name || 'N/A'}`);
         
         if (!hostEmail) {
           results.errors.push(`Host user ${hostId} has no email, skipping notification`);
@@ -177,6 +192,7 @@ async function sendTournamentNotifications() {
         
         // Send the email and update the notification status
         try {
+          console.log(`Attempting to send email from ${emailUser} to ${hostEmail} for tournament ${tournamentId}`);
           await emailTransporter.sendMail(mailOptions);
           console.log(`Successfully sent email notification to ${hostEmail} for tournament ${tournamentId}`);
           
