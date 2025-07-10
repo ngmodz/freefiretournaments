@@ -10,6 +10,14 @@ A gaming tournament platform for FreeFire with integrated credit system and paym
 - **Real-time Updates**: Live tournament data with Firebase Realtime Database
 - **Responsive Design**: Mobile-first interface with Tailwind CSS
 - **Tournament Notifications**: Automated email reminders sent to hosts 20 minutes before tournament start
+- **Security**: Secure handling of credentials and sensitive information
+
+## Security Notice
+
+This repository follows secure practices for handling sensitive information:
+- All service account credentials must be stored in external files referenced by environment variables
+- Never commit sensitive information directly to the repository
+- See `GIT-HISTORY-REWRITE.md` for important information about the repository's security history
 
 ## Tech Stack
 
@@ -65,4 +73,4 @@ npm run lint     # Lint code
 1. Fork the repository
 2. Create feature branch
 3. Commit changes
-4. Open Pull Request 
+4. Open Pull Request
