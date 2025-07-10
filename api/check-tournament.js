@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, query, where, getDocs, updateDoc, doc, getDoc } from 'firebase/firestore';
+import { getFirestore, collection, query, where, getDocs, updateDoc, doc, getDoc, Timestamp } from 'firebase/firestore';
 import nodemailer from 'nodemailer';
 
 // Initialize Firebase
@@ -65,6 +65,21 @@ async function checkSpecificTournament(tournamentId) {
     if (tournament.notificationSent) {
       results.error = `Notification already sent for tournament ${tournamentId}`;
       return results;
+    }
+    
+    // Additional check: Skip if notification was sent in the last 30 minutes
+    // This prevents duplicate notifications due to race conditions
+    if (tournament.notificationSentAt) {
+      const istNow = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
+      const notificationTime = tournament.notificationSentAt.toDate ? 
+        tournament.notificationSentAt.toDate() : 
+        new Date(tournament.notificationSentAt);
+      const timeSinceNotification = (istNow.getTime() - notificationTime.getTime()) / (1000 * 60);
+      
+      if (timeSinceNotification < 30) {
+        results.error = `Notification sent ${timeSinceNotification.toFixed(1)} minutes ago, skipping to prevent duplicate`;
+        return results;
+      }
     }
     
     const hostId = tournament.host_id;
@@ -166,7 +181,8 @@ async function checkSpecificTournament(tournamentId) {
     
     // Update the tournament document to mark notification as sent
     await updateDoc(doc(db, 'tournaments', tournamentId), {
-      notificationSent: true
+      notificationSent: true,
+      notificationSentAt: Timestamp.now()
     });
     
     results.notification = true;

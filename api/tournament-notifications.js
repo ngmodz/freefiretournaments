@@ -112,6 +112,20 @@ async function sendTournamentNotifications() {
           continue;
         }
         
+        // Additional check: Skip if notification was sent in the last 30 minutes
+        // This prevents duplicate notifications due to race conditions
+        if (tournament.notificationSentAt) {
+          const notificationTime = tournament.notificationSentAt.toDate ? 
+            tournament.notificationSentAt.toDate() : 
+            new Date(tournament.notificationSentAt);
+          const timeSinceNotification = (istNow.getTime() - notificationTime.getTime()) / (1000 * 60);
+          
+          if (timeSinceNotification < 30) {
+            console.log(`Notification sent ${timeSinceNotification.toFixed(1)} minutes ago for tournament ${tournamentId}, skipping to prevent duplicate`);
+            continue;
+          }
+        }
+        
         // Calculate if it's time to send notification (between 19-21 minutes before start)
         const startDate = tournament.start_date instanceof Date ? tournament.start_date : 
                         (tournament.start_date.toDate ? tournament.start_date.toDate() : new Date(tournament.start_date));
@@ -211,7 +225,8 @@ async function sendTournamentNotifications() {
           
           // Update the tournament document to mark notification as sent
           await updateDoc(doc(db, 'tournaments', tournamentId), {
-            notificationSent: true
+            notificationSent: true,
+            notificationSentAt: Timestamp.now()
           });
           
           console.log(`Marked tournament ${tournamentId} as notified`);
