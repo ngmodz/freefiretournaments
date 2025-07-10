@@ -11,6 +11,11 @@
       "source": "/(.*)",
       "destination": "/index.html"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/tournament-notifications",
+      "schedule": "0 0 * * *"
+    }
   ]
 }
-
