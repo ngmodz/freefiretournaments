@@ -57,6 +57,12 @@ async function sendTestEmail() {
   }
 }
 
+// --- Helper functions ---
+function toIndianTime(date) {
+  // Convert to IST (UTC+5:30)
+  return new Date(date.getTime() + (5.5 * 60 * 60 * 1000));
+}
+
 async function processTournament(tournamentDoc) {
   const tournamentId = tournamentDoc.id;
   let emailData = null;
@@ -73,8 +79,11 @@ async function processTournament(tournamentDoc) {
         return; // Skip: not active or already notified
       }
 
-      const now = new Date();
-      // --- FIX: Robust date handling ---
+      // --- FIX: Use Indian Standard Time ---
+      const now = toIndianTime(new Date());
+      console.log(`[${tournamentId}] Current IST time: ${now.toISOString()}`);
+      
+      // Robust date handling
       let startDate;
       if (tournament.start_date?.toDate) { // It's a Firestore Timestamp
         startDate = tournament.start_date.toDate();
@@ -83,15 +92,18 @@ async function processTournament(tournamentDoc) {
       } else { // It's likely a string or number, try parsing it
         startDate = new Date(tournament.start_date);
       }
+      
       // Check if parsing resulted in a valid date
       if (isNaN(startDate.getTime())) {
           console.error(`[${tournamentId}] Invalid start_date format:`, tournament.start_date);
-          // Skip this tournament as we can't process it
           return;
       }
       
+      // Tournament start time should already be in IST in the database
+      console.log(`[${tournamentId}] Tournament start time: ${startDate.toISOString()}`);
+      
       const minutesToStart = (startDate.getTime() - now.getTime()) / (1000 * 60);
-      console.log(`[${tournamentId}] Starts in ${minutesToStart.toFixed(1)} minutes.`);
+      console.log(`[${tournamentId}] Starts in ${minutesToStart.toFixed(1)} minutes (IST).`);
 
       // Wider notification window for cron job robustness
       if (minutesToStart >= 15 && minutesToStart <= 25) {
@@ -106,8 +118,6 @@ async function processTournament(tournamentDoc) {
           tournamentName: tournament.name,
           startDate,
         };
-      } else {
-        console.log(`[${tournamentId}] Skipping: Not in notification window (15-25 mins).`);
       }
     });
 
@@ -120,19 +130,39 @@ async function processTournament(tournamentDoc) {
         console.error(`[${tournamentId}] ERROR: Host user ${emailData.host_id} email not found.`);
         throw new Error(`Host user ${emailData.host_id} email not found.`);
       }
-      console.log(`[${tournamentId}] Found host email. Preparing mail options.`);
       
-      const formattedTime = emailData.startDate.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true });
+      // Format time in IST for email
+      const formattedTime = emailData.startDate.toLocaleString('en-US', { 
+        hour: 'numeric', 
+        minute: 'numeric',
+        hour12: true,
+        timeZone: 'Asia/Kolkata'
+      });
 
-    const mailOptions = {
-      from: `"Freefire Tournaments" <${emailUser}>`,
-      to: hostEmail,
+      const mailOptions = {
+        from: `"Freefire Tournaments" <${emailUser}>`,
+        to: hostEmail,
         subject: `🏆 Reminder: Your Tournament "${emailData.tournamentName}" Starts Soon!`,
-        html: `<p>Your tournament, <strong>${emailData.tournamentName}</strong>, is scheduled to start in ~20 minutes, at ${formattedTime}.</p>`
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
+            <div style="text-align: center; margin-bottom: 20px;">
+              <h1 style="color: #6200EA;">Tournament Starting Soon!</h1>
+            </div>
+            
+            <p>Hello Tournament Host,</p>
+            
+            <p>Your tournament <strong>${emailData.tournamentName}</strong> is scheduled to start in about <strong>20 minutes</strong>, at ${formattedTime} IST!</p>
+            
+            <p>Don't forget to create the room a few minutes before the start time and share the room ID and password with participants.</p>
+            
+            <p>Good luck and have fun!</p>
+          </div>
+        `
       };
 
       console.log(`[${tournamentId}] Sending email to ${hostEmail}...`);
       await sendEmail(mailOptions);
+      console.log(`[${tournamentId}] Email sent successfully!`);
       return { success: true, emailSent: true, tournamentId };
     }
     // Not in the window or already sent, which is a success case (no action needed).

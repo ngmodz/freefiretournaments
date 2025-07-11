@@ -11,10 +11,13 @@ interface BasicInfoFormProps {
   nextStep: () => void;
 }
 
+// Define the valid game modes as a type
+type GameMode = "Solo" | "Duo" | "Squad";
+
 const BasicInfoForm = ({ formData, updateFormData, nextStep }: BasicInfoFormProps) => {
   const [name, setName] = useState(formData.name);
   const [description, setDescription] = useState(formData.description);
-  const [mode, setMode] = useState(formData.mode);
+  const [mode, setMode] = useState<GameMode>(formData.mode as GameMode);
   const [maxPlayers, setMaxPlayers] = useState(formData.max_players);
   const [startDate, setStartDate] = useState(formData.start_date);
   
@@ -24,6 +27,11 @@ const BasicInfoForm = ({ formData, updateFormData, nextStep }: BasicInfoFormProp
     maxPlayers: "",
     startDate: ""
   });
+
+  // Handle mode change with proper typing
+  const handleModeChange = (value: string) => {
+    setMode(value as GameMode);
+  };
 
   const validateForm = () => {
     const newErrors = {
@@ -123,7 +131,7 @@ const BasicInfoForm = ({ formData, updateFormData, nextStep }: BasicInfoFormProp
             <label className="block text-sm font-medium">Game Mode</label>
             <Select 
               value={mode}
-              onValueChange={setMode}
+              onValueChange={handleModeChange}
             >
               <SelectTrigger className="bg-gaming-card border-2 border-gray-600 text-white">
                 <SelectValue placeholder="Select mode" />
