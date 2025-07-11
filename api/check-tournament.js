@@ -63,23 +63,33 @@ async function processTournament(tournamentDoc) {
 
   try {
     await runTransaction(db, async (transaction) => {
+      console.log(`[${tournamentId}] Starting transaction...`);
       const freshTournamentDoc = await transaction.get(tournamentDoc.ref);
       if (!freshTournamentDoc.exists()) {
+        console.error(`[${tournamentId}] Document not found during transaction.`);
         throw new Error(`[${tournamentId}] Document not found during transaction.`);
       }
 
       const tournament = freshTournamentDoc.data();
-      if (tournament.status !== 'active' || tournament.notificationSent) {
-        return; // Skip: not active or already notified
+      console.log(`[${tournamentId}] Status: ${tournament.status}, NotificationSent: ${tournament.notificationSent}`);
+
+      if (tournament.status !== 'active') {
+        console.log(`[${tournamentId}] Skipping: Status is not 'active'.`);
+        return;
+      }
+       if (tournament.notificationSent) {
+        console.log(`[${tournamentId}] Skipping: Notification already sent.`);
+        return; 
       }
 
       const now = new Date();
       const startDate = tournament.start_date.toDate();
       const minutesToStart = (startDate.getTime() - now.getTime()) / (1000 * 60);
+      console.log(`[${tournamentId}] Time check: Starts in ${minutesToStart.toFixed(1)} minutes.`);
 
       // Wider notification window for cron job robustness
       if (minutesToStart >= 15 && minutesToStart <= 25) {
-        console.log(`[${tournamentId}] In notification window (${minutesToStart.toFixed(1)}m). Marking as sent.`);
+        console.log(`[${tournamentId}] SUCCESS: In notification window. Marking as sent in transaction.`);
         transaction.update(tournamentDoc.ref, { 
           notificationSent: true,
           notificationSentAt: Timestamp.now()
@@ -90,15 +100,21 @@ async function processTournament(tournamentDoc) {
           tournamentName: tournament.name,
           startDate,
         };
+      } else {
+        console.log(`[${tournamentId}] Skipping: Not in notification window (15-25 mins).`);
       }
     });
 
     if (emailData) {
-      console.log(`[${tournamentId}] Transaction successful. Sending email.`);
+      console.log(`[${tournamentId}] Transaction successful. Preparing to send email.`);
       const hostDoc = await getDoc(doc(db, 'users', emailData.host_id));
       const hostEmail = hostDoc.data()?.email;
 
-      if (!hostEmail) throw new Error(`Host user ${emailData.host_id} email not found.`);
+      if (!hostEmail) {
+        console.error(`[${tournamentId}] ERROR: Host user ${emailData.host_id} email not found.`);
+        throw new Error(`Host user ${emailData.host_id} email not found.`);
+      }
+      console.log(`[${tournamentId}] Found host email. Preparing mail options.`);
       
       const formattedTime = emailData.startDate.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true });
 
@@ -109,10 +125,12 @@ async function processTournament(tournamentDoc) {
         html: `<p>Your tournament, <strong>${emailData.tournamentName}</strong>, is scheduled to start in ~20 minutes, at ${formattedTime}.</p>`
       };
 
+      console.log(`[${tournamentId}] Sending email to ${hostEmail}...`);
       await sendEmail(mailOptions);
       return { success: true, emailSent: true, tournamentId };
     }
     // Not in the window or already sent, which is a success case (no action needed).
+    console.log(`[${tournamentId}] No action needed (not in window or already processed).`);
     return { success: true, emailSent: false, tournamentId };
 
   } catch (error) {
@@ -125,7 +143,8 @@ async function checkAllTournaments() {
   const results = { success: true, notifications: 0, errors: [], checked: 0, message: '' };
   
   try {
-    console.log('Querying for active tournaments that need a notification check...');
+    console.log('--- checkAllTournaments Job Started ---');
+    console.log('Querying for active tournaments...');
     const tournamentsQuery = query(
       collection(db, 'tournaments'),
       where('status', '==', 'active')
@@ -135,12 +154,14 @@ async function checkAllTournaments() {
     
     const tournamentDocs = await getDocs(tournamentsQuery);
     results.checked = tournamentDocs.size;
+    console.log(`Query found ${results.checked} active tournaments.`);
 
     if (results.checked === 0) {
-      results.message = 'No active tournaments require notification checks.';
+      results.message = 'No active tournaments found.';
+      console.log(results.message);
       return results;
     }
-    console.log(`Found ${results.checked} tournaments to process.`);
+    console.log(`Processing ${results.checked} tournaments...`);
 
     const processingPromises = tournamentDocs.docs.map(processTournament);
     const settledResults = await Promise.allSettled(processingPromises);
@@ -156,10 +177,16 @@ async function checkAllTournaments() {
       } else {
         // A promise was rejected, which shouldn't happen with the current processTournament structure
         results.errors.push(`A promise was unexpectedly rejected: ${result.reason}`);
+        console.error('A promise was unexpectedly rejected:', result.reason);
       }
     });
     
-    results.message = `Processed ${results.checked} tournaments. Sent ${results.notifications} notifications. Encountered ${results.errors.length} errors.`;
+    results.message = `Job finished. Processed ${results.checked} tournaments. Sent ${results.notifications} notifications. Encountered ${results.errors.length} errors.`;
+    console.log(results.message);
+    if(results.errors.length > 0) {
+      console.error('Errors encountered:', results.errors);
+    }
+    console.log('--- checkAllTournaments Job Ended ---');
   } catch (error) {
     console.error('Fatal error in checkAllTournaments:', error);
     results.success = false;
