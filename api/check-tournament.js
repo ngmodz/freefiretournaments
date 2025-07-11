@@ -63,33 +63,39 @@ async function processTournament(tournamentDoc) {
 
   try {
     await runTransaction(db, async (transaction) => {
-      console.log(`[${tournamentId}] Starting transaction...`);
       const freshTournamentDoc = await transaction.get(tournamentDoc.ref);
       if (!freshTournamentDoc.exists()) {
-        console.error(`[${tournamentId}] Document not found during transaction.`);
         throw new Error(`[${tournamentId}] Document not found during transaction.`);
       }
 
       const tournament = freshTournamentDoc.data();
-      console.log(`[${tournamentId}] Status: ${tournament.status}, NotificationSent: ${tournament.notificationSent}`);
-
-      if (tournament.status !== 'active') {
-        console.log(`[${tournamentId}] Skipping: Status is not 'active'.`);
-        return;
-      }
-       if (tournament.notificationSent) {
-        console.log(`[${tournamentId}] Skipping: Notification already sent.`);
-        return; 
+      if (tournament.status !== 'active' || tournament.notificationSent) {
+        return; // Skip: not active or already notified
       }
 
       const now = new Date();
-      const startDate = tournament.start_date.toDate();
+      // --- FIX: Robust date handling ---
+      let startDate;
+      if (tournament.start_date?.toDate) { // It's a Firestore Timestamp
+        startDate = tournament.start_date.toDate();
+      } else if (tournament.start_date instanceof Date) { // It's already a JS Date
+        startDate = tournament.start_date;
+      } else { // It's likely a string or number, try parsing it
+        startDate = new Date(tournament.start_date);
+      }
+      // Check if parsing resulted in a valid date
+      if (isNaN(startDate.getTime())) {
+          console.error(`[${tournamentId}] Invalid start_date format:`, tournament.start_date);
+          // Skip this tournament as we can't process it
+          return;
+      }
+      
       const minutesToStart = (startDate.getTime() - now.getTime()) / (1000 * 60);
-      console.log(`[${tournamentId}] Time check: Starts in ${minutesToStart.toFixed(1)} minutes.`);
+      console.log(`[${tournamentId}] Starts in ${minutesToStart.toFixed(1)} minutes.`);
 
       // Wider notification window for cron job robustness
       if (minutesToStart >= 15 && minutesToStart <= 25) {
-        console.log(`[${tournamentId}] SUCCESS: In notification window. Marking as sent in transaction.`);
+        console.log(`[${tournamentId}] In notification window. Marking as sent.`);
         transaction.update(tournamentDoc.ref, { 
           notificationSent: true,
           notificationSentAt: Timestamp.now()
@@ -130,7 +136,6 @@ async function processTournament(tournamentDoc) {
       return { success: true, emailSent: true, tournamentId };
     }
     // Not in the window or already sent, which is a success case (no action needed).
-    console.log(`[${tournamentId}] No action needed (not in window or already processed).`);
     return { success: true, emailSent: false, tournamentId };
 
   } catch (error) {
@@ -143,7 +148,6 @@ async function checkAllTournaments() {
   const results = { success: true, notifications: 0, errors: [], checked: 0, message: '' };
   
   try {
-    console.log('--- checkAllTournaments Job Started ---');
     console.log('Querying for active tournaments...');
     const tournamentsQuery = query(
       collection(db, 'tournaments'),
@@ -154,14 +158,12 @@ async function checkAllTournaments() {
     
     const tournamentDocs = await getDocs(tournamentsQuery);
     results.checked = tournamentDocs.size;
-    console.log(`Query found ${results.checked} active tournaments.`);
 
     if (results.checked === 0) {
-      results.message = 'No active tournaments found.';
-      console.log(results.message);
+      results.message = 'No active tournaments require notification checks.';
       return results;
     }
-    console.log(`Processing ${results.checked} tournaments...`);
+    console.log(`Found ${results.checked} tournaments to process.`);
 
     const processingPromises = tournamentDocs.docs.map(processTournament);
     const settledResults = await Promise.allSettled(processingPromises);
@@ -177,16 +179,13 @@ async function checkAllTournaments() {
       } else {
         // A promise was rejected, which shouldn't happen with the current processTournament structure
         results.errors.push(`A promise was unexpectedly rejected: ${result.reason}`);
-        console.error('A promise was unexpectedly rejected:', result.reason);
       }
     });
     
-    results.message = `Job finished. Processed ${results.checked} tournaments. Sent ${results.notifications} notifications. Encountered ${results.errors.length} errors.`;
-    console.log(results.message);
+    results.message = `Processed ${results.checked} tournaments. Sent ${results.notifications} notifications. Encountered ${results.errors.length} errors.`;
     if(results.errors.length > 0) {
-      console.error('Errors encountered:', results.errors);
+        console.error('Errors during processing:', results.errors);
     }
-    console.log('--- checkAllTournaments Job Ended ---');
   } catch (error) {
     console.error('Fatal error in checkAllTournaments:', error);
     results.success = false;
