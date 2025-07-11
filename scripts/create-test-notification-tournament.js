@@ -1,6 +1,10 @@
 // Create a test tournament that will trigger a notification
-const { initializeApp } = require('firebase/app');
-const { getFirestore, collection, addDoc, Timestamp } = require('firebase/firestore');
+import { initializeApp } from 'firebase/app';
+import { getFirestore, collection, addDoc, Timestamp } from 'firebase/firestore';
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
 
 // Initialize Firebase (replace with your config if needed)
 const firebaseConfig = {
