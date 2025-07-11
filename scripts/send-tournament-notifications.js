@@ -147,8 +147,16 @@ async function sendTournamentNotifications() {
                   <li><strong>Max Players:</strong> ${tournament.max_players}</li>
                   <li><strong>Participants:</strong> ${tournament.filled_spots || 0}/${tournament.max_players}</li>
                 </ul>
+                <h3 style="margin: 12px 0 6px 0; color: #333;">Host Information</h3>
+                <ul style="padding-left: 18px; margin: 0;">
+                  <li><strong>Host Name:</strong> ${hostData.displayName || hostData.username || hostData.name || 'N/A'}</li>
+                  <li><strong>Host Email:</strong> ${hostEmail}</li>
+                </ul>
               </div>
-              
+              <div style="background-color: #f9f9f9; padding: 12px; border-radius: 5px; margin: 20px 0;">
+                <h3 style="margin: 0 0 6px 0; color: #333;">Contact Support</h3>
+                <p style="margin: 0;">If you have any questions or need help, please contact our support team at <a href="mailto:support@your-tournament-site.com">freefiretournaments@gmail.com</a>.</p>
+              </div>
               <p><strong>Don't forget to:</strong></p>
               <ul>
                 <li>Create the room a few minutes before the start time</li>
