@@ -134,14 +134,34 @@ async function sendTournamentNotifications() {
         
         console.log(`Tournament ${tournamentId} - Minutes to start: ${minutesToStart.toFixed(1)}, Start time: ${startDate.toLocaleString()}`);
         
-        // This is the key logic: Check if tournament starts in 19-21 minutes
-        // We want to send notifications EXACTLY when tournaments enter this window
-        if (minutesToStart < 19 || minutesToStart > 21) {
-          console.log(`Tournament ${tournamentId} starts in ${minutesToStart.toFixed(1)} minutes, outside notification window (19-21 minutes), skipping`);
+        // This is the key logic: Check if tournament starts in the NEXT 4 HOURS
+        // We'll send notifications for ALL tournaments that will start in 19-21 minutes
+        // within the next 4 hours (when the next cron job runs)
+        
+        const hoursToStart = minutesToStart / 60;
+        
+        console.log(`Tournament ${tournamentId} - Hours to start: ${hoursToStart.toFixed(2)}, Minutes: ${minutesToStart.toFixed(1)}`);
+        
+        // Send notifications for tournaments starting in the next 4 hours
+        // This ensures we don't miss any tournaments between cron runs
+        if (hoursToStart > 4) {
+          console.log(`Tournament ${tournamentId} starts in ${hoursToStart.toFixed(2)} hours, too far in future, skipping`);
           continue;
         }
         
-        console.log(`Tournament ${tournamentId} starts in ${minutesToStart.toFixed(1)} minutes, sending notification`);
+        // Extended notification window: 10-30 minutes before start
+        // This gives more chances for notifications to be sent
+        if (minutesToStart < 10) {
+          console.log(`Tournament ${tournamentId} starts in ${minutesToStart.toFixed(1)} minutes, too close, skipping`);
+          continue;
+        }
+        
+        if (minutesToStart > 30) {
+          console.log(`Tournament ${tournamentId} starts in ${minutesToStart.toFixed(1)} minutes, too early, skipping`);
+          continue;
+        }
+        
+        console.log(`Tournament ${tournamentId} starts in ${minutesToStart.toFixed(1)} minutes (${hoursToStart.toFixed(2)} hours), scheduling notification`);
         
         // Get host user document to get email
         const hostDocRef = doc(db, 'users', hostId);

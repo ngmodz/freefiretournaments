@@ -1,11 +1,11 @@
 const https = require('https');
 
 const testApiEndpoint = () => {
-    console.log('Testing simple public endpoint...');
+    console.log('Testing current public notification endpoint...');
     
     const options = {
-        hostname: 'freefiretournaments-lu349yvtw-nishus-projects-70e433b8.vercel.app',
-        path: '/api/test-public',
+        hostname: 'freefiretournaments-im0motlwm-nishus-projects-70e433b8.vercel.app',
+        path: '/api/public-notify?key=tournament-notify-2025-secure-key-943827',
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
