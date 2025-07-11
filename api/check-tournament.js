@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, query, where, getDocs, doc, getDoc, Timestamp, runTransaction } from 'firebase/firestore';
+import { getFirestore, collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import nodemailer from 'nodemailer';
 import { getFirebaseConfig, getEmailConfig } from './firebase-config-helper.js';
 
@@ -13,6 +13,12 @@ const db = getFirestore(app);
 const emailConfig = getEmailConfig();
 const emailUser = emailConfig.user;
 const emailPass = emailConfig.pass;
+
+// --- Helper functions ---
+function toIndianTime(date) {
+  // Convert to IST (UTC+5:30)
+  return new Date(date.getTime() + (5.5 * 60 * 60 * 1000));
+}
 
 const createTransporter = () => {
   if (!emailUser || !emailPass) {
@@ -57,116 +63,109 @@ async function sendTestEmail() {
   }
 }
 
-// --- Helper functions ---
-function toIndianTime(date) {
-  // Convert to IST (UTC+5:30)
-  return new Date(date.getTime() + (5.5 * 60 * 60 * 1000));
-}
-
+// This function processes a tournament without using transactions
 async function processTournament(tournamentDoc) {
   const tournamentId = tournamentDoc.id;
-  let emailData = null;
+  const tournament = tournamentDoc.data();
 
   try {
-    await runTransaction(db, async (transaction) => {
-      const freshTournamentDoc = await transaction.get(tournamentDoc.ref);
-      if (!freshTournamentDoc.exists()) {
-        throw new Error(`[${tournamentId}] Document not found during transaction.`);
-      }
+    // Skip if not active
+    if (tournament.status !== 'active') {
+      return { success: true, emailSent: false, tournamentId, reason: 'not-active' };
+    }
+    
+    // Skip if notification already sent (based on data, not trying to update)
+    if (tournament.notificationSent === true) {
+      return { success: true, emailSent: false, tournamentId, reason: 'already-sent' };
+    }
+    
+    // Use memory to track which tournaments we've processed in this run
+    // This helps prevent duplicate emails within the same execution
+    if (global.processedTournaments && global.processedTournaments.includes(tournamentId)) {
+      return { success: true, emailSent: false, tournamentId, reason: 'already-processed-in-memory' };
+    }
+    
+    // --- Use Indian Standard Time ---
+    const now = toIndianTime(new Date());
+    console.log(`[${tournamentId}] Current IST time: ${now.toISOString()}`);
+    
+    // Robust date handling
+    let startDate;
+    if (tournament.start_date?.toDate) { // It's a Firestore Timestamp
+      startDate = tournament.start_date.toDate();
+    } else if (tournament.start_date instanceof Date) { // It's already a JS Date
+      startDate = tournament.start_date;
+    } else { // It's likely a string or number, try parsing it
+      startDate = new Date(tournament.start_date);
+    }
+    
+    // Check if parsing resulted in a valid date
+    if (isNaN(startDate.getTime())) {
+      console.error(`[${tournamentId}] Invalid start_date format:`, tournament.start_date);
+      return { success: false, emailSent: false, tournamentId, error: 'Invalid date format' };
+    }
+    
+    console.log(`[${tournamentId}] Tournament start time: ${startDate.toISOString()}`);
+    
+    const minutesToStart = (startDate.getTime() - now.getTime()) / (1000 * 60);
+    console.log(`[${tournamentId}] Starts in ${minutesToStart.toFixed(1)} minutes (IST).`);
 
-      const tournament = freshTournamentDoc.data();
-      if (tournament.status !== 'active' || tournament.notificationSent) {
-        return; // Skip: not active or already notified
-      }
+    // Check if tournament is in notification window
+    if (minutesToStart < 15 || minutesToStart > 25) {
+      return { success: true, emailSent: false, tournamentId, reason: 'outside-window' };
+    }
 
-      // --- FIX: Use Indian Standard Time ---
-      const now = toIndianTime(new Date());
-      console.log(`[${tournamentId}] Current IST time: ${now.toISOString()}`);
-      
-      // Robust date handling
-      let startDate;
-      if (tournament.start_date?.toDate) { // It's a Firestore Timestamp
-        startDate = tournament.start_date.toDate();
-      } else if (tournament.start_date instanceof Date) { // It's already a JS Date
-        startDate = tournament.start_date;
-      } else { // It's likely a string or number, try parsing it
-        startDate = new Date(tournament.start_date);
-      }
-      
-      // Check if parsing resulted in a valid date
-      if (isNaN(startDate.getTime())) {
-          console.error(`[${tournamentId}] Invalid start_date format:`, tournament.start_date);
-          return;
-      }
-      
-      // Tournament start time should already be in IST in the database
-      console.log(`[${tournamentId}] Tournament start time: ${startDate.toISOString()}`);
-      
-      const minutesToStart = (startDate.getTime() - now.getTime()) / (1000 * 60);
-      console.log(`[${tournamentId}] Starts in ${minutesToStart.toFixed(1)} minutes (IST).`);
+    // If we get here, we need to send a notification
+    console.log(`[${tournamentId}] In notification window. Sending email.`);
+    
+    // Mark this tournament as processed in memory to prevent duplicate emails
+    if (!global.processedTournaments) {
+      global.processedTournaments = [];
+    }
+    global.processedTournaments.push(tournamentId);
 
-      // Wider notification window for cron job robustness
-      if (minutesToStart >= 15 && minutesToStart <= 25) {
-        console.log(`[${tournamentId}] In notification window. Marking as sent.`);
-        transaction.update(tournamentDoc.ref, { 
-          notificationSent: true,
-          notificationSentAt: Timestamp.now()
-        });
+    // Get host email
+    const hostDoc = await getDoc(doc(db, 'users', tournament.host_id));
+    const hostEmail = hostDoc.data()?.email;
 
-        emailData = { // Prepare data for sending email *after* successful transaction
-          host_id: tournament.host_id,
-          tournamentName: tournament.name,
-          startDate,
-        };
-      }
+    if (!hostEmail) {
+      console.error(`[${tournamentId}] Host user ${tournament.host_id} email not found.`);
+      return { success: false, emailSent: false, tournamentId, error: 'Host email not found' };
+    }
+    
+    // Format time in IST for email
+    const formattedTime = startDate.toLocaleString('en-US', { 
+      hour: 'numeric', 
+      minute: 'numeric',
+      hour12: true,
+      timeZone: 'Asia/Kolkata'
     });
 
-    if (emailData) {
-      console.log(`[${tournamentId}] Transaction successful. Preparing to send email.`);
-      const hostDoc = await getDoc(doc(db, 'users', emailData.host_id));
-      const hostEmail = hostDoc.data()?.email;
-
-      if (!hostEmail) {
-        console.error(`[${tournamentId}] ERROR: Host user ${emailData.host_id} email not found.`);
-        throw new Error(`Host user ${emailData.host_id} email not found.`);
-      }
-      
-      // Format time in IST for email
-      const formattedTime = emailData.startDate.toLocaleString('en-US', { 
-        hour: 'numeric', 
-        minute: 'numeric',
-        hour12: true,
-        timeZone: 'Asia/Kolkata'
-      });
-
-      const mailOptions = {
-        from: `"Freefire Tournaments" <${emailUser}>`,
-        to: hostEmail,
-        subject: `🏆 Reminder: Your Tournament "${emailData.tournamentName}" Starts Soon!`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
-            <div style="text-align: center; margin-bottom: 20px;">
-              <h1 style="color: #6200EA;">Tournament Starting Soon!</h1>
-            </div>
-            
-            <p>Hello Tournament Host,</p>
-            
-            <p>Your tournament <strong>${emailData.tournamentName}</strong> is scheduled to start in about <strong>20 minutes</strong>, at ${formattedTime} IST!</p>
-            
-            <p>Don't forget to create the room a few minutes before the start time and share the room ID and password with participants.</p>
-            
-            <p>Good luck and have fun!</p>
+    const mailOptions = {
+      from: `"Freefire Tournaments" <${emailUser}>`,
+      to: hostEmail,
+      subject: `🏆 Reminder: Your Tournament "${tournament.name}" Starts Soon!`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <h1 style="color: #6200EA;">Tournament Starting Soon!</h1>
           </div>
-        `
-      };
+          
+          <p>Hello Tournament Host,</p>
+          
+          <p>Your tournament <strong>${tournament.name}</strong> is scheduled to start in about <strong>20 minutes</strong>, at ${formattedTime} IST!</p>
+          
+          <p>Don't forget to create the room a few minutes before the start time and share the room ID and password with participants.</p>
+          
+          <p>Good luck and have fun!</p>
+        </div>
+      `
+    };
 
-      console.log(`[${tournamentId}] Sending email to ${hostEmail}...`);
-      await sendEmail(mailOptions);
-      console.log(`[${tournamentId}] Email sent successfully!`);
-      return { success: true, emailSent: true, tournamentId };
-    }
-    // Not in the window or already sent, which is a success case (no action needed).
-    return { success: true, emailSent: false, tournamentId };
+    console.log(`[${tournamentId}] Sending email to ${hostEmail}...`);
+    await sendEmail(mailOptions);
+    console.log(`[${tournamentId}] Email sent successfully!`);
+    return { success: true, emailSent: true, tournamentId };
 
   } catch (error) {
     console.error(`[${tournamentId}] Failed to process:`, error);
@@ -182,15 +181,14 @@ async function checkAllTournaments() {
     const tournamentsQuery = query(
       collection(db, 'tournaments'),
       where('status', '==', 'active')
-      // REMOVED: where('notificationSent', '!=', true) to avoid composite index issues.
-      // The check will be performed in the function logic.
+      // We'll check notificationSent in the code instead of in the query
     );
     
     const tournamentDocs = await getDocs(tournamentsQuery);
     results.checked = tournamentDocs.size;
 
     if (results.checked === 0) {
-      results.message = 'No active tournaments require notification checks.';
+      results.message = 'No active tournaments found.';
       return results;
     }
     console.log(`Found ${results.checked} tournaments to process.`);
@@ -207,12 +205,11 @@ async function checkAllTournaments() {
           results.errors.push(`[${res.tournamentId}] Error: ${res.error}`);
         }
       } else {
-        // A promise was rejected, which shouldn't happen with the current processTournament structure
         results.errors.push(`A promise was unexpectedly rejected: ${result.reason}`);
       }
     });
     
-    results.message = `Processed ${results.checked} tournaments. Sent ${results.notifications} notifications. Encountered ${results.errors.length} errors.`;
+    results.message = `Processed ${results.checked} tournaments. Sent ${results.notifications} notifications.`;
     if(results.errors.length > 0) {
         console.error('Errors during processing:', results.errors);
     }
