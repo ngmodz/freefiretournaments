@@ -11,7 +11,7 @@ function startTournamentNotificationScheduler() {
       console.log('⏰ Checking tournaments at:', new Date().toISOString());
       
       // This call works because it's from the same domain (no authentication needed)
-      const response = await fetch('/api/tournament-notifications', {
+      const response = await fetch('/api/check-tournament?all=true', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'
