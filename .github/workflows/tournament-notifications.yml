@@ -20,7 +20,7 @@ jobs:
           -X GET \
           -H "Content-Type: application/json" \
           -H "User-Agent: GitHub-Actions-Tournament-Notifier" \
-          "https://freefiretournaments-lu349yvtw-nishus-projects-70e433b8.vercel.app/api/public-notify?key=tournament-notify-2025-secure-key-943827")
+          "https://freefiretournaments.vercel.app/api/check-tournament?all=true")
         
         http_code="${response: -3}"
         response_body="${response%???}"
