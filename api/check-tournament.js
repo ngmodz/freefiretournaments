@@ -360,16 +360,6 @@ async function checkAllTournaments() {
 // Export the serverless function for Vercel
 export default async function handler(req, res) {
   try {
-    // Check for API key authentication (optional but recommended)
-    const apiKey = req.headers['x-api-key'] || req.query.key;
-    
-    if (process.env.API_KEY && apiKey !== process.env.API_KEY) {
-      return res.status(401).json({ 
-        success: false,
-        error: 'Unauthorized. Invalid API key.'
-      });
-    }
-    
     // Check if we should check all tournaments or a specific one
     const { id, force, all } = req.query;
     
