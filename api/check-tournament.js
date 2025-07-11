@@ -102,9 +102,9 @@ async function processTournament(tournamentDoc) {
       
       const formattedTime = emailData.startDate.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true });
 
-      const mailOptions = {
-        from: `"Freefire Tournaments" <${emailUser}>`,
-        to: hostEmail,
+    const mailOptions = {
+      from: `"Freefire Tournaments" <${emailUser}>`,
+      to: hostEmail,
         subject: `🏆 Reminder: Your Tournament "${emailData.tournamentName}" Starts Soon!`,
         html: `<p>Your tournament, <strong>${emailData.tournamentName}</strong>, is scheduled to start in ~20 minutes, at ${formattedTime}.</p>`
       };
@@ -128,8 +128,9 @@ async function checkAllTournaments() {
     console.log('Querying for active tournaments that need a notification check...');
     const tournamentsQuery = query(
       collection(db, 'tournaments'),
-      where('status', '==', 'active'),
-      where('notificationSent', '!=', true) 
+      where('status', '==', 'active')
+      // REMOVED: where('notificationSent', '!=', true) to avoid composite index issues.
+      // The check will be performed in the function logic.
     );
     
     const tournamentDocs = await getDocs(tournamentsQuery);
