@@ -165,34 +165,20 @@ const BasicInfoForm = ({ formData, updateFormData, nextStep }: BasicInfoFormProp
             <label className="block text-sm font-medium">
               Start Date & Time <span className="text-red-500">*</span>
             </label>
-            <div 
-              className="relative cursor-pointer"
-              onClick={(e) => {
-                const input = e.currentTarget.querySelector('input[type="datetime-local"]') as HTMLInputElement;
-                if (input) {
-                  input.focus();
-                  input.showPicker?.();
+            <Input
+              type="datetime-local"
+              value={startDate}
+              onChange={(e) => {
+                setStartDate(e.target.value);
+                if (errors.startDate) {
+                  setErrors(prev => ({ ...prev, startDate: "" }));
                 }
               }}
-            >
-              <Input 
-                type="datetime-local" 
-                value={startDate}
-                onChange={(e) => {
-                  setStartDate(e.target.value);
-                  if (errors.startDate) {
-                    setErrors(prev => ({ ...prev, startDate: "" }));
-                  }
-                }}
-                className={`bg-gaming-card border-2 text-white datetime-input cursor-pointer ${
-                  errors.startDate ? "border-red-500" : "border-gray-600"
-                }`}
-                required
-                onClick={(e) => {
-                  e.currentTarget.showPicker?.();
-                }}
-              />
-            </div>
+              className={`bg-gaming-card border-2 text-white datetime-input ${
+                errors.startDate ? "border-red-500" : "border-gray-600"
+              }`}
+              required
+            />
             {errors.startDate && (
               <p className="text-xs text-red-500">{errors.startDate}</p>
             )}
