@@ -1,526 +1,191 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, query, where, getDocs, updateDoc, doc, getDoc, Timestamp } from 'firebase/firestore';
+import { getFirestore, collection, query, where, getDocs, doc, getDoc, Timestamp, runTransaction } from 'firebase/firestore';
 import nodemailer from 'nodemailer';
-import { getFirebaseConfig, getEmailConfig, debugEnvironment } from './firebase-config-helper.js';
+import { getFirebaseConfig, getEmailConfig } from './firebase-config-helper.js';
 
-// Initialize Firebase
+// --- Single, top-level Firebase initialization ---
 const firebaseConfig = getFirebaseConfig();
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+// ---
 
-// Email configuration
+// --- Email Configuration ---
 const emailConfig = getEmailConfig();
 const emailUser = emailConfig.user;
 const emailPass = emailConfig.pass;
 
-// Configure email transporter
 const createTransporter = () => {
-  try {
-    console.log('Creating email transporter with user:', emailUser ? emailUser.substring(0, 3) + '...' : 'undefined');
-    
-    if (!emailUser || !emailPass) {
-      console.error('Email configuration missing. Please check environment variables.');
-      return null;
-    }
-    
-    return nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: emailUser,
-        pass: emailPass
-      },
-      tls: {
-        rejectUnauthorized: false // Ignore certificate issues
-      }
-    });
-  } catch (error) {
-    console.error('Error creating email transporter:', error);
+  if (!emailUser || !emailPass) {
+    console.error('Email configuration missing. Cannot create transporter.');
     return null;
   }
+  return nodemailer.createTransport({
+    service: 'gmail',
+    auth: { user: emailUser, pass: emailPass },
+    tls: { rejectUnauthorized: false }
+  });
 };
+// ---
 
-// Test email sending functionality
-async function sendTestEmail() {
+async function sendEmail(mailOptions) {
+  const transporter = createTransporter();
+  if (!transporter) throw new Error('Failed to create email transporter.');
+  
   try {
-    console.log('Sending test email...');
-    
-    // Get environment details for debugging
-    const envDetails = debugEnvironment();
-    console.log('Environment details:', envDetails);
-    
-    // Get email config
-    const emailConfig = getEmailConfig();
-    const emailUser = emailConfig.user;
-    const emailPass = emailConfig.pass;
-    
-    console.log('Email config available:', {
-      user: !!emailUser,
-      pass: !!emailPass
-    });
-    
-    if (!emailUser || !emailPass) {
-      return { 
-        success: false, 
-        error: 'Email configuration missing. Please check environment variables.' 
-      };
-    }
-    
-    // Configure email transporter
-    const transporter = createTransporter();
-    
-    if (!transporter) {
-      return {
-        success: false,
-        error: 'Failed to create email transporter'
-      };
-    }
-    
-    // Prepare email content
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`✅ Email sent successfully: ${info.messageId}`);
+    return info;
+  } catch (error) {
+    console.error(`❌ Error sending email:`, error);
+    throw error;
+  }
+}
+
+async function sendTestEmail() {
+  console.log('Test email requested...');
+  try {
     const mailOptions = {
       from: `"Test Email" <${emailUser}>`,
-      to: emailUser, // Send to yourself for testing
+      to: emailUser,
       subject: `🧪 Test Email from Tournament System - ${new Date().toISOString()}`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
-          <div style="text-align: center; margin-bottom: 20px;">
-            <h1 style="color: #6200EA;">Test Email</h1>
-          </div>
-          
-          <p>Hello,</p>
-          
-          <p>This is a test email to verify that the notification system is working correctly.</p>
-          
-          <p>If you received this email, it means your email configuration is correct!</p>
-          
-          <p>Sent at: ${new Date().toLocaleString()}</p>
-          
-          <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
-            <p style="font-size: 12px; color: #666;">This is a test email. Please do not reply.</p>
-          </div>
-        </div>
-      `
+      html: `<p>This is a test email to verify that the notification system is working correctly.</p>`
     };
-    
-    try {
-      // Send the email
-      const info = await transporter.sendMail(mailOptions);
-      console.log(`✅ Email sent successfully: ${info.messageId}`);
-      
-      return { 
-        success: true, 
-        messageId: info.messageId,
-        sentTo: emailUser
-      };
-    } catch (error) {
-      console.error(`❌ Error sending email:`, error);
-      
-      return { 
-        success: false, 
-        error: error.message,
-        details: error.toString()
-      };
-    }
+    const info = await sendEmail(mailOptions);
+    return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('Error in test-email function:', error);
-    
-    return { 
-      success: false, 
-      error: error.message || 'Internal server error'
-    };
+    return { success: false, error: error.message };
   }
 }
 
-/**
- * Check a specific tournament and send notification if needed
- */
-async function checkSpecificTournament(tournamentId) {
-  // Initialize Firebase for this request
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  const results = { success: true, notification: false, error: null };
-  
-  try {
-    // Log environment info
-    console.log('Environment details:', debugEnvironment());
-    console.log('Firebase config:', {
-      projectId: firebaseConfig.projectId,
-      configValid: !!(firebaseConfig.apiKey && firebaseConfig.projectId)
-    });
-    
-    const now = new Date();
-    const istNow = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
-    
-    // Get the specific tournament
-    const tournamentRef = doc(db, 'tournaments', tournamentId);
-    const tournamentDoc = await getDoc(tournamentRef);
-    
-    if (!tournamentDoc.exists()) {
-      results.success = false;
-      results.error = `Tournament ${tournamentId} not found`;
-      return results;
-    }
-    
-    const tournament = tournamentDoc.data();
-    
-    // Skip if tournament is not active
-    if (tournament.status !== 'active') {
-      results.error = `Tournament ${tournamentId} is not active (status: ${tournament.status})`;
-      return results;
-    }
-    
-    // Skip if notification already sent
-    if (tournament.notificationSent) {
-      results.error = `Notification already sent for tournament ${tournamentId}`;
-      return results;
-    }
-    
-    const hostId = tournament.host_id;
-    
-    // Skip if no host ID
-    if (!hostId) {
-      results.error = `Tournament ${tournamentId} has no host_id`;
-      return results;
-    }
-    
-    // Calculate time to start
-    const startDate = tournament.start_date instanceof Date ? tournament.start_date : 
-                    (tournament.start_date.toDate ? tournament.start_date.toDate() : new Date(tournament.start_date));
-    
-    const minutesToStart = (startDate.getTime() - istNow.getTime()) / (1000 * 60);
-    
-    // Only send notification if tournament starts in 19-21 minutes (20 minutes ± 1 minute buffer)
-    // Or if force=true is passed in the query
-    if (minutesToStart < 19 || minutesToStart > 21) {
-      results.error = `Tournament ${tournamentId} starts in ${minutesToStart.toFixed(1)} minutes, outside notification window (19-21 minutes)`;
-      return results;
-    }
-    
-    // Get host user document to get email
-    const hostDocRef = doc(db, 'users', hostId);
-    const hostDocSnapshot = await getDoc(hostDocRef);
-    
-    if (!hostDocSnapshot.exists()) {
-      results.error = `Host user ${hostId} for tournament ${tournamentId} not found`;
-      return results;
-    }
-    
-    const hostData = hostDocSnapshot.data();
-    const hostEmail = hostData.email;
-    
-    if (!hostEmail) {
-      results.error = `Host user ${hostId} has no email`;
-      return results;
-    }
-    
-    // Format tournament start time
-    const formattedTime = startDate.toLocaleString('en-US', {
-      hour: 'numeric', 
-      minute: 'numeric',
-      hour12: true
-    });
-    const formattedDate = startDate.toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric'
-    });
-    
-    // Create email transporter
-    const emailTransporter = createTransporter();
-    
-    // Prepare email content
-    const mailOptions = {
-      from: `"Freefire Tournaments" <${emailUser}>`,
-      to: hostEmail,
-      subject: `🏆 Reminder: Your Tournament "${tournament.name}" Starts Soon!`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
-          <div style="text-align: center; margin-bottom: 20px;">
-            <h1 style="color: #6200EA;">Tournament Starting Soon!</h1>
-          </div>
-          
-          <p>Hello Tournament Host,</p>
-          
-          <p>Your hosted tournament <strong>${tournament.name}</strong> is scheduled to start in about <strong>20 minutes</strong>!</p>
-          
-          <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
-            <h2 style="color: #6200EA; margin-top: 0;">${tournament.name}</h2>
-            <p><strong>Start Time:</strong> ${formattedTime} on ${formattedDate}</p>
-            <p><strong>Mode:</strong> ${tournament.mode}</p>
-            <p><strong>Map:</strong> ${tournament.map}</p>
-            <p><strong>Room Type:</strong> ${tournament.room_type}</p>
-            <p><strong>Participants:</strong> ${tournament.filled_spots || 0}/${tournament.max_players}</p>
-          </div>
-          
-          <p><strong>Don't forget to:</strong></p>
-          <ul>
-            <li>Create the room a few minutes before the start time</li>
-            <li>Share the room ID and password with participants</li>
-            <li>Ensure all settings match the tournament requirements</li>
-            <li>Keep track of results for prize distribution</li>
-          </ul>
-          
-          <p>Good luck and have fun!</p>
-          
-          <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
-            <p style="font-size: 12px; color: #666;">This is an automated reminder. Please do not reply to this email.</p>
-          </div>
-        </div>
-      `
-    };
-    
-    // Send the email and update the notification status
-    await emailTransporter.sendMail(mailOptions);
-    
-    // Update the tournament document to mark notification as sent
-    await updateDoc(doc(db, 'tournaments', tournamentId), {
-      notificationSent: true
-    });
-    
-    results.notification = true;
-    return results;
-    
-  } catch (error) {
-    results.success = false;
-    results.error = error.message;
-    return results;
-  }
-}
+async function processTournament(tournamentDoc) {
+  const tournamentId = tournamentDoc.id;
+  let emailData = null;
 
-/**
- * Check all active tournaments and send notifications for those starting soon
- */
-async function checkAllTournaments() {
-  // Initialize Firebase for this request
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  const results = { success: true, notifications: 0, errors: [], checked: 0 };
-  
   try {
-    // Log environment info
-    console.log('Environment details:', debugEnvironment());
-    console.log('Firebase config:', {
-      projectId: firebaseConfig.projectId,
-      configValid: !!(firebaseConfig.apiKey && firebaseConfig.projectId)
-    });
-    
-    // Log email config (safely)
-    console.log('Email config available:', {
-      user: !!emailUser,
-      pass: !!emailPass
-    });
-    
-    // Get current time in IST
-    const now = new Date();
-    const istNow = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
-    
-    console.log(`Current IST time: ${istNow.toLocaleString()}`);
-    
-    // Check Firebase connectivity
-    try {
-      // Query active tournaments
-      const tournamentsQuery = query(
-        collection(db, 'tournaments'),
-        where('status', '==', 'active')
-      );
-      
-      const tournamentDocs = await getDocs(tournamentsQuery);
-      results.checked = tournamentDocs.size;
-      
-      console.log(`Found ${results.checked} active tournaments`);
-      
-      // Create email transporter
-      const emailTransporter = createTransporter();
-      
-      // Process each tournament
-      for (const tournamentDoc of tournamentDocs.docs) {
-        const tournament = tournamentDoc.data();
-        const tournamentId = tournamentDoc.id;
-        
-        console.log(`Processing tournament: ${tournamentId} - "${tournament.name}"`);
-        
-        if (!tournament.host_id) {
-          results.errors.push(`Tournament ${tournamentId} has no host_id`);
-          continue;
-        }
-        
-        // Skip if notification already sent
-        if (tournament.notificationSent) {
-          console.log(`Notification already sent for tournament ${tournamentId}`);
-          continue;
-        }
-        
-        // Additional duplicate check
-        if (tournament.notificationSentAt) {
-          const notificationTime = tournament.notificationSentAt.toDate ? 
-            tournament.notificationSentAt.toDate() : 
-            new Date(tournament.notificationSentAt);
-          const timeSinceNotification = (istNow.getTime() - notificationTime.getTime()) / (1000 * 60);
-          
-          if (timeSinceNotification < 30) {
-            console.log(`Notification sent ${timeSinceNotification.toFixed(1)} minutes ago for tournament ${tournamentId}`);
-            continue;
-          }
-        }
-        
-        // Calculate notification timing
-        const startDate = tournament.start_date instanceof Date ? tournament.start_date : 
-                        (tournament.start_date.toDate ? tournament.start_date.toDate() : new Date(tournament.start_date));
-        
-        const minutesToStart = (startDate.getTime() - istNow.getTime()) / (1000 * 60);
-        
-        console.log(`Tournament ${tournamentId} starts in ${minutesToStart.toFixed(1)} minutes`);
-        
-        // Check if tournament is in the notification window (19-21 minutes before start)
-        if (minutesToStart < 19 || minutesToStart > 21) {
-          console.log(`Tournament ${tournamentId} outside notification window (19-21 minutes)`);
-          continue;
-        }
-        
-        // Get host user document to get email
-        const hostDocRef = doc(db, 'users', tournament.host_id);
-        const hostDocSnapshot = await getDoc(hostDocRef);
-        
-        if (!hostDocSnapshot.exists()) {
-          results.errors.push(`Host user ${tournament.host_id} not found`);
-          continue;
-        }
-        
-        const hostData = hostDocSnapshot.data();
-        const hostEmail = hostData.email;
-        
-        if (!hostEmail) {
-          results.errors.push(`Host user ${tournament.host_id} has no email`);
-          continue;
-        }
-        
-        // Format tournament start time
-        const formattedTime = startDate.toLocaleString('en-US', {
-          hour: 'numeric', 
-          minute: 'numeric',
-          hour12: true
+    await runTransaction(db, async (transaction) => {
+      const freshTournamentDoc = await transaction.get(tournamentDoc.ref);
+      if (!freshTournamentDoc.exists()) {
+        throw new Error(`[${tournamentId}] Document not found during transaction.`);
+      }
+
+      const tournament = freshTournamentDoc.data();
+      if (tournament.status !== 'active' || tournament.notificationSent) {
+        return; // Skip: not active or already notified
+      }
+
+      const now = new Date();
+      const startDate = tournament.start_date.toDate();
+      const minutesToStart = (startDate.getTime() - now.getTime()) / (1000 * 60);
+
+      // Wider notification window for cron job robustness
+      if (minutesToStart >= 15 && minutesToStart <= 25) {
+        console.log(`[${tournamentId}] In notification window (${minutesToStart.toFixed(1)}m). Marking as sent.`);
+        transaction.update(tournamentDoc.ref, { 
+          notificationSent: true,
+          notificationSentAt: Timestamp.now()
         });
-        const formattedDate = startDate.toLocaleDateString('en-US', {
-          weekday: 'long',
-          month: 'long',
-          day: 'numeric'
-        });
-        
-        // Prepare email content
-        const mailOptions = {
-          from: `"Freefire Tournaments" <${emailUser}>`,
-          to: hostEmail,
-          subject: `🏆 Reminder: Your Tournament "${tournament.name}" Starts Soon!`,
-          html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
-              <div style="text-align: center; margin-bottom: 20px;">
-                <h1 style="color: #6200EA;">Tournament Starting Soon!</h1>
-              </div>
-              
-              <p>Hello Tournament Host,</p>
-              
-              <p>Your hosted tournament <strong>${tournament.name}</strong> is scheduled to start in about <strong>20 minutes</strong>!</p>
-              
-              <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
-                <h2 style="color: #6200EA; margin-top: 0;">${tournament.name}</h2>
-                <p><strong>Start Time:</strong> ${formattedTime} on ${formattedDate}</p>
-                <p><strong>Mode:</strong> ${tournament.mode}</p>
-                <p><strong>Map:</strong> ${tournament.map}</p>
-                <p><strong>Room Type:</strong> ${tournament.room_type}</p>
-                <p><strong>Participants:</strong> ${tournament.filled_spots || 0}/${tournament.max_players}</p>
-              </div>
-              
-              <p><strong>Don't forget to:</strong></p>
-              <ul>
-                <li>Create the room a few minutes before the start time</li>
-                <li>Share the room ID and password with participants</li>
-                <li>Ensure all settings match the tournament requirements</li>
-                <li>Keep track of results for prize distribution</li>
-              </ul>
-              
-              <p>Good luck and have fun!</p>
-              
-              <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
-                <p style="font-size: 12px; color: #666;">This is an automated reminder. Please do not reply to this email.</p>
-              </div>
-            </div>
-          `
+
+        emailData = { // Prepare data for sending email *after* successful transaction
+          host_id: tournament.host_id,
+          tournamentName: tournament.name,
+          startDate,
         };
-        
-        // Send the email and update the notification status
-        try {
-          console.log(`Attempting to send email to ${hostEmail} for tournament ${tournamentId}`);
-          await emailTransporter.sendMail(mailOptions);
-          console.log(`Successfully sent email notification to ${hostEmail} for tournament ${tournamentId}`);
-          
-          // Update the tournament document to mark notification as sent
-          await updateDoc(doc(db, 'tournaments', tournamentId), {
-            notificationSent: true,
-            notificationSentAt: Timestamp.now()
-          });
-          
-          console.log(`Marked tournament ${tournamentId} as notified`);
-          results.notifications++;
-        } catch (error) {
-          console.error(`Failed to send email to ${hostEmail}:`, error);
-          results.errors.push(`Failed to send email to ${hostEmail}: ${error.message}`);
-        }
       }
+    });
+
+    if (emailData) {
+      console.log(`[${tournamentId}] Transaction successful. Sending email.`);
+      const hostDoc = await getDoc(doc(db, 'users', emailData.host_id));
+      const hostEmail = hostDoc.data()?.email;
+
+      if (!hostEmail) throw new Error(`Host user ${emailData.host_id} email not found.`);
       
-      if (results.notifications === 0 && results.errors.length === 0) {
-        results.message = `Checked ${results.checked} tournaments, none in notification window`;
-      }
-      
-    } catch (firebaseError) {
-      console.error('Firebase connectivity error:', firebaseError);
-      results.success = false;
-      results.errors.push(`Firebase connection error: ${firebaseError.message}`);
+      const formattedTime = emailData.startDate.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true });
+
+      const mailOptions = {
+        from: `"Freefire Tournaments" <${emailUser}>`,
+        to: hostEmail,
+        subject: `🏆 Reminder: Your Tournament "${emailData.tournamentName}" Starts Soon!`,
+        html: `<p>Your tournament, <strong>${emailData.tournamentName}</strong>, is scheduled to start in ~20 minutes, at ${formattedTime}.</p>`
+      };
+
+      await sendEmail(mailOptions);
+      return { success: true, emailSent: true, tournamentId };
     }
-    
+    // Not in the window or already sent, which is a success case (no action needed).
+    return { success: true, emailSent: false, tournamentId };
+
   } catch (error) {
-    console.error('Error in notification process:', error);
+    console.error(`[${tournamentId}] Failed to process:`, error);
+    return { success: false, emailSent: false, tournamentId, error: error.message };
+  }
+}
+
+async function checkAllTournaments() {
+  const results = { success: true, notifications: 0, errors: [], checked: 0, message: '' };
+  
+  try {
+    console.log('Querying for active tournaments that need a notification check...');
+    const tournamentsQuery = query(
+      collection(db, 'tournaments'),
+      where('status', '==', 'active'),
+      where('notificationSent', '!=', true) 
+    );
+    
+    const tournamentDocs = await getDocs(tournamentsQuery);
+    results.checked = tournamentDocs.size;
+
+    if (results.checked === 0) {
+      results.message = 'No active tournaments require notification checks.';
+      return results;
+    }
+    console.log(`Found ${results.checked} tournaments to process.`);
+
+    const processingPromises = tournamentDocs.docs.map(processTournament);
+    const settledResults = await Promise.allSettled(processingPromises);
+
+    settledResults.forEach(result => {
+      if (result.status === 'fulfilled') {
+        const res = result.value;
+        if (res.success) {
+          if (res.emailSent) results.notifications++;
+        } else {
+          results.errors.push(`[${res.tournamentId}] Error: ${res.error}`);
+        }
+      } else {
+        // A promise was rejected, which shouldn't happen with the current processTournament structure
+        results.errors.push(`A promise was unexpectedly rejected: ${result.reason}`);
+      }
+    });
+    
+    results.message = `Processed ${results.checked} tournaments. Sent ${results.notifications} notifications. Encountered ${results.errors.length} errors.`;
+  } catch (error) {
+    console.error('Fatal error in checkAllTournaments:', error);
     results.success = false;
-    results.errors.push(`Error: ${error.message}`);
+    results.errors.push(`Fatal error: ${error.message}`);
   }
   
   return results;
 }
 
-// Export the serverless function for Vercel
 export default async function handler(req, res) {
   try {
-    // Check if we should send a test email
-    const { id, force, all, test_email } = req.query;
+    const { all, test_email } = req.query;
     
-    // If test_email is true, send a test email
     if (test_email === 'true') {
-      console.log('Test email requested');
       const result = await sendTestEmail();
       return res.status(result.success ? 200 : 500).json(result);
     }
     
-    // If 'all' parameter is provided, check all tournaments
     if (all === 'true') {
-      console.log('Checking all tournaments for notifications');
       const results = await checkAllTournaments();
-      return res.status(200).json(results);
+      return res.status(results.success ? 200 : 500).json(results);
     }
     
-    // Otherwise, check a specific tournament
-    if (!id) {
-      return res.status(400).json({
-        success: false,
-        error: 'Missing tournament ID. Please provide ?id=your_tournament_id or ?all=true'
-      });
-    }
-    
-    // Process the request for a specific tournament
-    const results = await checkSpecificTournament(id, force === 'true');
-    
-    // Return the results
-    return res.status(200).json(results);
+    res.status(400).json({ error: 'Endpoint requires ?all=true or ?test_email=true' });
+
   } catch (error) {
-    console.error('Error in tournament check endpoint:', error);
-    return res.status(500).json({ 
-      success: false,
-      error: error.message || 'Internal server error'
-    });
+    console.error('Unhandled fatal error in handler:', error);
+    res.status(500).json({ success: false, error: 'An unexpected server error occurred.' });
   }
 } 
