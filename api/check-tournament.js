@@ -16,8 +16,8 @@ const emailPass = emailConfig.pass;
 
 // --- Helper functions ---
 function toIndianTime(date) {
-  // Convert to IST (UTC+5:30)
-  return new Date(date.getTime() + (5.5 * 60 * 60 * 1000));
+  // Create a new date object with the correct IST time
+  return new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
 }
 
 const createTransporter = () => {
@@ -138,6 +138,14 @@ async function processTournament(tournamentDoc) {
       hour: 'numeric', 
       minute: 'numeric',
       hour12: true,
+      timeZone: 'Asia/Kolkata'
+    });
+
+    // Also get the date in IST
+    const formattedDate = startDate.toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
       timeZone: 'Asia/Kolkata'
     });
 
