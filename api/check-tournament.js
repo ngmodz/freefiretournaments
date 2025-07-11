@@ -15,11 +15,6 @@ const emailUser = emailConfig.user;
 const emailPass = emailConfig.pass;
 
 // --- Helper functions ---
-function toIndianTime(date) {
-  // Create a new date object with the correct IST time
-  return new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
-}
-
 const createTransporter = () => {
   if (!emailUser || !emailPass) {
     console.error('Email configuration missing. Cannot create transporter.');
@@ -85,19 +80,21 @@ async function processTournament(tournamentDoc) {
       return { success: true, emailSent: false, tournamentId, reason: 'already-processed-in-memory' };
     }
     
-    // --- Use Indian Standard Time ---
-    const now = toIndianTime(new Date());
-    console.log(`[${tournamentId}] Current IST time: ${now.toISOString()}`);
+    // --- Use correct UTC time for checks ---
+    const now = new Date();
     
     // Robust date handling
-    let startDate;
+    let startDate_from_db;
     if (tournament.start_date?.toDate) { // It's a Firestore Timestamp
-      startDate = tournament.start_date.toDate();
+      startDate_from_db = tournament.start_date.toDate();
     } else if (tournament.start_date instanceof Date) { // It's already a JS Date
-      startDate = tournament.start_date;
+      startDate_from_db = tournament.start_date;
     } else { // It's likely a string or number, try parsing it
-      startDate = new Date(tournament.start_date);
+      startDate_from_db = new Date(tournament.start_date);
     }
+    
+    // FIX: The date from DB is a naive IST time stored as UTC. Correct it by subtracting the offset.
+    const startDate = new Date(startDate_from_db.getTime() - (5.5 * 60 * 60 * 1000));
     
     // Check if parsing resulted in a valid date
     if (isNaN(startDate.getTime())) {
@@ -105,10 +102,10 @@ async function processTournament(tournamentDoc) {
       return { success: false, emailSent: false, tournamentId, error: 'Invalid date format' };
     }
     
-    console.log(`[${tournamentId}] Tournament start time: ${startDate.toISOString()}`);
+    console.log(`[${tournamentId}] Corrected tournament start time (UTC): ${startDate.toISOString()}`);
     
     const minutesToStart = (startDate.getTime() - now.getTime()) / (1000 * 60);
-    console.log(`[${tournamentId}] Starts in ${minutesToStart.toFixed(1)} minutes (IST).`);
+    console.log(`[${tournamentId}] Starts in ${minutesToStart.toFixed(1)} minutes.`);
 
     // Check if tournament is in notification window
     if (minutesToStart < 15 || minutesToStart > 25) {
@@ -127,6 +124,7 @@ async function processTournament(tournamentDoc) {
     // Get host email
     const hostDoc = await getDoc(doc(db, 'users', tournament.host_id));
     const hostEmail = hostDoc.data()?.email;
+    const hostData = hostDoc.data(); // Get the entire host document data
 
     if (!hostEmail) {
       console.error(`[${tournamentId}] Host user ${tournament.host_id} email not found.`);
@@ -159,11 +157,38 @@ async function processTournament(tournamentDoc) {
             <h1 style="color: #6200EA;">Tournament Starting Soon!</h1>
           </div>
           
-          <p>Hello Tournament Host,</p>
+          <p>Hello ${hostData.displayName || 'Tournament Host'},</p>
           
-          <p>Your tournament <strong>${tournament.name}</strong> is scheduled to start in about <strong>20 minutes</strong>, at ${formattedTime} IST!</p>
+          <p>This is a reminder that your tournament, <strong>${tournament.name}</strong>, is scheduled to start soon at <strong>${formattedTime}</strong> IST!</p>
           
-          <p>Don't forget to create the room a few minutes before the start time and share the room ID and password with participants.</p>
+          <div style="background-color: #f1f1f1; padding: 12px; border-radius: 5px; margin: 20px 0;">
+            <h2 style="color: #6200EA; margin-top: 0;">${tournament.name}</h2>
+            <p style="margin-bottom: 10px;"><strong>Description:</strong> ${tournament.description || 'No description provided.'}</p>
+            <p><strong>Start Time:</strong> ${formattedTime} on ${formattedDate} IST</p>
+            <h3 style="margin: 12px 0 6px 0; color: #333;">Tournament Details</h3>
+            <ul style="padding-left: 18px; margin: 0;">
+              <li><strong>Mode:</strong> ${tournament.mode}</li>
+              <li><strong>Map:</strong> ${tournament.map}</li>
+              <li><strong>Room Type:</strong> ${tournament.room_type}</li>
+              <li><strong>Participants:</strong> ${tournament.filled_spots || 0}/${tournament.max_players}</li>
+            </ul>
+            <h3 style="margin: 12px 0 6px 0; color: #333;">Host Information</h3>
+            <ul style="padding-left: 18px; margin: 0;">
+              <li><strong>Host Name:</strong> ${hostData.displayName || hostData.username || 'N/A'}</li>
+              <li><strong>Host Email:</strong> ${hostEmail}</li>
+            </ul>
+          </div>
+
+          <div style="background-color: #f9f9f9; padding: 12px; border-radius: 5px; margin: 20px 0;">
+            <h3 style="margin: 0 0 6px 0; color: #333;">Contact Support</h3>
+            <p style="margin: 0;">If you have any questions or need help, please contact our support team at <a href="mailto:freefiretournaments03@gmail.com">freefiretournaments03@gmail.com</a>.</p>
+          </div>
+
+          <p><strong>Don't forget to:</strong></p>
+          <ul>
+            <li>Create the room a few minutes before the start time.</li>
+            <li>Share the room ID and password with participants.</li>
+          </ul>
           
           <p>Good luck and have fun!</p>
         </div>
