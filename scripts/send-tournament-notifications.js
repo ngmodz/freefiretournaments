@@ -138,7 +138,7 @@ async function sendTournamentNotifications() {
               <div style="background-color: #f1f1f1; padding: 12px; border-radius: 5px; margin: 20px 0;">
                 <h2 style="color: #6200EA; margin-top: 0;">${tournament.name}</h2>
                 <p style="margin-bottom: 10px;"><strong>Description:</strong> ${tournament.description || 'No description provided.'}</p>
-                <p><strong>Start Time:</strong> ${formattedTime} on ${formattedDate}</p>
+                <p><strong>Start Time:</strong> ${formattedTime} on ${formattedDate} IST</p>
                 <h3 style="margin: 12px 0 6px 0; color: #333;">Tournament Details</h3>
                 <ul style="padding-left: 18px; margin: 0;">
                   <li><strong>Mode:</strong> ${tournament.mode}</li>

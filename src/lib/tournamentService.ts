@@ -13,7 +13,8 @@ import {
   serverTimestamp,
   Timestamp,
   DocumentReference,
-  FirestoreError
+  FirestoreError,
+  writeBatch
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage, auth } from "./firebase";
@@ -645,19 +646,30 @@ export const startTournament = async (tournamentId: string) => {
       throw new Error(`Tournament cannot be started. Current status: ${tournament.status}`);
     }
 
-    // Calculate TTL (2 hours after scheduled start time)
-    const ttlDate = new Date(scheduledStartTime.getTime() + 2 * 60 * 60 * 1000); // Add 2 hours to scheduled time
-    const ttlTimestamp = Timestamp.fromDate(ttlDate);
+    // Check if TTL is already set (automatically by cloud function)
+    let ttlTimestamp = tournament.ttl;
+    
+    // If TTL is not set, calculate it (2 hours after scheduled start time)
+    if (!ttlTimestamp) {
+      const ttlDate = new Date(scheduledStartTime.getTime() + 2 * 60 * 60 * 1000); // Add 2 hours to scheduled time
+      ttlTimestamp = Timestamp.fromDate(ttlDate);
+    }
 
-    // Update tournament status to "ongoing" and set TTL
+    // Update tournament status to "ongoing" and set TTL if not already set
     const docRef = doc(db, "tournaments", tournamentId);
-    await updateDoc(docRef, { 
+    const updateData: any = { 
       status: "ongoing",
-      started_at: serverTimestamp(), // Add timestamp when tournament was started
-      ttl: ttlTimestamp // Set TTL to 2 hours after scheduled start time
-    });
+      started_at: serverTimestamp() // Add timestamp when tournament was started
+    };
+    
+    // Only set TTL if it's not already set
+    if (!tournament.ttl) {
+      updateData.ttl = ttlTimestamp;
+    }
 
-    console.log(`Tournament ${tournamentId} started successfully with TTL set to ${ttlDate.toISOString()} (2 hours after scheduled time)`);
+    await updateDoc(docRef, updateData);
+
+    console.log(`Tournament ${tournamentId} started successfully with TTL set to ${ttlTimestamp.toDate().toISOString()} (2 hours after scheduled time)`);
     
     return {
       success: true,
@@ -782,4 +794,89 @@ export const canEndTournament = (tournament: Tournament, currentUserId?: string)
     canEnd: true,
     reason: "Tournament is ready to be ended"
   };
+};
+
+// Set TTL for tournaments that have reached their scheduled start time
+export const setTTLForScheduledTournaments = async () => {
+  try {
+    const now = new Date();
+    const nowTimestamp = Timestamp.fromDate(now);
+    
+    // Query for active tournaments that have reached their scheduled start time but don't have TTL set yet
+    const tournamentsQuery = query(
+      collection(db, "tournaments"),
+      where("status", "==", "active"),
+      where("start_date", "<=", nowTimestamp),
+      where("ttl", "==", null)
+    );
+    
+    const tournaments = await getDocs(tournamentsQuery);
+    
+    if (tournaments.empty) {
+      console.log("No tournaments found that need TTL set");
+      return {
+        success: true,
+        updatedCount: 0,
+        message: "No tournaments need TTL set"
+      };
+    }
+    
+    console.log(`Found ${tournaments.size} tournaments that need TTL set`);
+    
+    // Set TTL for tournaments in batches
+    const batch = writeBatch(db);
+    let updatedCount = 0;
+    
+    tournaments.forEach((doc) => {
+      const tournamentData = doc.data();
+      const scheduledStartTime = new Date(tournamentData.start_date);
+      
+      // Calculate TTL (2 hours after scheduled start time)
+      const ttlDate = new Date(scheduledStartTime.getTime() + 2 * 60 * 60 * 1000); // Add 2 hours
+      const ttlTimestamp = Timestamp.fromDate(ttlDate);
+      
+      console.log(`Setting TTL for tournament: ${doc.id} - ${tournamentData.name} to ${ttlDate.toISOString()}`);
+      
+      batch.update(doc.ref, {
+        ttl: ttlTimestamp
+      });
+      updatedCount++;
+    });
+    
+    // Commit the batch update
+    await batch.commit();
+    
+    console.log(`Successfully set TTL for ${updatedCount} tournaments`);
+    
+    return {
+      success: true,
+      updatedCount,
+      message: `Set TTL for ${updatedCount} tournaments`
+    };
+    
+  } catch (error) {
+    console.error("Error setting tournament TTL:", error);
+    return {
+      success: false,
+      updatedCount: 0,
+      error: error instanceof Error ? error.message : "Unknown error occurred"
+    };
+  }
+};
+
+// Initialize automatic TTL setting
+export const initializeAutomaticTTLSetting = () => {
+  // Check for tournaments that need TTL set every 5 minutes
+  setInterval(async () => {
+    try {
+      await setTTLForScheduledTournaments();
+    } catch (error) {
+      console.error("Error in automatic TTL setting:", error);
+    }
+  }, 5 * 60 * 1000); // 5 minutes
+  
+  // Also check immediately on initialization
+  setTTLForScheduledTournaments().catch(console.error);
+  
+  console.log("✅ Automatic TTL setting initialized (5-minute intervals)");
 };

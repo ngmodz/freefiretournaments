@@ -119,12 +119,14 @@ async function forceNotifyAllTournaments() {
       const formattedTime = startDate.toLocaleString('en-US', {
         hour: 'numeric', 
         minute: 'numeric',
-        hour12: true
+        hour12: true,
+        timeZone: 'Asia/Kolkata'
       });
       const formattedDate = startDate.toLocaleDateString('en-US', {
         weekday: 'long',
         month: 'long',
-        day: 'numeric'
+        day: 'numeric',
+        timeZone: 'Asia/Kolkata'
       });
       
       // Prepare email content
@@ -146,7 +148,7 @@ async function forceNotifyAllTournaments() {
             
             <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
               <h2 style="color: #6200EA; margin-top: 0;">${tournament.name}</h2>
-              <p><strong>Start Time:</strong> ${formattedTime} on ${formattedDate}</p>
+              <p><strong>Start Time:</strong> ${formattedTime} on ${formattedDate} IST</p>
               <p><strong>Mode:</strong> ${tournament.mode}</p>
               <p><strong>Map:</strong> ${tournament.map}</p>
               <p><strong>Room Type:</strong> ${tournament.room_type}</p>

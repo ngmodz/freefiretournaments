@@ -109,12 +109,14 @@ exports.sendUpcomingTournamentNotifications = onSchedule("every 5 minutes", asyn
       const formattedTime = startDate.toLocaleString('en-US', {
         hour: 'numeric', 
         minute: 'numeric',
-        hour12: true
+        hour12: true,
+        timeZone: 'Asia/Kolkata'
       });
       const formattedDate = startDate.toLocaleDateString('en-US', {
         weekday: 'long',
         month: 'long',
-        day: 'numeric'
+        day: 'numeric',
+        timeZone: 'Asia/Kolkata'
       });
       
       // Prepare email content
@@ -134,7 +136,7 @@ exports.sendUpcomingTournamentNotifications = onSchedule("every 5 minutes", asyn
             
             <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
               <h2 style="color: #6200EA; margin-top: 0;">${tournament.name}</h2>
-              <p><strong>Start Time:</strong> ${formattedTime} on ${formattedDate}</p>
+              <p><strong>Start Time:</strong> ${formattedTime} on ${formattedDate} IST</p>
               <p><strong>Mode:</strong> ${tournament.mode}</p>
               <p><strong>Map:</strong> ${tournament.map}</p>
               <p><strong>Room Type:</strong> ${tournament.room_type}</p>
@@ -186,6 +188,67 @@ exports.sendUpcomingTournamentNotifications = onSchedule("every 5 minutes", asyn
     
   } catch (error) {
     logger.error("Error sending tournament notifications:", error);
+    throw error;
+  }
+});
+
+// Cloud Function to automatically set TTL for tournaments when they reach scheduled start time
+exports.setTournamentTTLAtScheduledTime = onSchedule("every 5 minutes", async (context) => {
+  try {
+    logger.info("Checking for tournaments that have reached their scheduled start time");
+    
+    const now = new Date();
+    const nowTimestamp = new Date(now.getTime());
+    
+    // Query for active tournaments that have reached their scheduled start time but don't have TTL set yet
+    const tournamentsQuery = db.collection('tournaments')
+      .where('status', '==', 'active')
+      .where('start_date', '<=', nowTimestamp)
+      .where('ttl', '==', null) // Only tournaments without TTL
+      .limit(100); // Process in batches
+    
+    const tournaments = await tournamentsQuery.get();
+    
+    if (tournaments.empty) {
+      logger.info("No tournaments found that need TTL set");
+      return;
+    }
+    
+    logger.info(`Found ${tournaments.size} tournaments that need TTL set`);
+    
+    // Set TTL for tournaments in batches
+    const batch = db.batch();
+    let updatedCount = 0;
+    
+    tournaments.forEach((doc) => {
+      const tournamentData = doc.data();
+      const scheduledStartTime = new Date(tournamentData.start_date);
+      
+      // Calculate TTL (2 hours after scheduled start time)
+      const ttlDate = new Date(scheduledStartTime.getTime() + 2 * 60 * 60 * 1000); // Add 2 hours
+      const ttlTimestamp = new Date(ttlDate.getTime());
+      
+      logger.info(`Setting TTL for tournament: ${doc.id} - ${tournamentData.name} to ${ttlDate.toISOString()}`);
+      
+      batch.update(doc.ref, {
+        ttl: ttlTimestamp
+      });
+      updatedCount++;
+    });
+    
+    // Commit the batch update
+    await batch.commit();
+    
+    logger.info(`Successfully set TTL for ${updatedCount} tournaments`);
+    
+    return {
+      success: true,
+      updatedCount,
+      message: `Set TTL for ${updatedCount} tournaments`
+    };
+    
+  } catch (error) {
+    logger.error("Error setting tournament TTL:", error);
     throw error;
   }
 });
@@ -334,12 +397,14 @@ exports.testTournamentNotification = onRequest(async (req, res) => {
     const formattedTime = startDate.toLocaleString('en-US', {
       hour: 'numeric', 
       minute: 'numeric',
-      hour12: true
+      hour12: true,
+      timeZone: 'Asia/Kolkata'
     });
     const formattedDate = startDate.toLocaleDateString('en-US', {
       weekday: 'long',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
+      timeZone: 'Asia/Kolkata'
     });
     
     // Prepare email content
@@ -359,7 +424,7 @@ exports.testTournamentNotification = onRequest(async (req, res) => {
           
           <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
             <h2 style="color: #6200EA; margin-top: 0;">${tournamentData.name}</h2>
-            <p><strong>Start Time:</strong> ${formattedTime} on ${formattedDate}</p>
+            <p><strong>Start Time:</strong> ${formattedTime} on ${formattedDate} IST</p>
             <p><strong>Mode:</strong> ${tournamentData.mode}</p>
             <p><strong>Map:</strong> ${tournamentData.map}</p>
             <p><strong>Room Type:</strong> ${tournamentData.room_type}</p>

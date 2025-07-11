@@ -14,6 +14,9 @@ import { db } from './firebase';
 /**
  * Client-side tournament cleanup service
  * This service can be called from the client to clean up expired tournaments
+ * 
+ * IMPORTANT: Tournaments now have TTL set automatically when they reach their scheduled start time
+ * (via cloud function setTournamentTTLAtScheduledTime), regardless of whether the host starts them or not.
  */
 export class TournamentCleanupService {
   
@@ -102,80 +105,62 @@ export class TournamentCleanupService {
       };
     }
   }
-  
+
   /**
-   * Check if any tournaments are expired and need cleanup
-   * @returns Promise with expiration check results
+   * Check if there are any expired tournaments that need cleanup
+   * @returns Promise with check results
    */
   static async checkForExpiredTournaments() {
     try {
       const now = Timestamp.now();
       
-      // Query for tournaments that have expired
+      // Query for tournaments that have expired (ttl is in the past)
       const expiredQuery = query(
         collection(db, 'tournaments'),
         where('ttl', '<=', now),
-        limit(1) // Just check if any exist
+        limit(10) // Just check a few to see if any exist
       );
       
       const expiredTournaments = await getDocs(expiredQuery);
       
-      return {
-        hasExpired: !expiredTournaments.empty,
-        count: expiredTournaments.size
-      };
-      
-    } catch (error) {
-      console.error('Error checking for expired tournaments:', error);
-      return {
-        hasExpired: false,
-        count: 0,
-        error: error instanceof Error ? error.message : 'Unknown error occurred'
-      };
-    }
-  }
-  
-  /**
-   * Get tournaments that will expire soon (within next hour)
-   * @returns Promise with soon-to-expire tournaments
-   */
-  static async getTournamentsExpiringSoon() {
-    try {
-      const now = Timestamp.now();
-      const oneHourFromNow = Timestamp.fromDate(new Date(now.toDate().getTime() + 60 * 60 * 1000));
-      
-      // Query for tournaments expiring within the next hour
-      const soonToExpireQuery = query(
+      // Also check for ended tournaments without TTL that should have expired
+      const endedTournamentsQuery = query(
         collection(db, 'tournaments'),
-        where('ttl', '>', now),
-        where('ttl', '<=', oneHourFromNow),
-        limit(100)
+        where('status', '==', 'ended'),
+        limit(10)
       );
       
-      const soonToExpire = await getDocs(soonToExpireQuery);
+      const endedTournaments = await getDocs(endedTournamentsQuery);
       
-      const tournaments = soonToExpire.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      // Filter ended tournaments without TTL that should have expired (10 minutes after ending)
+      const expiredEndedTournaments = endedTournaments.docs.filter(doc => {
+        const data = doc.data();
+        if (data.ended_at && !data.ttl) {
+          const endedAt = data.ended_at.toDate();
+          const shouldExpireAt = new Date(endedAt.getTime() + 10 * 60 * 1000);
+          return now.toDate() > shouldExpireAt;
+        }
+        return false;
+      });
+      
+      const totalExpired = expiredTournaments.size + expiredEndedTournaments.length;
       
       return {
-        success: true,
-        tournaments,
-        count: tournaments.length
+        hasExpired: totalExpired > 0,
+        expiredCount: totalExpired,
+        message: totalExpired > 0 ? `Found ${totalExpired} expired tournaments` : 'No expired tournaments found'
       };
       
     } catch (error) {
-      console.error('Error getting tournaments expiring soon:', error);
+      console.error('❌ Error checking for expired tournaments:', error);
       return {
-        success: false,
-        tournaments: [],
-        count: 0,
+        hasExpired: false,
+        expiredCount: 0,
         error: error instanceof Error ? error.message : 'Unknown error occurred'
       };
     }
   }
-  
+
   /**
    * Initialize automatic cleanup on app start
    * This should be called when the app initializes

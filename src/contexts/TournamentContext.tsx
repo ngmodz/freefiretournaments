@@ -1,5 +1,5 @@
 import { createContext, useState, useContext, useEffect, ReactNode, useCallback, useRef } from 'react';
-import { getHostedTournaments, getTournaments, Tournament } from '@/lib/tournamentService';
+import { getHostedTournaments, getTournaments, Tournament, initializeAutomaticTTLSetting } from '@/lib/tournamentService';
 import { useAuth } from './AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -34,6 +34,12 @@ export const TournamentProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
   const loadingTimeoutRef = useRef<number | null>(null);
   const joinedLoadingTimeoutRef = useRef<number | null>(null);
+
+  // Initialize automatic TTL setting for tournaments
+  useEffect(() => {
+    // Initialize automatic TTL setting when the provider mounts
+    initializeAutomaticTTLSetting();
+  }, []);
 
   // Clear any existing timeout on unmount
   useEffect(() => {

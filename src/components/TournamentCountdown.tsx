@@ -1,10 +1,11 @@
-import React from 'react';
-import { Clock, AlertTriangle } from 'lucide-react';
-import TournamentCleanupService from '../lib/tournamentCleanupService';
+import React from "react";
+import { Clock, AlertTriangle } from "lucide-react";
+import { TournamentCleanupService } from "@/lib/tournamentCleanupService";
+import { hasTournamentReachedScheduledTime } from "@/lib/tournamentTimeUtils";
 
 interface TournamentCountdownProps {
-  ttl?: string;
-  startDate?: string; // Tournament scheduled start date
+  ttl?: any;
+  startDate?: string;
   className?: string;
   showIcon?: boolean;
   showWarning?: boolean;
@@ -29,8 +30,8 @@ const TournamentCountdown: React.FC<TournamentCountdownProps> = ({
       const now = new Date();
       const deletionTime = new Date(ttl);
       
-      // For the new system: TTL is only set when host starts the tournament
-      // So if there's a TTL, the tournament has been started by the host
+      // TTL can now be set automatically when tournament reaches scheduled start time
+      // or when host manually starts the tournament
       
       const timeDiff = deletionTime.getTime() - now.getTime();
 
@@ -46,7 +47,7 @@ const TournamentCountdown: React.FC<TournamentCountdownProps> = ({
         return;
       }
 
-      // Tournament has TTL, so it has been started by host
+      // Tournament has TTL, so it has either been started by host or reached scheduled time
       setTournamentStarted(true);
 
       // Calculate time components

@@ -53,11 +53,11 @@ export const getTournamentTimeRemaining = (tournament: Tournament) => {
 
 /**
  * Calculate the scheduled deletion time for a tournament
- * @param startedAt When the tournament was started by the host
+ * @param scheduledStartTime When the tournament is scheduled to start
  * @returns Date object representing when the tournament will be deleted
  */
-export const calculateTournamentDeletionTime = (startedAt: Date): Date => {
-  return new Date(startedAt.getTime() + 2 * 60 * 60 * 1000); // Add 2 hours
+export const calculateTournamentDeletionTime = (scheduledStartTime: Date): Date => {
+  return new Date(scheduledStartTime.getTime() + 2 * 60 * 60 * 1000); // Add 2 hours
 };
 
 /**
@@ -78,7 +78,7 @@ export const shouldTournamentBeDeleted = (tournament: Tournament): boolean => {
 export const getTournamentDeletionWarning = (tournament: Tournament): string | null => {
   const { timeRemaining, hasExpired, formattedTime } = getTournamentTimeRemaining(tournament);
   
-  // Only show warnings for tournaments that have been started by host (have TTL)
+  // Only show warnings for tournaments that have TTL set
   if (!tournament.ttl) {
     return null;
   }
@@ -93,4 +93,58 @@ export const getTournamentDeletionWarning = (tournament: Tournament): string | n
   }
 
   return null;
+};
+
+/**
+ * Check if tournament has reached its scheduled start time
+ * @param tournament Tournament object
+ * @returns Boolean indicating if tournament has reached scheduled start time
+ */
+export const hasTournamentReachedScheduledTime = (tournament: Tournament): boolean => {
+  const now = new Date();
+  const scheduledStartTime = new Date(tournament.start_date);
+  return now.getTime() >= scheduledStartTime.getTime();
+};
+
+/**
+ * Get time until scheduled start time
+ * @param tournament Tournament object
+ * @returns Object with time information until scheduled start
+ */
+export const getTimeUntilScheduledStart = (tournament: Tournament) => {
+  const now = new Date();
+  const scheduledStartTime = new Date(tournament.start_date);
+  const timeRemaining = scheduledStartTime.getTime() - now.getTime();
+
+  const hasReached = timeRemaining <= 0;
+
+  if (hasReached) {
+    return {
+      timeRemaining: 0,
+      hasReached: true,
+      formattedTime: "Started"
+    };
+  }
+
+  // Format time remaining
+  const hours = Math.floor(timeRemaining / (1000 * 60 * 60));
+  const minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000);
+
+  let formattedTime = "";
+  if (hours > 0) {
+    formattedTime += `${hours}h `;
+  }
+  if (minutes > 0) {
+    formattedTime += `${minutes}m `;
+  }
+  if (seconds > 0 || (hours === 0 && minutes === 0)) {
+    formattedTime += `${seconds}s`;
+  }
+
+  return {
+    timeRemaining,
+    hasReached,
+    formattedTime: formattedTime.trim()
+  };
 };
