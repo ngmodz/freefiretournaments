@@ -160,6 +160,13 @@ export class CreditService {
 
     try {
       let transactionId: string | undefined;
+      let userEmail: string | undefined;
+
+      // First, get the user's email.
+      const userDocForEmail = await getDoc(userRef);
+      if (userDocForEmail.exists()) {
+        userEmail = userDocForEmail.data()?.email;
+      }
 
       await runTransaction(db, async (transaction) => {
         const userDoc = await transaction.get(userRef);
@@ -185,6 +192,7 @@ export class CreditService {
           status: 'pending',
           requestedAt: Timestamp.now(),
           processedAt: null,
+          userEmail: userEmail || 'Unknown',
           notes: 'Withdrawal request pending. Funds will be transferred in 2-3 business days.'
         };
 
@@ -218,6 +226,9 @@ export class CreditService {
         const transactionRef = doc(collection(db, 'creditTransactions'));
         transaction.set(transactionRef, transactionData);
       });
+
+      // No email sending from client side - this will be handled by admin notifications
+      // or a secure backend process
 
       return { success: true, transactionId };
     } catch (error) {

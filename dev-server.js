@@ -10,7 +10,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.DEV_API_PORT || 3001;
+const PORT = process.env.DEV_API_PORT || 8083;
 
 // Middleware
 app.use(cors());
@@ -92,6 +92,8 @@ app.get('/api/check-tournament', async (req, res) => {
     res.status(500).json({ error: error.message, success: false });
   }
 });
+
+// Removed withdrawal request email endpoint - now handled through Firestore directly
 
 app.options('/api/*', (req, res) => {
   res.status(200).end();

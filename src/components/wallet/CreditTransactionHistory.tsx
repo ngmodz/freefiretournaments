@@ -203,13 +203,10 @@ const CreditTransactionHistory = ({ userId, refreshTrigger = 0 }: CreditTransact
   // Function to load more transactions
   const loadMoreTransactions = async () => {
     if (!lastVisible || loadingMore || !hasMoreTransactions) return;
-    
     setLoadingMore(true);
-    
     try {
       // Store the current cursor for back navigation
       setPageCursors(prev => [...prev, lastVisible]);
-      
       const transactionsRef = collection(db, 'creditTransactions');
       const q = query(
         transactionsRef,
@@ -218,15 +215,11 @@ const CreditTransactionHistory = ({ userId, refreshTrigger = 0 }: CreditTransact
         startAfter(lastVisible),
         limit(TRANSACTIONS_PER_PAGE)
       );
-      
       const querySnapshot = await getDocs(q);
       const newTransactions: CreditTransaction[] = [];
-      
       querySnapshot.forEach((doc) => {
         try {
           const data = doc.data();
-          
-          // Convert the Firestore Timestamp to Date
           let transactionDate: Date;
           if (data.createdAt instanceof Timestamp) {
             transactionDate = data.createdAt.toDate();
@@ -237,7 +230,6 @@ const CreditTransactionHistory = ({ userId, refreshTrigger = 0 }: CreditTransact
           } else {
             transactionDate = new Date();
           }
-          
           newTransactions.push({
             id: doc.id,
             userId: data.userId,
@@ -255,18 +247,12 @@ const CreditTransactionHistory = ({ userId, refreshTrigger = 0 }: CreditTransact
           console.error(`Error processing credit transaction ${doc.id}:`, err);
         }
       });
-      
-      // Update the last visible document
       const lastDoc = querySnapshot.docs[querySnapshot.docs.length - 1];
       setLastVisible(lastDoc || null);
-      
-      // Check if there are more transactions
       setHasMoreTransactions(querySnapshot.size >= TRANSACTIONS_PER_PAGE);
-      
-      // Update the transactions list
-      setTransactions(prev => [...prev, ...newTransactions]);
+      // Replace the transactions list with the new page
+      setTransactions(newTransactions);
       setCurrentPage(prev => prev + 1);
-      
     } catch (err) {
       console.error("Error loading more credit transactions:", err);
       setError(`Failed to load more transactions: ${err instanceof Error ? err.message : String(err)}`);

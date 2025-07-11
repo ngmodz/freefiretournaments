@@ -71,10 +71,12 @@ const TransactionSuccessDialog = ({
                 transition={{ delay: 0.2 }}
               >
                 <DialogTitle className="text-xl text-gaming-accent font-bold">
-                  Transaction Successful!
+                  {transactionType === 'withdrawal' ? 'Withdrawal Request Received' : 'Transaction Successful!'}
                 </DialogTitle>
                 <DialogDescription className="text-gaming-muted mt-2">
-                  Your {transactionType === 'deposit' ? 'deposit' : 'withdrawal'} has been processed successfully.
+                  {transactionType === 'withdrawal' 
+                    ? 'Your request has been received and you will receive your funds shortly.' 
+                    : `Your deposit has been processed successfully.`}
                 </DialogDescription>
               </motion.div>
             </DialogHeader>

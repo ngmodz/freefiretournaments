@@ -136,6 +136,31 @@ service cloud.firestore {
                   request.query.where[0][2] == request.auth.uid;
     }
     
+    // Rules for withdrawal requests
+    match /withdrawalRequests/{requestId} {
+      // Allow user to create a withdrawal request for themselves
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+
+      // Allow user to read their own withdrawal requests
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      
+      // Only admins can update the status (e.g., to 'completed')
+      allow update: if request.auth != null && request.auth.token.admin == true;
+
+      // Only admins can delete requests
+      allow delete: if request.auth != null && request.auth.token.admin == true;
+    }
+
+    // Allow users to list their own withdrawal requests
+    match /withdrawalRequests {
+      allow list: if request.auth != null && 
+                  request.query.limit <= 100 && 
+                  request.query.where.size() > 0 && 
+                  request.query.where[0][0] == 'userId' && 
+                  request.query.where[0][1] == '==' && 
+                  request.query.where[0][2] == request.auth.uid;
+    }
+
     // Legacy wallet and transaction rules - keeping for backward compatibility
     // Wallet rules - allow users to access only their own wallet
     match /wallets/{userId} {

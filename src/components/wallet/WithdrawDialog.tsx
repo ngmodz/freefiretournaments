@@ -103,6 +103,11 @@ const WithdrawDialog = ({
       return;
     }
 
+    if (numAmount < 100) {
+      setError("Minimum withdrawal amount is ₹100.");
+      return;
+    }
+
     try {
       setIsLoading(true);
       setError(null);
@@ -229,7 +234,7 @@ const WithdrawDialog = ({
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
                           exit={{ opacity: 0, height: 0 }}
-                          className="text-destructive text-sm mt-1"
+                          className="text-[#ff3333] text-sm mt-1"
                         >
                           {error}
                         </motion.p>

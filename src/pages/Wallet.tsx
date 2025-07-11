@@ -223,7 +223,7 @@ const Wallet = () => {
                         </div>
                         <div>
                           <p className="text-sm text-gaming-muted">Earnings</p>
-                          <p className="text-2xl font-bold text-gaming-text">₹{earnings || 0}</p>
+                          <p className="text-2xl font-bold text-gaming-text">₹{Number(earnings).toFixed(2)}</p>
                         </div>
                       </div>
                       <Button 
