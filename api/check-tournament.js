@@ -1,7 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, query, where, getDocs, updateDoc, doc, getDoc, Timestamp } from 'firebase/firestore';
 import nodemailer from 'nodemailer';
-import { getFirebaseConfig, getEmailConfig, debugEnvironment } from './firebase-config-fixed.js';
+import { getFirebaseConfig, getEmailConfig, debugEnvironment } from './firebase-config-helper.js';
 
 // Initialize Firebase
 const firebaseConfig = getFirebaseConfig();
