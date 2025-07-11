@@ -2,39 +2,64 @@
 // Uses backend-specific config that matches the working local script configuration
 
 export function getFirebaseConfig() {
+  // Sanitize the app ID by removing any newlines or carriage returns
+  const sanitizeValue = (value) => {
+    if (!value) return value;
+    return value.replace(/[\r\n]/g, '');
+  };
+  
   return {
-    apiKey: process.env.BACKEND_FIREBASE_API_KEY,
-    authDomain: process.env.BACKEND_FIREBASE_AUTH_DOMAIN,
-    projectId: process.env.BACKEND_FIREBASE_PROJECT_ID,
-    storageBucket: process.env.BACKEND_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: process.env.BACKEND_FIREBASE_MESSAGING_SENDER_ID,
-    appId: process.env.BACKEND_FIREBASE_APP_ID
+    apiKey: sanitizeValue(process.env.BACKEND_FIREBASE_API_KEY),
+    authDomain: sanitizeValue(process.env.BACKEND_FIREBASE_AUTH_DOMAIN),
+    projectId: sanitizeValue(process.env.BACKEND_FIREBASE_PROJECT_ID),
+    storageBucket: sanitizeValue(process.env.BACKEND_FIREBASE_STORAGE_BUCKET),
+    messagingSenderId: sanitizeValue(process.env.BACKEND_FIREBASE_MESSAGING_SENDER_ID),
+    appId: sanitizeValue(process.env.BACKEND_FIREBASE_APP_ID)
   };
 }
 
 export function getEmailConfig() {
+  // Sanitize email credentials
+  const sanitizeValue = (value) => {
+    if (!value) return value;
+    return value.replace(/[\r\n]/g, '');
+  };
+  
   return {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD
+    user: sanitizeValue(process.env.EMAIL_USER),
+    pass: sanitizeValue(process.env.EMAIL_PASSWORD)
   };
 }
 
 export function debugEnvironment() {
   // Safely debug environment variables
+  const sanitizeValue = (value) => {
+    if (!value) return false;
+    return !!value.replace(/[\r\n]/g, '');
+  };
+  
+  // Try to get values from multiple possible environment variable names
+  const getEnvValue = (keys) => {
+    for (const key of keys) {
+      if (process.env[key]) return sanitizeValue(process.env[key]);
+    }
+    return false;
+  };
+  
   return {
     firebase: {
-      apiKey: !!process.env.BACKEND_FIREBASE_API_KEY,
-      authDomain: !!process.env.FIREBASE_AUTH_DOMAIN || !!process.env.VITE_FIREBASE_AUTH_DOMAIN,
-      projectId: !!process.env.FIREBASE_PROJECT_ID || !!process.env.VITE_FIREBASE_PROJECT_ID,
-      storageBucket: !!process.env.FIREBASE_STORAGE_BUCKET || !!process.env.VITE_FIREBASE_STORAGE_BUCKET,
-      messagingSenderId: !!process.env.BACKEND_FIREBASE_MESSAGING_SENDER_ID,
-      appId: !!process.env.BACKEND_FIREBASE_APP_ID
+      apiKey: sanitizeValue(process.env.BACKEND_FIREBASE_API_KEY),
+      authDomain: getEnvValue(['BACKEND_FIREBASE_AUTH_DOMAIN', 'FIREBASE_AUTH_DOMAIN', 'VITE_FIREBASE_AUTH_DOMAIN']),
+      projectId: getEnvValue(['BACKEND_FIREBASE_PROJECT_ID', 'FIREBASE_PROJECT_ID', 'VITE_FIREBASE_PROJECT_ID']),
+      storageBucket: getEnvValue(['BACKEND_FIREBASE_STORAGE_BUCKET', 'FIREBASE_STORAGE_BUCKET', 'VITE_FIREBASE_STORAGE_BUCKET']),
+      messagingSenderId: sanitizeValue(process.env.BACKEND_FIREBASE_MESSAGING_SENDER_ID),
+      appId: sanitizeValue(process.env.BACKEND_FIREBASE_APP_ID)
     },
     email: {
-      user: !!process.env.EMAIL_USER,
-      pass: !!process.env.EMAIL_PASSWORD
+      user: sanitizeValue(process.env.EMAIL_USER),
+      pass: sanitizeValue(process.env.EMAIL_PASSWORD)
     },
-    nodeEnv: process.env.NODE_ENV,
+    nodeEnv: process.env.NODE_ENV ? process.env.NODE_ENV.replace(/[\r\n]/g, '') : undefined,
     vercel: !!process.env.VERCEL
   };
 }

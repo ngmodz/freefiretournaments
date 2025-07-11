@@ -13,17 +13,120 @@ const emailPass = emailConfig.pass;
 
 // Configure email transporter
 const createTransporter = () => {
-  return nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: emailUser,
-      pass: emailPass
-    },
-    tls: {
-      rejectUnauthorized: false // Ignore certificate issues
+  try {
+    console.log('Creating email transporter with user:', emailUser ? emailUser.substring(0, 3) + '...' : 'undefined');
+    
+    if (!emailUser || !emailPass) {
+      console.error('Email configuration missing. Please check environment variables.');
+      return null;
     }
-  });
+    
+    return nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: emailUser,
+        pass: emailPass
+      },
+      tls: {
+        rejectUnauthorized: false // Ignore certificate issues
+      }
+    });
+  } catch (error) {
+    console.error('Error creating email transporter:', error);
+    return null;
+  }
 };
+
+// Test email sending functionality
+async function sendTestEmail() {
+  try {
+    console.log('Sending test email...');
+    
+    // Get environment details for debugging
+    const envDetails = debugEnvironment();
+    console.log('Environment details:', envDetails);
+    
+    // Get email config
+    const emailConfig = getEmailConfig();
+    const emailUser = emailConfig.user;
+    const emailPass = emailConfig.pass;
+    
+    console.log('Email config available:', {
+      user: !!emailUser,
+      pass: !!emailPass
+    });
+    
+    if (!emailUser || !emailPass) {
+      return { 
+        success: false, 
+        error: 'Email configuration missing. Please check environment variables.' 
+      };
+    }
+    
+    // Configure email transporter
+    const transporter = createTransporter();
+    
+    if (!transporter) {
+      return {
+        success: false,
+        error: 'Failed to create email transporter'
+      };
+    }
+    
+    // Prepare email content
+    const mailOptions = {
+      from: `"Test Email" <${emailUser}>`,
+      to: emailUser, // Send to yourself for testing
+      subject: `🧪 Test Email from Tournament System - ${new Date().toISOString()}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <h1 style="color: #6200EA;">Test Email</h1>
+          </div>
+          
+          <p>Hello,</p>
+          
+          <p>This is a test email to verify that the notification system is working correctly.</p>
+          
+          <p>If you received this email, it means your email configuration is correct!</p>
+          
+          <p>Sent at: ${new Date().toLocaleString()}</p>
+          
+          <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
+            <p style="font-size: 12px; color: #666;">This is a test email. Please do not reply.</p>
+          </div>
+        </div>
+      `
+    };
+    
+    try {
+      // Send the email
+      const info = await transporter.sendMail(mailOptions);
+      console.log(`✅ Email sent successfully: ${info.messageId}`);
+      
+      return { 
+        success: true, 
+        messageId: info.messageId,
+        sentTo: emailUser
+      };
+    } catch (error) {
+      console.error(`❌ Error sending email:`, error);
+      
+      return { 
+        success: false, 
+        error: error.message,
+        details: error.toString()
+      };
+    }
+  } catch (error) {
+    console.error('Error in test-email function:', error);
+    
+    return { 
+      success: false, 
+      error: error.message || 'Internal server error'
+    };
+  }
+}
 
 /**
  * Check a specific tournament and send notification if needed
@@ -388,75 +491,9 @@ export default async function handler(req, res) {
     
     // If test_email is true, send a test email
     if (test_email === 'true') {
-      console.log('Sending test email...');
-      
-      // Get environment details for debugging
-      const envDetails = debugEnvironment();
-      console.log('Environment details:', envDetails);
-      
-      // Get email config
-      const emailConfig = getEmailConfig();
-      const emailUser = emailConfig.user;
-      const emailPass = emailConfig.pass;
-      
-      console.log('Email config available:', {
-        user: !!emailUser,
-        pass: !!emailPass
-      });
-      
-      if (!emailUser || !emailPass) {
-        return res.status(500).json({ 
-          success: false, 
-          error: 'Email configuration missing. Please check environment variables.' 
-        });
-      }
-      
-      // Configure email transporter
-      const transporter = createTransporter();
-      
-      // Prepare email content
-      const mailOptions = {
-        from: `"Test Email" <${emailUser}>`,
-        to: emailUser, // Send to yourself for testing
-        subject: `🧪 Test Email from Tournament System`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
-            <div style="text-align: center; margin-bottom: 20px;">
-              <h1 style="color: #6200EA;">Test Email</h1>
-            </div>
-            
-            <p>Hello,</p>
-            
-            <p>This is a test email to verify that the notification system is working correctly.</p>
-            
-            <p>If you received this email, it means your email configuration is correct!</p>
-            
-            <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
-              <p style="font-size: 12px; color: #666;">This is a test email. Please do not reply.</p>
-            </div>
-          </div>
-        `
-      };
-      
-      try {
-        // Send the email
-        const info = await transporter.sendMail(mailOptions);
-        console.log(`✅ Email sent successfully: ${info.messageId}`);
-        
-        return res.status(200).json({ 
-          success: true, 
-          messageId: info.messageId,
-          sentTo: emailUser
-        });
-      } catch (error) {
-        console.error(`❌ Error sending email:`, error);
-        
-        return res.status(500).json({ 
-          success: false, 
-          error: error.message,
-          details: error.toString()
-        });
-      }
+      console.log('Test email requested');
+      const result = await sendTestEmail();
+      return res.status(result.success ? 200 : 500).json(result);
     }
     
     // If 'all' parameter is provided, check all tournaments
