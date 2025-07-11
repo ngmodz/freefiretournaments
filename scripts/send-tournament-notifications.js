@@ -104,18 +104,20 @@ async function sendTournamentNotifications() {
         
         console.log(`Sending notification for tournament ${tournamentId} to host ${hostEmail}`);
         
-        // Format tournament start time
+        // Format tournament start time (FIX: Always use IST)
         const startDate = tournament.start_date instanceof Date ? tournament.start_date : 
                         (tournament.start_date.toDate ? tournament.start_date.toDate() : new Date(tournament.start_date));
         const formattedTime = startDate.toLocaleString('en-US', {
           hour: 'numeric', 
           minute: 'numeric',
-          hour12: true
+          hour12: true,
+          timeZone: 'Asia/Kolkata'
         });
         const formattedDate = startDate.toLocaleDateString('en-US', {
           weekday: 'long',
           month: 'long',
-          day: 'numeric'
+          day: 'numeric',
+          timeZone: 'Asia/Kolkata'
         });
         
         // Prepare email content
@@ -133,13 +135,18 @@ async function sendTournamentNotifications() {
               
               <p>Your hosted tournament <strong>${tournament.name}</strong> is scheduled to start in about <strong>20 minutes</strong>!</p>
               
-              <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+              <div style="background-color: #f1f1f1; padding: 12px; border-radius: 5px; margin: 20px 0;">
                 <h2 style="color: #6200EA; margin-top: 0;">${tournament.name}</h2>
+                <p style="margin-bottom: 10px;"><strong>Description:</strong> ${tournament.description || 'No description provided.'}</p>
                 <p><strong>Start Time:</strong> ${formattedTime} on ${formattedDate}</p>
-                <p><strong>Mode:</strong> ${tournament.mode}</p>
-                <p><strong>Map:</strong> ${tournament.map}</p>
-                <p><strong>Room Type:</strong> ${tournament.room_type}</p>
-                <p><strong>Participants:</strong> ${tournament.filled_spots || 0}/${tournament.max_players}</p>
+                <h3 style="margin: 12px 0 6px 0; color: #333;">Tournament Details</h3>
+                <ul style="padding-left: 18px; margin: 0;">
+                  <li><strong>Mode:</strong> ${tournament.mode}</li>
+                  <li><strong>Map:</strong> ${tournament.map}</li>
+                  <li><strong>Room Type:</strong> ${tournament.room_type}</li>
+                  <li><strong>Max Players:</strong> ${tournament.max_players}</li>
+                  <li><strong>Participants:</strong> ${tournament.filled_spots || 0}/${tournament.max_players}</li>
+                </ul>
               </div>
               
               <p><strong>Don't forget to:</strong></p>
