@@ -13,7 +13,7 @@ import { db } from '@/lib/firebase';
 export interface CreditTransaction {
   id?: string;
   userId: string;
-  type: 'host_credit_purchase' | 'tournament_credit_purchase' | 'tournament_join' | 'tournament_win' | 'tournament_host_earnings' | 'referral_bonus' | 'tournament_credit_conversion' | 'withdrawal';
+  type: 'host_credit_purchase' | 'tournament_credit_purchase' | 'tournament_join' | 'tournament_win' | 'tournament_host_earnings' | 'referral_bonus' | 'withdrawal';
   amount: number;
   value?: number;
   balanceBefore: number;
@@ -67,17 +67,6 @@ export class CreditService {
         }
       });
     }
-  }
-
-  /**
-   * Convert tournament credits to withdrawable earnings
-   */
-  static async convertCreditsToEarnings(
-    userId: string,
-    creditsAmount: number
-  ): Promise<boolean> {
-    // Method removed: Tournament credits can no longer be converted to earnings.
-    throw new Error('This feature has been removed. Tournament credits can only be used to join tournaments.');
   }
 
   /**

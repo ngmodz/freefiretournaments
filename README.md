@@ -46,7 +46,7 @@ api/                # Vercel serverless functions
 ## Core Services
 
 - **TournamentService**: Tournament creation and management
-- **CreditService**: Credit balance and conversion
+- **CreditService**: Credit balance management
 - **PaymentService**: Payment processing
 - **WalletService**: Wallet operations
 - **AdminService**: Admin panel functionality and withdrawal management
