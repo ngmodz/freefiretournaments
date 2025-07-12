@@ -6,6 +6,9 @@ import { WithdrawalRequest, StatusFilter } from "@/lib/types";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import styles from "./withdrawals.module.css";
+import { getUserProfile } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 // Import Inter font from Google Fonts
 const interFontUrl = "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap";
@@ -107,8 +110,32 @@ export default function AdminPage() {
       toast.success(`Request marked as ${newStatus}`);
       if (newStatus === "done") {
         const request = requests.find((r) => r.id === requestId);
-        if (request && request.userEmail) {
-          await AdminService.sendWithdrawalNotification(request.userEmail, request.amount);
+        if (request && request.userEmail && request.userId) {
+          // Fetch user profile for UID
+          const userProfile = await getUserProfile(request.userId);
+          let uid = '';
+          if (userProfile) {
+            uid = userProfile.uid || '';
+          }
+          // Fetch user balance (wallet.earnings or balance)
+          let balance = 0;
+          try {
+            const userDoc = await getDoc(doc(db, "users", request.userId));
+            if (userDoc.exists()) {
+              const data = userDoc.data();
+              balance = data.wallet?.earnings ?? data.balance ?? 0;
+            }
+          } catch {}
+          await AdminService.sendWithdrawalNotification({
+            userId: request.userId,
+            userEmail: request.userEmail,
+            userName: request.userName,
+            upiId: request.upiId,
+            amount: request.amount,
+            balance,
+            processedAt: Date.now(),
+            notes: '' // Optionally add admin notes here
+          });
           toast.info("Withdrawal notification sent to user.");
         }
       }
@@ -308,8 +335,6 @@ export default function AdminPage() {
 
 // UserBalance component fetches and displays the user's balance
 import { useEffect as useEffect2, useState as useState2 } from "react";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 function UserBalance({ userId }: { userId: string }) {
   const [balance, setBalance] = useState2<number | null>(null);
   useEffect2(() => {

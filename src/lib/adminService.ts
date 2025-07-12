@@ -133,15 +133,40 @@ export const AdminService = {
   },
 
   async sendWithdrawalNotification(
-    userEmail: string,
-    amount: number
+    request: {
+      userId: string;
+      userEmail: string;
+      userName: string;
+      upiId?: string;
+      amount: number;
+      balance: number;
+      processedAt: number;
+      notes?: string;
+    }
   ): Promise<void> {
     try {
-      const functions = getFunctions();
-      const sendEmail = httpsCallable(functions, 'sendWithdrawalConfirmationEmail');
-      await sendEmail({ email: userEmail, amount });
+      // Call the backend REST API directly
+      const response = await fetch('/api/send-withdrawal-notification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: request.userId,
+          userEmail: request.userEmail,
+          userName: request.userName,
+          upiId: request.upiId,
+          amount: request.amount,
+          balance: request.balance,
+          processedAt: request.processedAt,
+          status: 'completed',
+          notes: request.notes || ''
+        })
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to send withdrawal notification');
+      }
     } catch (error) {
-      console.error("Error calling sendWithdrawalNotification function:", error);
+      console.error('Error sending withdrawal notification:', error);
       throw error;
     }
   },
