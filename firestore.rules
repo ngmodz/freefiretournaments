@@ -1,6 +1,7 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    
     // Allow read/write access to user's own profile only
     match /users/{userId} {
       // Allow anyone to read user profiles (for tournament host display)
@@ -100,8 +101,7 @@ service cloud.firestore {
                    request.auth.token.admin == true);
       allow create: if request.auth != null && 
                      request.resource.data.userId == request.auth.uid;
-      allow update: if request.auth != null && request.auth.token.admin == true;
-      allow delete: if request.auth != null && request.auth.token.admin == true;
+      allow update, delete: if request.auth != null && request.auth.token.admin == true;
     }
     
     // Credit rules - allow users to access only their own wallet in user document
@@ -142,23 +142,28 @@ service cloud.firestore {
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
 
       // Allow user to read their own withdrawal requests
-      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow read: if request.auth != null && (
+        resource.data.userId == request.auth.uid || 
+        request.auth.token.admin == true
+      );
       
-      // Only admins can update the status (e.g., to 'completed')
-      allow update: if request.auth != null && request.auth.token.admin == true;
-
-      // Only admins can delete requests
-      allow delete: if request.auth != null && request.auth.token.admin == true;
+      // Only admins can update the status (e.g., to 'completed') or delete
+      allow update, delete: if request.auth != null && request.auth.token.admin == true;
     }
-
-    // Allow users to list their own withdrawal requests
+    
+    // Admins can list all withdrawal requests. Users can only list their own.
     match /withdrawalRequests {
-      allow list: if request.auth != null && 
-                  request.query.limit <= 100 && 
-                  request.query.where.size() > 0 && 
-                  request.query.where[0][0] == 'userId' && 
-                  request.query.where[0][1] == '==' && 
-                  request.query.where[0][2] == request.auth.uid;
+      // Allow admins to list all withdrawal requests without constraints
+      allow list: if request.auth != null && (
+          request.auth.token.admin == true || 
+          (
+            request.query.limit <= 100 && 
+            request.query.where.size() > 0 && 
+            request.query.where[0][0] == 'userId' && 
+            request.query.where[0][1] == '==' && 
+            request.query.where[0][2] == request.auth.uid
+          )
+        );
     }
 
     // Legacy wallet and transaction rules - keeping for backward compatibility

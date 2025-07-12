@@ -10,6 +10,7 @@ A gaming tournament platform for FreeFire with integrated credit system and paym
 - **Real-time Updates**: Live tournament data with Firebase Realtime Database
 - **Responsive Design**: Mobile-first interface with Tailwind CSS
 - **Tournament Notifications**: Automated email reminders sent to hosts 20 minutes before tournament start
+- **Admin Panel**: Comprehensive withdrawal request management with email notifications
 - **Security**: Secure handling of credentials and sensitive information
 
 ## Security Notice
@@ -48,6 +49,7 @@ api/                # Vercel serverless functions
 - **CreditService**: Credit balance and conversion
 - **PaymentService**: Payment processing
 - **WalletService**: Wallet operations
+- **AdminService**: Admin panel functionality and withdrawal management
 
 ## Firebase Cloud Functions
 
@@ -66,6 +68,23 @@ npm run dev      # Development server
 npm run build    # Production build
 npm run preview  # Preview build
 npm run lint     # Lint code
+```
+
+## Admin Panel
+
+The platform includes a comprehensive admin panel for managing withdrawal requests:
+
+- **Access**: Navigate to `/admin` (admin access required)
+- **Features**: Dashboard, withdrawal management, email notifications
+- **Setup**: See `ADMIN_PANEL_README.md` for detailed setup instructions
+
+### Quick Setup
+```bash
+# Set up admin user
+node scripts/setup-admin-user.js USER_ID
+
+# List all users
+node scripts/setup-admin-user.js --list
 ```
 
 ## Contributing

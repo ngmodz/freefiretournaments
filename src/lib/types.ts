@@ -40,3 +40,16 @@ export interface AuthUser {
   displayName: string | null;
   photoURL: string | null;
 } 
+
+export interface WithdrawalRequest {
+  id: string;
+  userId: string;
+  userEmail: string;
+  userName: string;
+  amount: number;
+  status: 'pending' | 'done';
+  timestamp: number;
+  upiId?: string;
+}
+
+export type StatusFilter = 'all' | 'pending' | 'done'; 

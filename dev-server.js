@@ -93,7 +93,15 @@ app.get('/api/check-tournament', async (req, res) => {
   }
 });
 
-// Removed withdrawal request email endpoint - now handled through Firestore directly
+app.post('/api/send-withdrawal-notification', async (req, res) => {
+  try {
+    const { default: handler } = await import('./api/send-withdrawal-notification.js');
+    await handler(req, res);
+  } catch (error) {
+    console.error('API Error:', error);
+    res.status(500).json({ error: error.message, success: false });
+  }
+});
 
 app.options('/api/*', (req, res) => {
   res.status(200).end();

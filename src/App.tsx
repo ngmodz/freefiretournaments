@@ -20,6 +20,8 @@ import { TournamentProvider } from "./contexts/TournamentContext";
 import Wallet from "./pages/Wallet";
 import Credits from "./pages/Credits";
 import PaymentStatus from "./pages/PaymentStatus";
+// Admin pages
+import AdminPage from "./pages/admin/withdrawals";
 import "./App.css";
 
 function App() {
@@ -101,6 +103,13 @@ function App() {
             } />
             <Route path="/terms-and-privacy" element={<TermsAndPolicy />} />
           </Route>
+          
+          {/* Admin routes - separate from main layout */}
+          <Route path="/admin" element={
+            <ProtectedRoute>
+              <AdminPage />
+            </ProtectedRoute>
+          } />
           
           <Route path="*" element={<NotFound />} />
         </Routes>
