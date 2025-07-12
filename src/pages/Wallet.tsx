@@ -14,7 +14,6 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import WithdrawDialog from "@/components/wallet/WithdrawDialog";
 import AddFundsDialog from "@/components/wallet/AddFundsDialog";
-import ConvertCreditsDialog from "@/components/wallet/ConvertCreditsDialog";
 import CreditTransactionHistory from "@/components/wallet/CreditTransactionHistory";
 import { collection, getDocs, query, where, limit, Timestamp, doc, setDoc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -340,10 +339,6 @@ const Wallet = () => {
         }}
       />
 
-      <ConvertCreditsDialog
-        isOpen={isConvertCreditsOpen}
-        onOpenChange={setIsConvertCreditsOpen}
-      />
     </div>
   );
 }
