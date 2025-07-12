@@ -39,8 +39,19 @@ const ProfileTabs = ({
         
         if (currentUser) {
           // Filter joined tournaments (where user is a participant)
-          const joined = allTournaments.filter(tournament => 
-            tournament.participants && tournament.participants.includes(currentUser.uid)
+          const joined = allTournaments.filter(tournament => {
+            // Use the new participantUids field if it exists for efficiency, otherwise fall back to legacy check
+            if (tournament.participantUids) {
+              return tournament.participantUids.includes(currentUser.uid);
+            }
+            // Fallback for older documents without participantUids
+            return tournament.participants && tournament.participants.some(p => {
+                if (typeof p === 'object' && p !== null && 'authUid' in p) {
+                  return p.authUid === currentUser.uid;
+                }
+                return p === currentUser.uid;
+              });
+            }
           );
           
           // Transform joined tournaments to include the correct prize money calculation

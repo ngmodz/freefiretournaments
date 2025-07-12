@@ -1,20 +1,21 @@
-import { 
-  collection, 
-  addDoc, 
-  getDoc, 
-  getDocs, 
-  updateDoc, 
-  deleteDoc, 
-  doc, 
-  query, 
-  where, 
-  orderBy, 
-  limit, 
+import {
+  collection,
+  addDoc,
+  getDoc,
+  getDocs,
+  updateDoc,
+  deleteDoc,
+  doc,
+  query,
+  where,
+  orderBy,
+  limit,
   serverTimestamp,
   Timestamp,
   DocumentReference,
   FirestoreError,
-  writeBatch
+  writeBatch,
+  runTransaction
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage, auth } from "./firebase";
@@ -24,22 +25,22 @@ import { getUserProfile } from './firebase';
 
 /**
  * Tournament Service
- * 
+ *
  * This service handles all tournament-related operations such as creation,
  * updates, deletion, and querying.
- * 
+ *
  * IMPORTANT NOTES:
- * 
+ *
  * 1. Tournament Notifications:
  *    - Tournaments have automatic email notifications sent to hosts
  *    - Email notifications are sent 20 minutes before the scheduled start time
  *    - Notifications are managed by a Firebase Cloud Function (sendUpcomingTournamentNotifications)
  *    - This happens automatically based on the 'start_date' field and 'status' being 'active'
  *    - When a notification is sent, a 'notificationSent' field is set to true
- * 
+ *
  * 2. Tournament Lifecycle:
  *    - Newly created tournaments have status 'active'
- *    - When started manually by host, status changes to 'ongoing' 
+ *    - When started manually by host, status changes to 'ongoing'
  *    - When ended manually by host, status changes to 'ended'
  *    - When results are finalized, status changes to 'completed'
  *    - Tournaments have TTL (Time to Live) for automatic cleanup
@@ -50,6 +51,13 @@ import { getUserProfile } from './firebase';
  *    - host_id: Firebase User ID of the tournament creator
  *    - notificationSent: Boolean indicating if the notification has been sent (added by the cloud function)
  */
+
+// Participant interface for the new structure
+export interface Participant {
+  customUid: string;
+  authUid: string;
+  ign: string;
+}
 
 // Tournament type definition
 export interface Tournament {
@@ -76,7 +84,7 @@ export interface Tournament {
   started_at?: Timestamp; // When the tournament was manually started by host
   ended_at?: Timestamp; // When the tournament was manually ended by host
   completed_at?: Timestamp; // When the tournament was marked as completed with winners
-  participants: string[];
+  participants: (string | Participant)[]; // Support both legacy string format and new object format
   filled_spots: number;
   room_id?: string | null;
   room_password?: string | null;
@@ -93,6 +101,7 @@ export interface Tournament {
   // New fields for prize distribution tracking
   total_prizes_distributed?: number; // Total amount of prizes distributed to winners
   host_earnings_distributed?: number; // Total amount distributed to host as earnings
+  participantUids: string[]; // List of authUids of participants
 }
 
 // Create a new tournament
@@ -102,36 +111,36 @@ export const createTournament = async (tournamentData: Omit<TournamentFormData, 
     if (!currentUser) {
       throw new Error("You must be logged in to create a tournament");
     }
-    
+
     // Verify authentication state
     console.log("Current user ID:", currentUser.uid);
-    
+
     // Validate required fields
     const requiredFields = [
-      'name', 'description', 'mode', 'max_players', 'start_date', 
+      'name', 'description', 'mode', 'max_players', 'start_date',
       'map', 'room_type', 'entry_fee', 'prize_distribution', 'rules'
     ];
-    
+
     const missingFields = requiredFields.filter(field => !tournamentData[field]);
     if (missingFields.length > 0) {
       throw new Error(`Missing required tournament fields: ${missingFields.join(', ')}`);
     }
-    
+
     // Check if date is valid
     if (new Date(tournamentData.start_date).toString() === 'Invalid Date') {
       throw new Error('Invalid start date format');
     }
-    
+
     // Check if prize distribution adds up to 100%
     const totalPrizePool = tournamentData.entry_fee * tournamentData.max_players;
     const prizeTotal = Object.values(tournamentData.prize_distribution).reduce((sum, value) => sum + value, 0);
     if (prizeTotal > totalPrizePool) {
       throw new Error(`Prize distribution total cannot exceed the total expected prize pool. Current total: ${prizeTotal}`);
     }
-    
+
     // Don't set TTL during creation - only when tournament is started by host
     // The TTL will be set when the host manually starts the tournament
-    
+
     // Prepare tournament data
     const tournament = {
       ...tournamentData,
@@ -140,14 +149,15 @@ export const createTournament = async (tournamentData: Omit<TournamentFormData, 
       created_at: serverTimestamp(),
       participants: [],
       filled_spots: 0,
+      participantUids: [], // Initialize participantUids
       // ttl will be set when host starts the tournament
     };
-    
+
     console.log("Creating tournament:", tournament.name);
-    
+
     // Add tournament to Firestore
     const docRef = await addDoc(collection(db, "tournaments"), tournament);
-    
+
     return {
       id: docRef.id,
       ...tournament,
@@ -164,16 +174,16 @@ export const uploadTournamentBanner = async (file: File): Promise<string> => {
     if (!file) {
       throw new Error("No file provided");
     }
-    
+
     // Generate a unique file path
     const fileExt = file.name.split('.').pop();
     const fileName = `tournament-${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
     const filePath = `tournament-images/${fileName}`;
-    
+
     // Upload to Firebase Storage
     const storageRef = ref(storage, filePath);
     await uploadBytes(storageRef, file);
-    
+
     // Get download URL
     return await getDownloadURL(storageRef);
   } catch (error) {
@@ -192,9 +202,9 @@ export const getTournaments = async () => {
       collection(db, "tournaments"),
       orderBy("created_at", "desc")
     );
-    
+
     const querySnapshot = await getDocs(q);
-    
+
     return querySnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
@@ -210,7 +220,7 @@ export const getHostedTournaments = async () => {
   try {
     const currentUser = auth.currentUser;
     console.log("Current user in getHostedTournaments:", currentUser?.uid);
-    
+
     if (!currentUser) {
       console.error("No authenticated user found");
       return []; // Return empty array instead of throwing an error
@@ -224,13 +234,13 @@ export const getHostedTournaments = async () => {
       orderBy("created_at", "desc"),
       limit(100) // Add a limit to comply with security rules
     );
-    
+
     console.log("Executing query...");
-    
+
     try {
       const querySnapshot = await getDocs(q);
       console.log("Query executed, found", querySnapshot.docs.length, "documents");
-      
+
       // Map the document data to Tournament objects
       const hostedTournaments = querySnapshot.docs.map(doc => {
         const data = doc.data();
@@ -240,7 +250,7 @@ export const getHostedTournaments = async () => {
           ...data,
         } as Tournament;
       });
-      
+
       console.log("Returning", hostedTournaments.length, "hosted tournaments");
       return hostedTournaments;
     } catch (queryError) {
@@ -275,9 +285,9 @@ export const getTournamentsByStatus = async (status: Tournament["status"]) => {
       where("status", "==", status),
       orderBy("created_at", "desc")
     );
-    
+
     const querySnapshot = await getDocs(q);
-    
+
     return querySnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
@@ -293,7 +303,7 @@ export const getTournamentById = async (id: string) => {
   try {
     const docRef = doc(db, "tournaments", id);
     const docSnap = await getDoc(docRef);
-    
+
     if (docSnap.exists()) {
       return {
         id: docSnap.id,
@@ -316,31 +326,31 @@ export const deleteTournament = async (id: string) => {
     if (!currentUser) {
       throw new Error("You must be logged in to delete a tournament");
     }
-    
+
     // Get the tournament to verify ownership
     const tournament = await getTournamentById(id);
-    
+
     if (!tournament) {
       throw new Error("Tournament not found");
     }
-    
+
     // Verify the current user is the host
     if (tournament.host_id !== currentUser.uid) {
       throw new Error("You can only delete tournaments that you host");
     }
-    
+
     // Delete the tournament
     const docRef = doc(db, "tournaments", id);
     await deleteDoc(docRef);
-    
+
     return { success: true, message: "Tournament deleted successfully" };
   } catch (error) {
     console.error("Error deleting tournament:", error);
-    
+
     if (error instanceof Error) {
       throw new Error(`Failed to delete tournament: ${error.message}`);
     }
-    
+
     throw new Error("Failed to delete tournament: Unknown error");
   }
 };
@@ -350,7 +360,7 @@ export const updateTournamentStatus = async (id: string, status: Tournament["sta
   try {
     const docRef = doc(db, "tournaments", id);
     await updateDoc(docRef, { status });
-    
+
     return { id, status };
   } catch (error) {
     console.error("Error updating tournament status:", error);
@@ -361,123 +371,106 @@ export const updateTournamentStatus = async (id: string, status: Tournament["sta
 // Join tournament (for participants)
 export const joinTournament = async (tournamentId: string) => {
   console.log("joinTournament function called with ID:", tournamentId);
-  let retryCount = 0;
-  const maxRetries = 2;
+  const currentUser = auth.currentUser;
+  if (!currentUser) {
+    throw new Error("You must be logged in to join a tournament");
+  }
 
-  while (retryCount <= maxRetries) {
-    try {
-      // Check authentication
-      const currentUser = auth.currentUser;
-      console.log("Current user:", currentUser?.uid);
-      if (!currentUser) {
-        throw new Error("You must be logged in to join a tournament");
-      }
+  // Define tournament variable here to make it accessible outside the transaction
+  let tournament: Tournament | null = null;
 
-      // Get the tournament with error handling
-      console.log("Fetching tournament data");
-      let tournament = null;
-      try {
-        tournament = await getTournamentById(tournamentId);
-      } catch (fetchError) {
-        console.error("Error fetching tournament:", fetchError);
-        throw new Error("Could not load tournament data. Please try again.");
-      }
+  try {
+    const result = await runTransaction(db, async (transaction) => {
+      const tournamentRef = doc(db, "tournaments", tournamentId);
+      const userRef = doc(db, "users", currentUser.uid);
 
-      console.log("Tournament data:", tournament);
-
-      if (!tournament) {
+      // 1. Read tournament and user data within the transaction
+      const tournamentDoc = await transaction.get(tournamentRef);
+      if (!tournamentDoc.exists()) {
         throw new Error("Tournament not found");
       }
+      // Assign to the outer tournament variable
+      tournament = { id: tournamentDoc.id, ...tournamentDoc.data() } as Tournament;
 
-      // Check tournament status
+      const userDoc = await transaction.get(userRef);
+      if (!userDoc.exists()) {
+        throw new Error("User profile not found");
+      }
+      const userProfile = userDoc.data();
+
+      // 2. Perform validation checks
       if (tournament.status !== "active") {
         throw new Error(`Cannot join tournament with status: ${tournament.status}`);
       }
-
-      // Check if the tournament is full
-      const filledSpots = tournament.filled_spots || 0;
-      const maxPlayers = tournament.max_players || 0;
-
-      if (filledSpots >= maxPlayers) {
+      if ((tournament.filled_spots || 0) >= (tournament.max_players || 0)) {
         throw new Error("Tournament is full");
       }
-
-      // Ensure participants array exists
-      const participants = Array.isArray(tournament.participants) ? tournament.participants : [];
-
-      // Prevent duplicate joins by authUid
-      if (participants.some(p => typeof p === 'object' ? p.authUid === currentUser.uid : p === currentUser.uid)) {
-        throw new Error("You have already joined this tournament");
-      }
-
-      // Check if the user is the host
       if (tournament.host_id === currentUser.uid) {
         throw new Error("You cannot join your own tournament as you are the host");
       }
+      const participants = tournament.participants || [];
+      const participantUids = tournament.participantUids || [];
+      if (participantUids.includes(currentUser.uid)) {
+        throw new Error("You have already joined this tournament");
+      }
 
-      // Deduct tournament credits
+      // 3. Deduct credits within the transaction
       const entryFee = tournament.entry_fee || 0;
       if (entryFee > 0) {
-        const creditResult = await useTournamentCredits(
-          currentUser.uid,
-          tournamentId,
-          tournament.name,
-          entryFee
-        );
-        if (!creditResult.success) {
-          throw new Error(creditResult.error || "Failed to deduct tournament credits");
+        const wallet = userProfile.wallet || { tournamentCredits: 0 };
+        if (wallet.tournamentCredits < entryFee) {
+          throw new Error("Insufficient tournament credits");
         }
+        const newTournamentCredits = wallet.tournamentCredits - entryFee;
+        transaction.update(userRef, { 'wallet.tournamentCredits': newTournamentCredits });
+
+        // We will create the transaction record outside the main transaction
+        // as it's less critical and simplifies the transaction logic.
       }
 
-      // Fetch user profile for custom UID and IGN
-      const userProfile = await getUserProfile(currentUser.uid);
-      if (!userProfile) {
-        throw new Error("User profile not found");
-      }
+      // 4. Prepare tournament updates
       const participantObj = {
         customUid: userProfile.uid || '',
         ign: userProfile.ign || '',
         authUid: currentUser.uid
       };
 
-      // Prepare update data
       const updatedParticipants = [...participants, participantObj];
-      const updatedFilledSpots = filledSpots + 1;
+      const updatedParticipantUids = [...participantUids, currentUser.uid];
+      const updatedFilledSpots = (tournament.filled_spots || 0) + 1;
 
-      // Update the tournament
-      const docRef = doc(db, "tournaments", tournamentId);
-      try {
-        await updateDoc(docRef, {
-          participants: updatedParticipants,
-          filled_spots: updatedFilledSpots,
-        });
-        console.log("Tournament joined successfully");
-        return {
-          success: true,
-          message: "You have successfully joined the tournament!"
-        };
-      } catch (updateError) {
-        console.error("Error updating tournament:", updateError);
-        if ((updateError).code === 'permission-denied') {
-          throw new Error("You don't have permission to join this tournament. This might be due to security rules.");
-        }
-        if (retryCount < maxRetries) {
-          retryCount++;
-          continue;
-        }
-        throw updateError;
-      }
-    } catch (error) {
-      console.error("Error joining tournament:", error);
-      if (retryCount >= maxRetries ||
-        error instanceof Error &&
-        ["You must be logged in", "Tournament not found", "Tournament is full", "You have already joined"].some(msg => error.message.includes(msg))) {
-        throw error;
-      }
-      retryCount++;
+      // 5. Update tournament within the transaction
+      transaction.update(tournamentRef, {
+        participants: updatedParticipants,
+        participantUids: updatedParticipantUids,
+        filled_spots: updatedFilledSpots,
+      });
+
+      return { success: true, message: "You have successfully joined the tournament!" };
+    });
+
+    // (Optional but recommended) Create a credit transaction record for auditing.
+    // This is done outside the main transaction.
+    if (tournament && tournament.entry_fee > 0) {
+      const creditTransactionData = {
+        userId: currentUser.uid,
+        type: 'tournament_join',
+        amount: -tournament.entry_fee,
+        walletType: 'tournament',
+        description: `Joined tournament: ${tournament.name}`,
+        transactionDetails: { tournamentId: tournament.id, tournamentName: tournament.name },
+        createdAt: serverTimestamp()
+      };
+      await addDoc(collection(db, "creditTransactions"), creditTransactionData);
     }
+
+    return result;
+
+  } catch (error) {
+    console.error("Error joining tournament:", error);
+    // Re-throw the error so the UI can catch it
+    throw error;
   }
-  throw new Error("Failed to join tournament after multiple attempts. Please try again later.");
 };
 
 // Save tournament as draft
@@ -487,34 +480,34 @@ export const saveTournamentDraft = async (tournamentData: Omit<TournamentFormDat
     if (!currentUser) {
       throw new Error("You must be logged in to save a tournament draft");
     }
-    
+
     // Prepare draft data
     const draft = {
       ...tournamentData,
       host_id: currentUser.uid,
       updated_at: serverTimestamp(),
     };
-    
+
     // Check if a draft already exists for this user
     const q = query(
       collection(db, "tournament_drafts"),
       where("host_id", "==", currentUser.uid)
     );
-    
+
     const querySnapshot = await getDocs(q);
-    
+
     // If a draft exists, update it; otherwise, create a new one
     if (!querySnapshot.empty) {
       const draftDoc = querySnapshot.docs[0];
       await updateDoc(doc(db, "tournament_drafts", draftDoc.id), draft);
-      
+
       return {
         id: draftDoc.id,
         ...draft,
       };
     } else {
       const docRef = await addDoc(collection(db, "tournament_drafts"), draft);
-      
+
       return {
         id: docRef.id,
         ...draft,
@@ -533,24 +526,24 @@ export const getTournamentDraft = async () => {
     if (!currentUser) {
       throw new Error("You must be logged in to get your tournament draft");
     }
-    
+
     const q = query(
       collection(db, "tournament_drafts"),
       where("host_id", "==", currentUser.uid),
       limit(1)
     );
-    
+
     const querySnapshot = await getDocs(q);
-    
+
     if (!querySnapshot.empty) {
       const draftDoc = querySnapshot.docs[0];
-      
+
       return {
         id: draftDoc.id,
         ...draftDoc.data(),
       } as Omit<Tournament, "status" | "created_at" | "participants" | "filled_spots"> & { updated_at: Timestamp };
     }
-    
+
     return null;
   } catch (error) {
     console.error("Error getting tournament draft:", error);
@@ -601,7 +594,7 @@ export const startTournament = async (tournamentId: string) => {
 
     // Get the tournament to verify ownership and check timing
     const tournament = await getTournamentById(tournamentId);
-    
+
     if (!tournament) {
       throw new Error("Tournament not found");
     }
@@ -629,7 +622,7 @@ export const startTournament = async (tournamentId: string) => {
 
     // Check if TTL is already set (automatically by cloud function)
     let ttlTimestamp = tournament.ttl;
-    
+
     // If TTL is not set, calculate it (2 hours after scheduled start time)
     if (!ttlTimestamp) {
       const ttlDate = new Date(scheduledStartTime.getTime() + 2 * 60 * 60 * 1000); // Add 2 hours to scheduled time
@@ -638,11 +631,11 @@ export const startTournament = async (tournamentId: string) => {
 
     // Update tournament status to "ongoing" and set TTL if not already set
     const docRef = doc(db, "tournaments", tournamentId);
-    const updateData: any = { 
+    const updateData: any = {
       status: "ongoing",
       started_at: serverTimestamp() // Add timestamp when tournament was started
     };
-    
+
     // Only set TTL if it's not already set
     if (!tournament.ttl) {
       updateData.ttl = ttlTimestamp;
@@ -651,7 +644,7 @@ export const startTournament = async (tournamentId: string) => {
     await updateDoc(docRef, updateData);
 
     console.log(`Tournament ${tournamentId} started successfully with TTL set to ${ttlTimestamp.toDate().toISOString()} (2 hours after scheduled time)`);
-    
+
     return {
       success: true,
       message: "Tournament started successfully",
@@ -712,7 +705,7 @@ export const endTournament = async (tournamentId: string) => {
 
     // Get the tournament to verify ownership
     const tournament = await getTournamentById(tournamentId);
-    
+
     if (!tournament) {
       throw new Error("Tournament not found");
     }
@@ -731,16 +724,16 @@ export const endTournament = async (tournamentId: string) => {
     const endedAt = new Date();
     const ttlDate = new Date(endedAt.getTime() + 10 * 60 * 1000); // Add 10 minutes for prize distribution
     const ttlTimestamp = Timestamp.fromDate(ttlDate);
-    
+
     const docRef = doc(db, "tournaments", tournamentId);
-    await updateDoc(docRef, { 
+    await updateDoc(docRef, {
       status: "ended",
       ended_at: serverTimestamp(), // Add timestamp when tournament was ended
       ttl: ttlTimestamp // Set TTL to 10 minutes after ending for prize distribution
     });
 
     console.log(`Tournament ${tournamentId} ended successfully with TTL set to ${ttlDate.toISOString()} (10 minutes for prize distribution)`);
-    
+
     return {
       success: true,
       message: "Tournament ended successfully",
@@ -782,7 +775,7 @@ export const setTTLForScheduledTournaments = async () => {
   try {
     const now = new Date();
     const nowTimestamp = Timestamp.fromDate(now);
-    
+
     // Query for active tournaments that have reached their scheduled start time but don't have TTL set yet
     const tournamentsQuery = query(
       collection(db, "tournaments"),
@@ -790,9 +783,9 @@ export const setTTLForScheduledTournaments = async () => {
       where("start_date", "<=", nowTimestamp),
       where("ttl", "==", null)
     );
-    
+
     const tournaments = await getDocs(tournamentsQuery);
-    
+
     if (tournaments.empty) {
       console.log("No tournaments found that need TTL set");
       return {
@@ -801,40 +794,40 @@ export const setTTLForScheduledTournaments = async () => {
         message: "No tournaments need TTL set"
       };
     }
-    
+
     console.log(`Found ${tournaments.size} tournaments that need TTL set`);
-    
+
     // Set TTL for tournaments in batches
     const batch = writeBatch(db);
     let updatedCount = 0;
-    
+
     tournaments.forEach((doc) => {
       const tournamentData = doc.data();
       const scheduledStartTime = new Date(tournamentData.start_date);
-      
+
       // Calculate TTL (2 hours after scheduled start time)
       const ttlDate = new Date(scheduledStartTime.getTime() + 2 * 60 * 60 * 1000); // Add 2 hours
       const ttlTimestamp = Timestamp.fromDate(ttlDate);
-      
+
       console.log(`Setting TTL for tournament: ${doc.id} - ${tournamentData.name} to ${ttlDate.toISOString()}`);
-      
+
       batch.update(doc.ref, {
         ttl: ttlTimestamp
       });
       updatedCount++;
     });
-    
+
     // Commit the batch update
     await batch.commit();
-    
+
     console.log(`Successfully set TTL for ${updatedCount} tournaments`);
-    
+
     return {
       success: true,
       updatedCount,
       message: `Set TTL for ${updatedCount} tournaments`
     };
-    
+
   } catch (error) {
     console.error("Error setting tournament TTL:", error);
     return {
@@ -855,9 +848,9 @@ export const initializeAutomaticTTLSetting = () => {
       console.error("Error in automatic TTL setting:", error);
     }
   }, 5 * 60 * 1000); // 5 minutes
-  
+
   // Also check immediately on initialization
   setTTLForScheduledTournaments().catch(console.error);
-  
+
   console.log("✅ Automatic TTL setting initialized (5-minute intervals)");
 };

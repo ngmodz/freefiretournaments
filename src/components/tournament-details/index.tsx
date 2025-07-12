@@ -134,7 +134,14 @@ const TournamentDetailsContent: React.FC<TournamentProps> = ({
     
     // Check if user is already a participant
     const participants = tournament.participants || [];
-    if (participants.includes(currentUser.uid)) {
+    const isAlreadyParticipant = participants.some(p => {
+      if (typeof p === 'object' && p !== null && 'authUid' in p) {
+        return p.authUid === currentUser.uid;
+      }
+      return p === currentUser.uid;
+    });
+    
+    if (isAlreadyParticipant) {
       console.error("User is already a participant in this tournament");
       toast({
         title: "Already Joined",

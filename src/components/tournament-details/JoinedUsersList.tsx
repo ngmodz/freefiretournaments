@@ -2,8 +2,14 @@ import React, { useEffect, useState } from "react";
 import { getUserProfile } from "@/lib/firebase/profile";
 import { ClipboardCopyIcon } from '@radix-ui/react-icons';
 
+interface Participant {
+  customUid: string;
+  authUid: string;
+  ign: string;
+}
+
 interface JoinedUsersListProps {
-  participantUids: string[];
+  participantUids: (string | Participant)[];
 }
 
 interface UserProfile {
@@ -83,44 +89,62 @@ const JoinedUsersList: React.FC<JoinedUsersListProps> = ({ participantUids }) =>
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Deduplicate UIDs
-    const uniqueUids = Array.from(new Set(participantUids));
-    if (!uniqueUids || uniqueUids.length === 0) {
+    if (!participantUids || participantUids.length === 0) {
       setUsers([]);
       return;
     }
+    
     setLoading(true);
     setError(null);
-    Promise.all(
-      uniqueUids.map(async (uid) => {
-        try {
-          const profile = await getUserProfile(uid);
-          return {
-            id: profile.id,
-            uid: profile.uid,
-            ign: profile.ign,
-            email: profile.email,
-          };
-        } catch (err) {
-          // If profile not found, still show UID
-          return {
-            id: uid,
-            uid: uid,
-            ign: "N/A",
-            email: "N/A",
-            _notFound: true,
-          };
+    
+    const processParticipants = async () => {
+      try {
+        const userProfiles: UserProfile[] = [];
+        
+        for (const participant of participantUids) {
+          // Handle new format: participant is an object with {customUid, authUid, ign}
+          if (typeof participant === 'object' && participant !== null && 'customUid' in participant) {
+            const participantObj = participant as Participant;
+            userProfiles.push({
+              id: participantObj.authUid,
+              uid: participantObj.customUid,
+              ign: participantObj.ign,
+              email: "N/A", // We don't have email in the participant object
+              _notFound: false,
+            });
+          } 
+          // Handle legacy format: participant is a string (authUid)
+          else if (typeof participant === 'string') {
+            try {
+              const profile = await getUserProfile(participant);
+              userProfiles.push({
+                id: profile.id,
+                uid: profile.uid,
+                ign: profile.ign,
+                email: profile.email,
+              });
+            } catch (err) {
+              // If profile not found, still show UID
+              userProfiles.push({
+                id: participant,
+                uid: participant,
+                ign: "N/A",
+                email: "N/A",
+                _notFound: true,
+              });
+            }
+          }
         }
-      })
-    )
-      .then((results) => {
-        setUsers(results as UserProfile[]);
+        
+        setUsers(userProfiles);
         setLoading(false);
-      })
-      .catch((err) => {
+      } catch (err) {
         setError("Failed to load joined users.");
         setLoading(false);
-      });
+      }
+    };
+    
+    processParticipants();
   }, [participantUids]);
 
   if (loading) return <div className="py-4 text-gaming-muted">Loading joined users...</div>;
