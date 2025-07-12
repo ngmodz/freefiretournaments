@@ -155,7 +155,7 @@ export const AdminService = {
           userName: request.userName,
           upiId: request.upiId,
           amount: request.amount,
-          balance: request.balance,
+          remainingBalance: request.balance, // Changed from 'balance' to 'remainingBalance'
           processedAt: request.processedAt,
           status: 'completed',
           notes: request.notes || ''

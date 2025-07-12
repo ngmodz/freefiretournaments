@@ -114,17 +114,7 @@ function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
         <Toaster />
-        <SonnerToaster 
-          position="top-center" 
-          theme="dark"
-          className="custom-sonner-toaster" 
-          closeButton 
-          richColors 
-          expand={false}
-          toastOptions={{
-            duration: 4000,
-          }}
-        />
+        <SonnerToaster />
       </TournamentProvider>
     </PWALayoutWrapper>
   );

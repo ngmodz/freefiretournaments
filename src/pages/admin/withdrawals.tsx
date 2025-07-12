@@ -282,7 +282,7 @@ export default function AdminPage() {
             <tbody>
               {filteredRequests.length > 0 ? (
                 filteredRequests.map((req, rowIdx) => {
-                  const netAmount = req.amount * (1 - COMMISSION_RATE);
+                  const grossAmount = req.amount / (1 - COMMISSION_RATE);
                   // For each cell, pass the global match index and refs
                   let matchIdxUser = getCellMatchIndex(rowIdx, 'userName');
                   let matchIdxEmail = getCellMatchIndex(rowIdx, 'userEmail');
@@ -295,8 +295,8 @@ export default function AdminPage() {
                         {req.userId && <UserBalance userId={req.userId} />}
                       </td>
                       <td>
-                        <div className={styles.amountPayout}>₹{netAmount.toFixed(2)} <span style={{ fontWeight: 400, color: '#8c8c8c' }}>(Payout)</span></div>
-                        <div className={styles.amountOriginal}>₹{req.amount.toFixed(2)} (Original)</div>
+                        <div className={styles.amountPayout}>₹{req.amount.toFixed(2)} <span style={{ fontWeight: 400, color: '#8c8c8c' }}>(Payout)</span></div>
+                        <div className={styles.amountOriginal}>₹{grossAmount.toFixed(2)} (Original)</div>
                       </td>
                       <td>{highlight(req.upiId || 'N/A', search, matchIdxUpi, currentMatch, matchIdxUpi, matchRefs)}</td>
                       <td>{new Date(req.timestamp).toLocaleString()}</td>

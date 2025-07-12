@@ -95,7 +95,8 @@ app.get('/api/check-tournament', async (req, res) => {
 
 app.post('/api/send-withdrawal-notification', async (req, res) => {
   try {
-    const { default: handler } = await import('./api/send-withdrawal-notification.js');
+    // Bust the cache to always get the latest version in dev
+    const { default: handler } = await import(`./api/send-withdrawal-notification.js?v=${Date.now()}`);
     await handler(req, res);
   } catch (error) {
     console.error('API Error:', error);

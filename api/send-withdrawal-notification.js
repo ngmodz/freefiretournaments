@@ -42,25 +42,33 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    const subject = `Withdrawal Confirmation - ₹${amount} Processed`;
+    const transactionId = `WDL-${Date.now()}`;
+    const transactionDate = new Date().toLocaleString('en-IN', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'Asia/Kolkata'
+    });
+    const walletUrl = `${process.env.APP_URL || 'http://localhost:8083'}/wallet`;
+    const termsUrl = `${process.env.APP_URL || 'http://localhost:8083'}/terms-and-privacy`;
+
+    const subject = `Your Withdrawal Request has been Processed`;
+    const formattedDate = new Date().toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
     
-    const htmlContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
-        <div style="text-align: center; margin-bottom: 20px;">
-          <h2 style="color: #4CAF50;">Withdrawal Confirmation</h2>
-        </div>
+    const htmlBody = `
+      <div style="font-family: Arial, sans-serif; font-size: 15px;">
         <p>Dear ${userName || 'User'},</p>
-        <p>We're pleased to confirm that your withdrawal request has been processed successfully.</p>
-        <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
-          <p><strong>Amount:</strong> ₹${amount}</p>
-          <p><strong>UPI ID:</strong> ${upiId || 'Not provided'}</p>
-          <p><strong>Remaining Balance:</strong> ₹${remainingBalance || '0'}</p>
-        </div>
-        <p>The funds should reflect in your account within the next 24 hours.</p>
-        <p>If you have any questions or concerns, please don't hesitate to contact our support team.</p>
-        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
-          <p style="font-size: 12px; color: #777;">This is an automated message. Please do not reply to this email.</p>
-        </div>
+        <p>Your withdrawal request of <b>₹${Number(amount).toFixed(2)}</b> has been successfully processed on ${formattedDate}.</p>
+        <p>The amount has been sent to your UPI ID: <b>${upiId || 'Not provided'}</b>.</p>
+        <p>Thank you for using our platform!</p>
+        <br/>
+        <p>Best regards,<br/>The Team<br/>Freefire Tournaments</p>
       </div>
     `;
 
@@ -106,10 +114,10 @@ export default async function handler(req, res) {
 
     // Send the email
     const mailOptions = {
-      from: `"Lovable" <${emailUser}>`,
+      from: `"Freefire Tournaments" <${emailUser}>`,
       to: userEmail,
       subject: subject,
-      html: htmlContent,
+      html: htmlBody,
     };
 
     console.log('Sending email with options:', JSON.stringify({
