@@ -4,11 +4,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { AdminService } from "@/lib/adminService";
 import { WithdrawalRequest, StatusFilter } from "@/lib/types";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, QrCode } from "lucide-react";
 import styles from "./withdrawals.module.css";
 import { getUserProfile } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { QRCodeCanvas } from 'qrcode.react';
 
 // Import Inter font from Google Fonts
 const interFontUrl = "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap";
@@ -63,6 +64,8 @@ export default function AdminPage() {
   const [error, setError] = useState<string | null>(null);
   const [currentMatch, setCurrentMatch] = useState(0);
   const matchRefs = useRef<any>(null);
+  const [qrData, setQrData] = useState<{ upiId: string; amount: number } | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const fetchWithdrawalRequests = async () => {
     try {
@@ -298,7 +301,34 @@ export default function AdminPage() {
                         <div className={styles.amountPayout}>₹{req.amount.toFixed(2)} <span style={{ fontWeight: 400, color: '#8c8c8c' }}>(Payout)</span></div>
                         <div className={styles.amountOriginal}>₹{grossAmount.toFixed(2)} (Original)</div>
                       </td>
-                      <td>{highlight(req.upiId || 'N/A', search, matchIdxUpi, currentMatch, matchIdxUpi, matchRefs)}</td>
+                      <td>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          {highlight(req.upiId || 'N/A', search, matchIdxUpi, currentMatch, matchIdxUpi, matchRefs)}
+                          {req.upiId && (
+                            <button
+                              style={{
+                                border: 'none',
+                                background: 'none',
+                                cursor: 'pointer',
+                                borderRadius: '50%',
+                                width: 28,
+                                height: 28,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                transition: 'background 0.15s',
+                                padding: 0,
+                              }}
+                              title="Show QR for UPI ID"
+                              onClick={() => setQrData({ upiId: req.upiId!, amount: req.amount })}
+                              onMouseOver={e => (e.currentTarget.style.background = '#f3f3f3')}
+                              onMouseOut={e => (e.currentTarget.style.background = 'none')}
+                            >
+                              <QrCode size={18} strokeWidth={2} color="#444" />
+                            </button>
+                          )}
+                        </span>
+                      </td>
                       <td>{new Date(req.timestamp).toLocaleString()}</td>
                       <td>
                         <span className={`${styles.statusBadge} ${req.status === 'done' ? styles.statusDone : ''}`}>
@@ -329,6 +359,38 @@ export default function AdminPage() {
           </table>
         </div>
       </div>
+      {/* QR Code Modal */}
+      {qrData && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+        }}>
+          <div style={{ background: '#fff', padding: 32, borderRadius: 12, boxShadow: '0 4px 24px rgba(0,0,0,0.18)', minWidth: 280, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            <h3 style={{ marginBottom: 16 }}>Scan to Pay</h3>
+            <QRCodeCanvas value={`upi://pay?pa=${qrData.upiId}&am=${Math.floor(qrData.amount)}`} size={200} />
+            <div style={{ margin: '16px 0 8px', fontSize: 15, color: '#333' }}>
+              <b>
+                <span
+                  style={{ cursor: 'pointer', borderBottom: '1px dashed #888' }}
+                  title="Click to copy UPI ID"
+                  onClick={async () => {
+                    await navigator.clipboard.writeText(qrData.upiId);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 1200);
+                  }}
+                >
+                  {qrData.upiId}
+                </span>
+              </b>
+              {copied && <span style={{ color: '#0a0', marginLeft: 8, fontSize: 13 }}>Copied!</span>}
+            </div>
+            <div style={{ fontSize: 13, color: '#666', marginBottom: 16 }}>
+              Amount: <b>₹{Math.floor(qrData.amount)}</b><br/>
+              Scan this QR in Google Pay or any UPI app to pay this user.
+            </div>
+            <button onClick={() => setQrData(null)} style={{ padding: '8px 20px', borderRadius: 6, border: 'none', background: '#222', color: '#fff', fontWeight: 500, cursor: 'pointer' }}>Close</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -357,5 +419,5 @@ function UserBalance({ userId }: { userId: string }) {
     };
   }, [userId]);
   if (balance === null) return null;
-  return <div className={styles.userBalance}>Balance: ₹{balance.toFixed(2)}</div>;
+  return <div className={styles.userBalance + ' ' + styles.fadeIn}>Balance: ₹{balance.toFixed(2)}</div>;
 } 
