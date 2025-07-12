@@ -13,7 +13,7 @@ import { db } from '@/lib/firebase';
 export interface CreditTransaction {
   id?: string;
   userId: string;
-  type: 'host_credit_purchase' | 'tournament_credit_purchase' | 'tournament_join' | 'tournament_win' | 'referral_bonus' | 'tournament_credit_conversion' | 'withdrawal';
+  type: 'host_credit_purchase' | 'tournament_credit_purchase' | 'tournament_join' | 'tournament_win' | 'tournament_host_earnings' | 'referral_bonus' | 'tournament_credit_conversion' | 'withdrawal';
   amount: number;
   value?: number;
   balanceBefore: number;
@@ -27,6 +27,11 @@ export interface CreditTransaction {
     orderId?: string;
     tournamentId?: string;
     tournamentName?: string;
+    position?: string;
+    hostUid?: string;
+    totalPrizePool?: number;
+    totalDistributedPrizes?: number;
+    hostEarnings?: number;
     conversionRate?: number;
     earningsAmount?: number;
     creditsAmount?: number;
@@ -71,81 +76,8 @@ export class CreditService {
     userId: string,
     creditsAmount: number
   ): Promise<boolean> {
-    const userRef = doc(db, 'users', userId);
-
-    try {
-      await runTransaction(db, async (transaction) => {
-        const userDoc = await transaction.get(userRef);
-
-        if (!userDoc.exists()) {
-          throw new Error('User not found');
-        }
-
-        const userData = userDoc.data();
-        const wallet = userData.wallet || {};
-        const currentTournamentCredits = wallet.tournamentCredits || 0;
-        const currentEarnings = wallet.earnings || 0;
-
-        // Check if user has enough tournament credits
-        if (currentTournamentCredits < creditsAmount) {
-          throw new Error('Insufficient tournament credits');
-        }
-
-        // Convert at 1:1 ratio - 1 tournament credit = ₹1 in earnings
-        const newTournamentCredits = currentTournamentCredits - creditsAmount;
-        const newEarnings = currentEarnings + creditsAmount;
-
-        // Update user wallet
-        transaction.update(userRef, {
-          'wallet.tournamentCredits': newTournamentCredits,
-          'wallet.earnings': newEarnings
-        });
-
-        // Create transaction records
-        // 1. Deduct tournament credits
-        const deductTransactionData = {
-          userId,
-          type: 'tournament_credit_conversion',
-          amount: -creditsAmount,
-          balanceBefore: currentTournamentCredits,
-          balanceAfter: newTournamentCredits,
-          walletType: 'tournamentCredits',
-          description: `Converted ${creditsAmount} tournament credits to earnings`,
-          transactionDetails: {
-            conversionRate: 1, // 1:1 ratio
-            earningsAmount: creditsAmount
-          },
-          createdAt: Timestamp.now()
-        };
-
-        const deductTransactionRef = doc(collection(db, 'creditTransactions'));
-        transaction.set(deductTransactionRef, deductTransactionData);
-
-        // 2. Add to earnings
-        const addEarningsTransactionData = {
-          userId,
-          type: 'tournament_credit_conversion',
-          amount: creditsAmount,
-          balanceBefore: currentEarnings,
-          balanceAfter: newEarnings,
-          walletType: 'earnings',
-          description: `Received ₹${creditsAmount} from tournament credit conversion`,
-          transactionDetails: {
-            conversionRate: 1, // 1:1 ratio
-            creditsAmount: creditsAmount
-          },
-          createdAt: Timestamp.now()
-        };
-
-        const addEarningsTransactionRef = doc(collection(db, 'creditTransactions'));
-        transaction.set(addEarningsTransactionRef, addEarningsTransactionData);
-      });
-
-      return true;
-    } catch (error) {
-      console.error('Error converting tournament credits to earnings:', error);
-      return false;
-    }
+    // Method removed: Tournament credits can no longer be converted to earnings.
+    throw new Error('This feature has been removed. Tournament credits can only be used to join tournaments.');
   }
 
   /**

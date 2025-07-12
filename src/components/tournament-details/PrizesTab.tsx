@@ -1,12 +1,22 @@
 import React from "react";
-import { Trophy, User, Gamepad2, CheckCircle2, XCircle, Lock } from "lucide-react";
+import { Trophy, User, Gamepad2, CheckCircle2, XCircle, Lock, AlertTriangle } from "lucide-react";
 import { Tournament } from "@/lib/tournamentService";
 import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, updateDoc, getDoc, runTransaction, Timestamp, collection } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { findUserByUID } from "@/lib/user-utils";
 
 interface PrizesTabProps {
   tournament: Tournament;
@@ -33,6 +43,25 @@ const sortPositions = (a: string, b: string): number => {
   return positionToNumber(a) - positionToNumber(b);
 };
 
+// Helper to determine prize mode and get prize amount
+function getPrizeAmount(tournament: Tournament, position: string) {
+  const { entry_fee, filled_spots, prize_distribution } = tournament;
+  const totalPrizePool = entry_fee * filled_spots;
+  const values = Object.values(prize_distribution || {});
+  const sum = values.reduce((a, b) => a + b, 0);
+  // If sum is 100, treat as percentage mode
+  if (sum === 100) {
+    const percentage = prize_distribution[position] || 0;
+    return Math.floor((percentage / 100) * totalPrizePool);
+  }
+  // If sum <= totalPrizePool, treat as fixed mode
+  if (sum <= totalPrizePool) {
+    return prize_distribution[position] || 0;
+  }
+  // Fallback: treat as fixed
+  return prize_distribution[position] || 0;
+}
+
 const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
   const { currentUser } = useAuth();
   const isHost = currentUser && tournament.host_id === currentUser.uid;
@@ -43,6 +72,19 @@ const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
   const [saving, setSaving] = useState<{ [position: string]: boolean }>({});
   const [error, setError] = useState<string | null>(null);
   const [duplicateErrors, setDuplicateErrors] = useState<{ [position: string]: string }>({});
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    position: string;
+    uid: string;
+    ign: string;
+    prizeAmount: number;
+  }>({
+    open: false,
+    position: "",
+    uid: "",
+    ign: "",
+    prizeAmount: 0
+  });
 
   // Debug logging
   console.log("PrizesTab rendered", { tournament: tournament.id, isHost, inputs, duplicateErrors });
@@ -150,44 +192,198 @@ const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
   const handleSave = async (position: string) => {
     setSaving((prev) => ({ ...prev, [position]: true }));
     setError(null);
-    
-    try {
-      // Get the current input for this position
+
+    const findParticipantAuthUid = async (): Promise<string | null> => {
       const currentInput = inputs[position];
       if (!currentInput?.uid || !currentInput?.ign) {
         setError("Both UID and IGN are required");
+        return null;
+      }
+
+      const participants = tournament.participants || [];
+      if (participants.length === 0) return null;
+
+      // New structure: array of objects
+      if (typeof participants[0] === 'object' && participants[0] !== null) {
+        const participant = (participants as any[]).find(p => p.customUid === currentInput.uid && p.ign === currentInput.ign);
+        return participant ? participant.authUid : null;
+      }
+
+      // Legacy structure: array of auth UIDs (strings)
+      if (typeof participants[0] === 'string') {
+        const userProfile = await findUserByUID(currentInput.uid);
+        // Ensure the found user's IGN matches and their auth UID is in the participants list
+        if (userProfile && userProfile.ign.toLowerCase() === currentInput.ign.toLowerCase() && participants.includes(userProfile.id)) {
+          return userProfile.id; // userProfile.id is the authUid
+        }
+      }
+      return null;
+    };
+
+    try {
+      const winnerAuthUid = await findParticipantAuthUid();
+      const currentInput = inputs[position]; // re-get for error message
+
+      if (!winnerAuthUid) {
+        setError(`UID ${currentInput.uid} with IGN ${currentInput.ign} is not a participant in this tournament. Please check the details and try again.`);
         setSaving((prev) => ({ ...prev, [position]: false }));
         return;
       }
-
-      // Check for duplicate errors
-      if (duplicateErrors[position]) {
-        setError(duplicateErrors[position]);
-        setSaving((prev) => ({ ...prev, [position]: false }));
-        return;
-      }
-
-      // Additional check for duplicates (server-side safety)
-      const existingWinners = tournament.winners || {};
-      const currentCombination = `${currentInput.uid.trim()}-${currentInput.ign.trim()}`;
       
-      const duplicatePosition = Object.entries(existingWinners).find(([pos, winner]) => {
-        if (pos === position) return false; // Skip current position
-        if (!winner?.uid || !winner?.ign) return false;
-        return `${winner.uid.trim()}-${winner.ign.trim()}` === currentCombination;
+      // Use helper for prize amount
+      const prizeAmount = getPrizeAmount(tournament, position);
+      const totalPrizePool = tournament.entry_fee * tournament.filled_spots;
+
+      // Use transaction to ensure data consistency
+      await runTransaction(db, async (transaction) => {
+        // Get current tournament data
+        const tournamentRef = doc(db, "tournaments", tournament.id);
+        const tournamentDoc = await transaction.get(tournamentRef);
+        
+        if (!tournamentDoc.exists()) {
+          throw new Error("Tournament not found");
+        }
+
+        const tournamentData = tournamentDoc.data();
+        
+        // Check if tournament is in correct status
+        if (tournamentData.status !== "ended") {
+          throw new Error("Prizes can only be distributed for ended tournaments");
+        }
+
+        // Check if prizes have already been distributed for this position
+        const existingWinners = tournamentData.winners || {};
+        if (existingWinners[position] && existingWinners[position].uid) {
+          throw new Error(`Prizes for ${position} place have already been distributed`);
+        }
+
+        // Check if user exists
+        const userRef = doc(db, "users", winnerAuthUid);
+        const userDoc = await transaction.get(userRef);
+        
+        if (!userDoc.exists()) {
+          throw new Error(`User with UID ${winnerAuthUid} not found in the system`);
+        }
+
+        const userData = userDoc.data();
+        const wallet = userData.wallet || {
+          tournamentCredits: 0,
+          hostCredits: 0,
+          earnings: 0,
+          totalPurchasedTournamentCredits: 0,
+          totalPurchasedHostCredits: 0,
+          firstPurchaseCompleted: false
+        };
+
+        // Calculate new earnings balance for winner
+        const currentEarnings = wallet.earnings || 0;
+        const newEarnings = currentEarnings + prizeAmount;
+
+        // Update winner's wallet
+        transaction.update(userRef, {
+          'wallet.earnings': newEarnings
+        });
+
+        // Create transaction record for winner
+        const winnerTransactionRef = doc(collection(db, "creditTransactions"));
+        const winnerTransactionData = {
+          userId: winnerAuthUid,
+          type: 'tournament_win',
+          amount: prizeAmount,
+          balanceBefore: currentEarnings,
+          balanceAfter: newEarnings,
+          walletType: 'earnings',
+          description: `Won ${prizeAmount} credits - ${position} place in ${tournament.name}`,
+          transactionDetails: {
+            tournamentId: tournament.id,
+            tournamentName: tournament.name,
+            position,
+            hostUid: tournament.host_id
+          },
+          createdAt: Timestamp.now()
+        };
+        transaction.set(winnerTransactionRef, winnerTransactionData);
+
+        // Update tournament with winner information
+        const existingWinnersUpdate = tournamentData.winners || {};
+        const updatedWinners = { ...existingWinnersUpdate, [position]: { uid: currentInput.uid, ign: currentInput.ign } };
+        transaction.update(tournamentRef, { 
+          winners: updatedWinners
+        });
+
+        // Check if this is the last prize to be distributed
+        const allPositions = Object.keys(tournament.prize_distribution || {});
+        const distributedPositions = Object.keys(updatedWinners);
+        
+        // If all prizes are distributed, calculate and distribute host earnings
+        if (distributedPositions.length === allPositions.length) {
+          // Calculate total distributed prizes
+          const totalDistributedPrizes = allPositions.reduce((total, pos) => {
+            const posAmount = getPrizeAmount(tournament, pos);
+            return total + posAmount;
+          }, 0);
+
+          // Calculate host earnings (remaining credits)
+          const hostEarnings = totalPrizePool - totalDistributedPrizes;
+
+          if (hostEarnings > 0) {
+            // Get host user document
+            const hostRef = doc(db, "users", tournament.host_id);
+            const hostDoc = await transaction.get(hostRef);
+            
+            if (hostDoc.exists()) {
+              const hostData = hostDoc.data();
+              const hostWallet = hostData.wallet || {
+                tournamentCredits: 0,
+                hostCredits: 0,
+                earnings: 0,
+                totalPurchasedTournamentCredits: 0,
+                totalPurchasedHostCredits: 0,
+                firstPurchaseCompleted: false
+              };
+
+              const currentHostEarnings = hostWallet.earnings || 0;
+              const newHostEarnings = currentHostEarnings + hostEarnings;
+
+              // Update host's wallet
+              transaction.update(hostRef, {
+                'wallet.earnings': newHostEarnings
+              });
+
+              // Create transaction record for host
+              const hostTransactionRef = doc(collection(db, "creditTransactions"));
+              const hostTransactionData = {
+                userId: tournament.host_id,
+                type: 'tournament_host_earnings',
+                amount: hostEarnings,
+                balanceBefore: currentHostEarnings,
+                balanceAfter: newHostEarnings,
+                walletType: 'earnings',
+                description: `Host earnings from ${tournament.name} - ${hostEarnings} credits`,
+                transactionDetails: {
+                  tournamentId: tournament.id,
+                  tournamentName: tournament.name,
+                  totalPrizePool,
+                  totalDistributedPrizes,
+                  hostEarnings
+                },
+                createdAt: Timestamp.now()
+              };
+              transaction.set(hostTransactionRef, hostTransactionData);
+            }
+          }
+
+          // Mark tournament as completed
+          transaction.update(tournamentRef, {
+            status: "completed",
+            completed_at: Timestamp.now(),
+            total_prizes_distributed: totalDistributedPrizes,
+            host_earnings_distributed: hostEarnings
+          });
+        }
       });
-
-      if (duplicatePosition) {
-        setError(`This UID and IGN combination is already used for ${duplicatePosition[0]} position. Each player can only win one position.`);
-        setSaving((prev) => ({ ...prev, [position]: false }));
-        return;
-      }
-
-      // Save the winner credentials to the database
-      const winners = { ...existingWinners, [position]: currentInput };
-      await updateDoc(doc(db, "tournaments", tournament.id), { winners });
       
-      console.log(`✅ Successfully saved winner for ${position}:`, currentInput);
+      console.log(`✅ Successfully distributed ${prizeAmount} credits to ${currentInput.uid} for ${position} place`);
       
       // Clear the input fields for this position after successful save
       setInputs(prev => {
@@ -206,15 +402,39 @@ const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
       setSaving((prev) => ({ ...prev, [position]: false }));
       
       // Show success message
-      setError(`✅ Credits sent successfully to ${currentInput.ign} (UID: ${currentInput.uid}) for ${position} place!`);
+      setError(`✅ ${prizeAmount} credits sent successfully to ${currentInput.ign} (UID: ${currentInput.uid}) for ${position} place!`);
       // Clear success message after 3 seconds
       setTimeout(() => setError(null), 3000);
       
     } catch (e) {
-      console.error("Error saving winner:", e);
-      setError("Failed to save winner. Please try again.");
+      console.error("Error distributing prize:", e);
+      setError(e instanceof Error ? e.message : "Failed to distribute prize. Please try again.");
       setSaving((prev) => ({ ...prev, [position]: false }));
     }
+  };
+
+  const handleConfirmDistribution = async () => {
+    await handleSave(confirmDialog.position);
+    setConfirmDialog({ open: false, position: "", uid: "", ign: "", prizeAmount: 0 });
+  };
+
+  const handleSendCredits = (position: string) => {
+    const currentInput = inputs[position];
+    if (!currentInput?.uid || !currentInput?.ign) {
+      setError("Both UID and IGN are required");
+      return;
+    }
+
+    // Use helper for prize amount
+    const calculatedPrizeAmount = getPrizeAmount(tournament, position);
+
+    setConfirmDialog({
+      open: true,
+      position,
+      uid: currentInput.uid,
+      ign: currentInput.ign,
+      prizeAmount: calculatedPrizeAmount
+    });
   };
 
   return (
@@ -226,6 +446,12 @@ const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
           <p className="text-gaming-muted text-sm mb-2">
             Enter the UID and IGN of the winner for each position and click <b>Send Credits</b> to distribute the prize.
           </p>
+          <Alert className="mb-4">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              <strong>Important:</strong> Only tournament participants can receive prizes. Make sure the UID matches a player who joined this tournament.
+            </AlertDescription>
+          </Alert>
         </div>
       )}
       
@@ -339,7 +565,7 @@ const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
                         />
                       </div>
                       <Button
-                        onClick={() => handleSave(position)}
+                        onClick={() => handleSendCredits(position)}
                         disabled={saving[position] || !currentInput?.uid || !currentInput?.ign || !!duplicateErrors[position]}
                         size="sm"
                         className="font-semibold"
@@ -393,6 +619,62 @@ const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
         )}
         </div>
       </div>
+
+      {/* Confirmation Dialog */}
+      <Dialog open={confirmDialog.open} onOpenChange={(open) => setConfirmDialog(prev => ({ ...prev, open }))}>
+        <DialogContent className="bg-gaming-card border-gaming-border">
+          <DialogHeader>
+            <DialogTitle className="text-gaming-text">Confirm Prize Distribution</DialogTitle>
+            <DialogDescription className="text-gaming-muted">
+              Are you sure you want to distribute {confirmDialog.prizeAmount} credits to this player?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="bg-gaming-bg/50 p-4 rounded-lg border border-gaming-border">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-gaming-muted">Position:</span>
+                  <div className="font-semibold text-gaming-text">{confirmDialog.position} Place</div>
+                </div>
+                <div>
+                  <span className="text-gaming-muted">Prize Amount:</span>
+                  <div className="font-semibold text-gaming-accent">{confirmDialog.prizeAmount} credits</div>
+                </div>
+                <div>
+                  <span className="text-gaming-muted">Player UID:</span>
+                  <div className="font-mono font-semibold text-gaming-text">{confirmDialog.uid}</div>
+                </div>
+                <div>
+                  <span className="text-gaming-muted">Player IGN:</span>
+                  <div className="font-semibold text-gaming-text">{confirmDialog.ign}</div>
+                </div>
+              </div>
+            </div>
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                This action cannot be undone. The credits will be immediately added to the player's earnings wallet.
+              </AlertDescription>
+            </Alert>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setConfirmDialog(prev => ({ ...prev, open: false }))}
+              className="border-gaming-border text-gaming-text hover:bg-gaming-bg"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirmDistribution}
+              disabled={saving[confirmDialog.position]}
+              className="bg-gaming-primary hover:bg-gaming-primary/90"
+            >
+              {saving[confirmDialog.position] ? "Distributing..." : "Confirm Distribution"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

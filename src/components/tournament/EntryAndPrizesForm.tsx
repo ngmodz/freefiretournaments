@@ -73,13 +73,22 @@ const EntryAndPrizesForm = ({ formData, updateFormData, nextStep, prevStep }: En
       })));
     } else {
       if (!manualCreditEdit) {
-        // If not manually edited, always recalculate the default split
-        setPrizes(DEFAULT_POSITIONS.map((position, idx) => ({
-          position,
-          credits: totalExpectedPrizePool === 0 ? 0 : Math.round((DEFAULT_PERCENTAGES[idx] / 100) * totalExpectedPrizePool),
-        })));
+        setPrizes((prev) => {
+          if (prev.length === 0) {
+            // Only reset to default if there are no prizes
+            return DEFAULT_POSITIONS.map((position, idx) => ({
+              position,
+              credits: totalExpectedPrizePool === 0 ? 0 : Math.round((DEFAULT_PERCENTAGES[idx] / 100) * totalExpectedPrizePool),
+            }));
+          } else {
+            // Only update credits for existing positions
+            return prev.map((prize) => ({
+              ...prize,
+              credits: Math.min(prize.credits, totalExpectedPrizePool),
+            }));
+          }
+        });
       } else {
-        // If manually edited, only clamp values
         setPrizes((prev) => prev.map((prize) => ({
           ...prize,
           credits: Math.min(prize.credits, totalExpectedPrizePool),

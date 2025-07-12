@@ -183,15 +183,6 @@ const Wallet = () => {
                           <p className="text-2xl font-bold text-gaming-text">{tournamentCredits}</p>
                         </div>
                       </div>
-                      <Button 
-                        size="sm" 
-                        onClick={() => setIsConvertCreditsOpen(true)}
-                        className="bg-gaming-accent/20 hover:bg-gaming-accent/30 text-gaming-accent"
-                        disabled={tournamentCredits <= 0}
-                      >
-                        <ArrowRightLeft className="h-4 w-4 mr-1" />
-                        Convert
-                      </Button>
                     </div>
                     
                     {/* Host Credits */}

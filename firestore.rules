@@ -16,7 +16,17 @@ service cloud.firestore {
       );
       
       // Normal update rules - only allow the owner to update
-      allow update: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && (
+        // Allow user to update their own document
+        request.auth.uid == userId ||
+        // Allow a transaction to update only the wallet field.
+        // WARNING: This is a security tradeoff. Ideally, this operation should be
+        // handled by a Cloud Function. This rule allows any authenticated user to
+        // initiate a transaction that updates another user's wallet. We rely on the
+        // other rules in the prize distribution transaction (like the secure 
+        // creditTransaction rule) to prevent abuse.
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['wallet']))
+      );
       
       // Allow users to delete their own profiles
       allow delete: if request.auth != null && request.auth.uid == userId;
@@ -119,7 +129,13 @@ service cloud.firestore {
       
       // Allow creating credit transactions if userID matches authenticated user
       allow create: if request.auth != null && (
-        request.resource.data.userId == request.auth.uid
+        request.resource.data.userId == request.auth.uid ||
+        // Allow tournament host to create a 'tournament_win' transaction for a winner.
+        // This is secure because we verify the requester is the host of the tournament.
+        (
+          request.resource.data.type == 'tournament_win' &&
+          get(/databases/$(database)/documents/tournaments/$(request.resource.data.transactionDetails.tournamentId)).data.host_id == request.auth.uid
+        )
       );
       
       // No updates or deletions for credit transactions

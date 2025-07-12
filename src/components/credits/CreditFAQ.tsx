@@ -27,7 +27,7 @@ const CreditFAQ: React.FC = () => {
     {
       question: "Can I convert between credit types?",
       answer:
-        "No, Tournament Credits and Host Credits serve different purposes and cannot be converted between each other."
+        "No, Tournament Credits and Host Credits serve different purposes and cannot be converted between each other. Tournament Credits also cannot be converted to earnings or withdrawn. They are only for joining tournaments."
     },
     {
       question: "How do I earn more credits?",

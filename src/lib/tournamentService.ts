@@ -20,6 +20,7 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage, auth } from "./firebase";
 import { TournamentFormData } from "@/pages/TournamentCreate";
 import { useTournamentCredits } from "./walletService";
+import { getUserProfile } from './firebase';
 
 /**
  * Tournament Service
@@ -89,6 +90,9 @@ export interface Tournament {
   ttl?: Timestamp;
   // Added by notification cloud function when email is sent
   notificationSent?: boolean;
+  // New fields for prize distribution tracking
+  total_prizes_distributed?: number; // Total amount of prizes distributed to winners
+  host_earnings_distributed?: number; // Total amount distributed to host as earnings
 }
 
 // Create a new tournament
@@ -359,7 +363,7 @@ export const joinTournament = async (tournamentId: string) => {
   console.log("joinTournament function called with ID:", tournamentId);
   let retryCount = 0;
   const maxRetries = 2;
-  
+
   while (retryCount <= maxRetries) {
     try {
       // Check authentication
@@ -368,7 +372,7 @@ export const joinTournament = async (tournamentId: string) => {
       if (!currentUser) {
         throw new Error("You must be logged in to join a tournament");
       }
-      
+
       // Get the tournament with error handling
       console.log("Fetching tournament data");
       let tournament = null;
@@ -378,50 +382,39 @@ export const joinTournament = async (tournamentId: string) => {
         console.error("Error fetching tournament:", fetchError);
         throw new Error("Could not load tournament data. Please try again.");
       }
-      
+
       console.log("Tournament data:", tournament);
-      
+
       if (!tournament) {
         throw new Error("Tournament not found");
       }
-      
+
       // Check tournament status
       if (tournament.status !== "active") {
         throw new Error(`Cannot join tournament with status: ${tournament.status}`);
       }
-      
+
       // Check if the tournament is full
       const filledSpots = tournament.filled_spots || 0;
       const maxPlayers = tournament.max_players || 0;
-      
-      console.log("Checking if tournament is full:", {
-        filledSpots: filledSpots,
-        maxPlayers: maxPlayers
-      });
-      
+
       if (filledSpots >= maxPlayers) {
         throw new Error("Tournament is full");
       }
-      
+
       // Ensure participants array exists
       const participants = Array.isArray(tournament.participants) ? tournament.participants : [];
-      
-      // Check if the user is already a participant
-      console.log("Checking if user is already a participant:", {
-        participants: participants,
-        userId: currentUser.uid,
-        includes: participants.includes(currentUser.uid)
-      });
-      
-      if (participants.includes(currentUser.uid)) {
+
+      // Prevent duplicate joins by authUid
+      if (participants.some(p => typeof p === 'object' ? p.authUid === currentUser.uid : p === currentUser.uid)) {
         throw new Error("You have already joined this tournament");
       }
-      
+
       // Check if the user is the host
       if (tournament.host_id === currentUser.uid) {
         throw new Error("You cannot join your own tournament as you are the host");
       }
-      
+
       // Deduct tournament credits
       const entryFee = tournament.entry_fee || 0;
       if (entryFee > 0) {
@@ -431,71 +424,59 @@ export const joinTournament = async (tournamentId: string) => {
           tournament.name,
           entryFee
         );
-        
         if (!creditResult.success) {
           throw new Error(creditResult.error || "Failed to deduct tournament credits");
         }
       }
-      
+
+      // Fetch user profile for custom UID and IGN
+      const userProfile = await getUserProfile(currentUser.uid);
+      if (!userProfile) {
+        throw new Error("User profile not found");
+      }
+      const participantObj = {
+        customUid: userProfile.uid || '',
+        ign: userProfile.ign || '',
+        authUid: currentUser.uid
+      };
+
       // Prepare update data
-      const updatedParticipants = [...participants, currentUser.uid];
+      const updatedParticipants = [...participants, participantObj];
       const updatedFilledSpots = filledSpots + 1;
-      
+
       // Update the tournament
-      console.log("Updating tournament with new participant", {
-        previousParticipants: participants, 
-        newParticipants: updatedParticipants,
-        previousFilledSpots: filledSpots,
-        newFilledSpots: updatedFilledSpots
-      });
-      
       const docRef = doc(db, "tournaments", tournamentId);
-      
       try {
         await updateDoc(docRef, {
           participants: updatedParticipants,
           filled_spots: updatedFilledSpots,
         });
-        
         console.log("Tournament joined successfully");
-        return { 
+        return {
           success: true,
-          message: "You have successfully joined the tournament!" 
+          message: "You have successfully joined the tournament!"
         };
       } catch (updateError) {
         console.error("Error updating tournament:", updateError);
-        
-        // If it's a permission error, throw a specific error
-        if ((updateError as FirestoreError).code === 'permission-denied') {
+        if ((updateError).code === 'permission-denied') {
           throw new Error("You don't have permission to join this tournament. This might be due to security rules.");
         }
-        
-        // For other errors, we might retry
         if (retryCount < maxRetries) {
-          console.log(`Retry attempt ${retryCount + 1} of ${maxRetries}`);
           retryCount++;
           continue;
         }
-        
         throw updateError;
       }
     } catch (error) {
       console.error("Error joining tournament:", error);
-      
-      // If we've reached max retries, or it's a non-retryable error, rethrow
-      if (retryCount >= maxRetries || 
-          error instanceof Error && 
-          ["You must be logged in", "Tournament not found", "Tournament is full", "You have already joined"].some(msg => error.message.includes(msg))) {
+      if (retryCount >= maxRetries ||
+        error instanceof Error &&
+        ["You must be logged in", "Tournament not found", "Tournament is full", "You have already joined"].some(msg => error.message.includes(msg))) {
         throw error;
       }
-      
-      // Otherwise, retry
-      console.log(`Retry attempt ${retryCount + 1} of ${maxRetries}`);
       retryCount++;
     }
   }
-  
-  // If we've exhausted all retries
   throw new Error("Failed to join tournament after multiple attempts. Please try again later.");
 };
 
