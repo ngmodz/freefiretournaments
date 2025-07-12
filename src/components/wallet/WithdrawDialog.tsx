@@ -118,7 +118,8 @@ const WithdrawDialog = ({
       const result = await CreditService.requestWithdrawal(
         currentUser.uid,
         finalAmount, // Use the final amount after commission
-        upiId
+        upiId,
+        numAmount // Pass original amount before commission
       );
       
       if (result.success) {

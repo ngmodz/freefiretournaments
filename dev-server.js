@@ -104,6 +104,17 @@ app.post('/api/send-withdrawal-notification', async (req, res) => {
   }
 });
 
+app.post('/api/send-withdrawal-request-notification', async (req, res) => {
+  try {
+    // Bust the cache to always get the latest version in dev
+    const { default: handler } = await import(`./api/send-withdrawal-request-notification.js?v=${Date.now()}`);
+    await handler(req, res);
+  } catch (error) {
+    console.error('API Error:', error);
+    res.status(500).json({ error: error.message, success: false });
+  }
+});
+
 app.options('/api/*', (req, res) => {
   res.status(200).end();
 });
@@ -134,6 +145,8 @@ app.listen(PORT, () => {
   console.log(`  - POST http://localhost:${PORT}/api/mock-create-payment-order`);
   console.log(`  - POST http://localhost:${PORT}/api/payment-webhook`);
   console.log(`  - POST http://localhost:${PORT}/api/verify-payment`);
+  console.log(`  - POST http://localhost:${PORT}/api/send-withdrawal-notification`);
+  console.log(`  - POST http://localhost:${PORT}/api/send-withdrawal-request-notification`);
   console.log('');
   console.log('💡 Start your frontend with: npm run dev');
   console.log('🔄 Or run both together with: npm run dev:full');

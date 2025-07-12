@@ -154,18 +154,22 @@ export class CreditService {
   static async requestWithdrawal(
     userId: string,
     amount: number,
-    upiId: string
+    upiId: string,
+    originalAmount?: number
   ): Promise<{ success: boolean; transactionId?: string; error?: string }> {
     const userRef = doc(db, 'users', userId);
 
     try {
       let transactionId: string | undefined;
       let userEmail: string | undefined;
+      let userName: string | undefined;
 
-      // First, get the user's email.
+      // First, get the user's email and name.
       const userDocForEmail = await getDoc(userRef);
       if (userDocForEmail.exists()) {
-        userEmail = userDocForEmail.data()?.email;
+        const userData = userDocForEmail.data();
+        userEmail = userData?.email;
+        userName = userData?.displayName || userData?.name || userEmail?.split('@')[0] || 'User';
       }
 
       await runTransaction(db, async (transaction) => {
@@ -227,8 +231,36 @@ export class CreditService {
         transaction.set(transactionRef, transactionData);
       });
 
-      // No email sending from client side - this will be handled by admin notifications
-      // or a secure backend process
+      // Send immediate notification email to user
+      if (userEmail && transactionId) {
+        try {
+          // Use relative URL for frontend/browser compatibility
+          const response = await fetch('/api/send-withdrawal-request-notification', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              userId,
+              userEmail,
+              userName,
+              amount, // final amount after deduction
+              upiId,
+              transactionId,
+              originalAmount: originalAmount ?? amount
+            }),
+          });
+
+          if (!response.ok) {
+            console.warn('Failed to send withdrawal request notification email:', await response.text());
+          } else {
+            console.log('Withdrawal request notification email sent successfully');
+          }
+        } catch (emailError) {
+          console.warn('Error sending withdrawal request notification email:', emailError);
+          // Don't fail the withdrawal request if email fails
+        }
+      }
 
       return { success: true, transactionId };
     } catch (error) {
