@@ -252,6 +252,12 @@ const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
 
         const tournamentData = tournamentDoc.data();
         
+        // CRITICAL: Check if tournament has sufficient currentPrizePool
+        const currentPrizePool = tournamentData.currentPrizePool || 0;
+        if (currentPrizePool < prizeAmount) {
+          throw new Error(`Insufficient prize pool. Available: ${currentPrizePool}, Required: ${prizeAmount}`);
+        }
+        
         // Check if tournament is in correct status
         if (tournamentData.status !== "ended") {
           throw new Error("Prizes can only be distributed for ended tournaments");
@@ -285,6 +291,9 @@ const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
         const currentEarnings = wallet.earnings || 0;
         const newEarnings = currentEarnings + prizeAmount;
 
+        // Calculate new currentPrizePool after deducting prize
+        const newCurrentPrizePool = currentPrizePool - prizeAmount;
+
         // Update winner's wallet
         transaction.update(userRef, {
           'wallet.earnings': newEarnings
@@ -304,35 +313,32 @@ const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
             tournamentId: tournament.id,
             tournamentName: tournament.name,
             position,
-            hostUid: tournament.host_id
+            hostUid: tournament.host_id,
+            prizePoolBefore: currentPrizePool,
+            prizePoolAfter: newCurrentPrizePool
           },
           createdAt: Timestamp.now()
         };
         transaction.set(winnerTransactionRef, winnerTransactionData);
 
-        // Update tournament with winner information
+        // Update tournament with winner information AND deduct from currentPrizePool
         const existingWinnersUpdate = tournamentData.winners || {};
         const updatedWinners = { ...existingWinnersUpdate, [position]: { uid: currentInput.uid, ign: currentInput.ign } };
         transaction.update(tournamentRef, { 
-          winners: updatedWinners
+          winners: updatedWinners,
+          currentPrizePool: newCurrentPrizePool // CRITICAL: Deduct prize from pool
         });
 
         // Check if this is the last prize to be distributed
         const allPositions = Object.keys(tournament.prize_distribution || {});
         const distributedPositions = Object.keys(updatedWinners);
         
-        // If all prizes are distributed, calculate and distribute host earnings
+        // If all prizes are distributed, transfer remaining currentPrizePool to host
         if (distributedPositions.length === allPositions.length) {
-          // Calculate total distributed prizes
-          const totalDistributedPrizes = allPositions.reduce((total, pos) => {
-            const posAmount = getPrizeAmount(tournament, pos);
-            return total + posAmount;
-          }, 0);
+          // Get the remaining currentPrizePool after this prize distribution
+          const remainingPrizePool = newCurrentPrizePool;
 
-          // Calculate host earnings (remaining credits)
-          const hostEarnings = totalPrizePool - totalDistributedPrizes;
-
-          if (hostEarnings > 0) {
+          if (remainingPrizePool > 0) {
             // Get host user document
             const hostRef = doc(db, "users", tournament.host_id);
             const hostDoc = await transaction.get(hostRef);
@@ -349,7 +355,7 @@ const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
               };
 
               const currentHostEarnings = hostWallet.earnings || 0;
-              const newHostEarnings = currentHostEarnings + hostEarnings;
+              const newHostEarnings = currentHostEarnings + remainingPrizePool;
 
               // Update host's wallet
               transaction.update(hostRef, {
@@ -361,30 +367,33 @@ const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
               const hostTransactionData = {
                 userId: tournament.host_id,
                 type: 'tournament_host_earnings',
-                amount: hostEarnings,
+                amount: remainingPrizePool,
                 balanceBefore: currentHostEarnings,
                 balanceAfter: newHostEarnings,
                 walletType: 'earnings',
-                description: `Host earnings from ${tournament.name} - ${hostEarnings} credits`,
+                description: `Host earnings from ${tournament.name} - ${remainingPrizePool} credits`,
                 transactionDetails: {
                   tournamentId: tournament.id,
                   tournamentName: tournament.name,
-                  totalPrizePool,
-                  totalDistributedPrizes,
-                  hostEarnings
+                  originalPrizePool: currentPrizePool + prizeAmount, // Original pool before this distribution
+                  remainingPrizePool: remainingPrizePool
                 },
                 createdAt: Timestamp.now()
               };
               transaction.set(hostTransactionRef, hostTransactionData);
+
+              // CRITICAL: Set currentPrizePool to 0 after transferring remainder to host
+              transaction.update(tournamentRef, {
+                currentPrizePool: 0 // All credits now distributed
+              });
             }
           }
 
-          // Mark tournament as completed
+          // Mark tournament as completed with final currentPrizePool state
           transaction.update(tournamentRef, {
             status: "completed",
             completed_at: Timestamp.now(),
-            total_prizes_distributed: totalDistributedPrizes,
-            host_earnings_distributed: hostEarnings
+            finalPrizePoolDistributed: true
           });
         }
       });

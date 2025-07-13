@@ -151,7 +151,7 @@ export const createTournament = async (tournamentData: Omit<TournamentFormData, 
       participants: [],
       filled_spots: 0,
       participantUids: [], // Initialize participantUids
-      currentPrizePool: 0, // Initialize currentPrizePool to 0
+      currentPrizePool: 0, // Initialize currentPrizePool to 0 - will increase as users join
       // ttl will be set when host starts the tournament
     };
 

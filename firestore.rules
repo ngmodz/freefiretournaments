@@ -69,6 +69,21 @@ service cloud.firestore {
                          
                          // Check that tournament is in 'active' status
                          resource.data.status == 'active'
+                       ) ||
+                       
+                       // Special rule for prize distribution by tournament host
+                       (
+                         // Only tournament host can distribute prizes
+                         resource.data.host_id == request.auth.uid &&
+                         
+                         // Allow updates to prize distribution related fields
+                         request.resource.data.diff(resource.data).affectedKeys().hasAll(['winners', 'currentPrizePool']) &&
+                         
+                         // Ensure currentPrizePool is only decreased (prizes being distributed)
+                         request.resource.data.currentPrizePool <= resource.data.currentPrizePool &&
+                         
+                         // Tournament must be ended to distribute prizes
+                         resource.data.status == 'ended'
                        )
                       )
                     );

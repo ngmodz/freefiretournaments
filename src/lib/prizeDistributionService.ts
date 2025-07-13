@@ -45,6 +45,12 @@ export class PrizeDistributionService {
         const userData = winnerDoc.data();
         const tournamentData = tournamentDoc.data();
 
+        // CRITICAL: Check if tournament has sufficient currentPrizePool
+        const currentPrizePool = tournamentData.currentPrizePool || 0;
+        if (currentPrizePool < prizeCredits) {
+          throw new Error(`Insufficient prize pool. Available: ${currentPrizePool}, Required: ${prizeCredits}`);
+        }
+
         // Get current wallet or initialize if not exists
         const wallet = userData.wallet || {
           tournamentCredits: 0,
@@ -59,6 +65,9 @@ export class PrizeDistributionService {
         const currentEarnings = wallet.earnings || 0;
         const newEarnings = currentEarnings + prizeCredits;
 
+        // Calculate new currentPrizePool after deducting prize
+        const newCurrentPrizePool = currentPrizePool - prizeCredits;
+
         // Create transaction record
         const transactionData = {
           userId: winnerUid,
@@ -72,7 +81,9 @@ export class PrizeDistributionService {
             tournamentId,
             tournamentName,
             position,
-            hostUid
+            hostUid,
+            prizePoolBefore: currentPrizePool,
+            prizePoolAfter: newCurrentPrizePool
           },
           createdAt: Timestamp.now()
         };
@@ -85,17 +96,18 @@ export class PrizeDistributionService {
         // Record the transaction
         transaction.set(transactionRef, transactionData);
 
-        // Update tournament winners
+        // Update tournament winners AND deduct from currentPrizePool
         const winnerData = {
           uid: winnerUid,
           prizeCredits,
           distributedAt: Timestamp.now()
         };
 
-        // Update the tournament with winner information
+        // CRITICAL: Update tournament with winner information AND deduct from currentPrizePool
         transaction.update(tournamentRef, {
           [`winners.${position}`]: winnerData,
-          [`prizePool.winners.${position}`]: winnerData
+          [`prizePool.winners.${position}`]: winnerData,
+          currentPrizePool: newCurrentPrizePool // Deduct prize from pool
         });
       });
 
