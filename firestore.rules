@@ -52,11 +52,14 @@ service cloud.firestore {
                        
                        // Special rule for users joining tournaments
                        (
-                         // Only allow updates to participants, participantUids and filled_spots fields
-                         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants', 'participantUids', 'filled_spots']) &&
+                         // Only allow updates to participants, participantUids, filled_spots and currentPrizePool fields
+                         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants', 'participantUids', 'filled_spots', 'currentPrizePool']) &&
                          
                          // Ensure filled_spots is only incremented by 1
                          request.resource.data.filled_spots == resource.data.filled_spots + 1 &&
+                         
+                         // Ensure currentPrizePool is only incremented by the entry fee amount
+                         request.resource.data.currentPrizePool == ((resource.data.currentPrizePool != null ? resource.data.currentPrizePool : 0) + resource.data.entry_fee) &&
                          
                          // Ensure the user wasn't already in the participantUids list
                          !resource.data.participantUids.hasAny([request.auth.uid]) &&

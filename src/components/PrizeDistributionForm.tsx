@@ -33,7 +33,10 @@ const PrizeDistributionForm: React.FC<PrizeDistributionFormProps> = ({
 
   // Calculate prize amounts based on tournament's prize distribution
   const calculatePrizeAmount = (position: string): number => {
-    const totalPrizePool = tournament.entry_fee * tournament.filled_spots;
+    // Use currentPrizePool if available, otherwise fall back to calculation
+    const totalPrizePool = tournament.currentPrizePool !== undefined 
+      ? tournament.currentPrizePool 
+      : tournament.entry_fee * tournament.filled_spots;
     const percentage = tournament.prize_distribution[position] || 0;
     return Math.floor((percentage / 100) * totalPrizePool);
   };

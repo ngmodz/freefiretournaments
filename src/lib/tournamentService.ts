@@ -102,6 +102,7 @@ export interface Tournament {
   total_prizes_distributed?: number; // Total amount of prizes distributed to winners
   host_earnings_distributed?: number; // Total amount distributed to host as earnings
   participantUids: string[]; // List of authUids of participants
+  currentPrizePool: number; // Current prize pool accumulated from entry fees
 }
 
 // Create a new tournament
@@ -150,6 +151,7 @@ export const createTournament = async (tournamentData: Omit<TournamentFormData, 
       participants: [],
       filled_spots: 0,
       participantUids: [], // Initialize participantUids
+      currentPrizePool: 0, // Initialize currentPrizePool to 0
       // ttl will be set when host starts the tournament
     };
 
@@ -444,6 +446,7 @@ export const joinTournament = async (tournamentId: string) => {
         participants: updatedParticipants,
         participantUids: updatedParticipantUids,
         filled_spots: updatedFilledSpots,
+        currentPrizePool: (tournament.currentPrizePool || 0) + entryFee, // Add entry fee to currentPrizePool
       });
 
       return { success: true, message: "You have successfully joined the tournament!" };

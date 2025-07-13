@@ -45,8 +45,11 @@ const sortPositions = (a: string, b: string): number => {
 
 // Helper to determine prize mode and get prize amount
 function getPrizeAmount(tournament: Tournament, position: string) {
-  const { entry_fee, filled_spots, prize_distribution } = tournament;
-  const totalPrizePool = entry_fee * filled_spots;
+  const { entry_fee, filled_spots, prize_distribution, currentPrizePool } = tournament;
+  // Use currentPrizePool if available, otherwise fall back to calculation
+  const totalPrizePool = currentPrizePool !== undefined 
+    ? currentPrizePool 
+    : entry_fee * filled_spots;
   const values = Object.values(prize_distribution || {});
   const sum = values.reduce((a, b) => a + b, 0);
   // If sum is 100, treat as percentage mode
@@ -232,7 +235,10 @@ const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
       
       // Use helper for prize amount
       const prizeAmount = getPrizeAmount(tournament, position);
-      const totalPrizePool = tournament.entry_fee * tournament.filled_spots;
+      // Use currentPrizePool if available, otherwise fall back to calculation
+      const totalPrizePool = tournament.currentPrizePool !== undefined 
+        ? tournament.currentPrizePool 
+        : tournament.entry_fee * tournament.filled_spots;
 
       // Use transaction to ensure data consistency
       await runTransaction(db, async (transaction) => {
