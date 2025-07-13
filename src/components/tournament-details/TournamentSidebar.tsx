@@ -8,6 +8,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { getUserProfile } from "@/lib/firebase/profile";
 import { collection, query, where, getDocs } from "firebase/firestore";
+import LivePrizePool from "./LivePrizePool";
 
 interface OrganizerData {
   ign: string;
@@ -134,6 +135,9 @@ const TournamentSidebar: React.FC<TournamentDetailsSidebarProps> = ({
           )}
         </div>
       </Card>
+
+      {/* Live Prize Pool Component */}
+      <LivePrizePool tournament={tournament} />
     </div>
   );
 };

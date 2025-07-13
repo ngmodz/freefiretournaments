@@ -455,6 +455,29 @@ const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
   return (
     <div>
       <h2 className="text-xl font-semibold mb-4">Prize Distribution</h2>
+      
+      {/* Live Prize Pool Summary */}
+      <div className="mb-6 p-4 bg-gradient-to-r from-gaming-card to-gaming-bg rounded-lg border border-gaming-primary/20">
+        <h3 className="text-lg font-semibold mb-3 text-gaming-accent">Current Prize Pool Status</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="text-center p-3 bg-gaming-bg/30 rounded-lg">
+            <div className="text-2xl font-bold text-gaming-primary">{tournament.currentPrizePool || 0}</div>
+            <div className="text-sm text-gray-400">Current Pool</div>
+          </div>
+          <div className="text-center p-3 bg-gaming-bg/30 rounded-lg">
+            <div className="text-2xl font-bold text-gaming-accent">{tournament.entry_fee * tournament.max_players}</div>
+            <div className="text-sm text-gray-400">Expected Pool</div>
+          </div>
+          <div className="text-center p-3 bg-gaming-bg/30 rounded-lg">
+            <div className="text-2xl font-bold text-white">{tournament.filled_spots}/{tournament.max_players}</div>
+            <div className="text-sm text-gray-400">Players Joined</div>
+          </div>
+        </div>
+        <div className="mt-3 text-center text-xs text-gray-400">
+          Prizes calculated from <span className="text-gaming-accent font-semibold">current pool</span>, not expected pool
+        </div>
+      </div>
+
       {isHost && tournament.status === "ended" && (
         <div className="mb-6">
           <h3 className="text-lg font-semibold mb-1">Distribute Prizes</h3>
@@ -533,7 +556,16 @@ const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
                 </div>
                 <div>
                   <div className="text-sm text-gaming-muted font-medium">{position} Place</div>
-                  <div className="font-bold text-lg">{credits} credits</div>
+                  <div className="space-y-1">
+                    <div className="font-bold text-lg flex items-center gap-2">
+                      <span className="text-gaming-accent">{credits}%</span>
+                      <span className="text-gray-400">→</span>
+                      <span className="text-white">{getPrizeAmount(tournament, position)} credits</span>
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      {credits}% of current pool ({tournament.currentPrizePool || 0} credits)
+                    </div>
+                  </div>
                 </div>
               </div>
               {/* Winner entry or display */}

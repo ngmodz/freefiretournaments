@@ -56,10 +56,9 @@ const TournamentCreate = () => {
     },
     entry_fee: 50,
     prize_distribution: {
-      "1st": 250,
-      "2nd": 150,
-      "3rd": 100,
-      "4th": 50
+      "1st": 60,
+      "2nd": 25,
+      "3rd": 10
     },
     rules: `Don't change your slot in the custom room as it will make it difficult for the host to verify participants.\nNo use of unauthorized third-party apps or mods.\nNo teaming with other squads during matches.\nIntentionally disconnecting to avoid elimination is prohibited.\nAny form of harassment or toxic behavior will not be tolerated.`,
   });
