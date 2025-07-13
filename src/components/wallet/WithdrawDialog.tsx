@@ -254,7 +254,7 @@ const WithdrawDialog = ({
                       <span className="text-gaming-text">₹{amount || "0"}</span>
                     </div>
                     <div className="flex justify-between text-sm mt-2">
-                      <span className="text-gaming-muted">Tax (2%):</span>
+                      <span className="text-gaming-muted">Platform Fee (2%):</span>
                       <span className="text-gaming-text text-gaming-muted">-₹{commission.toFixed(2)}</span>
                     </div>
                     <div className="border-t border-gaming-border/30 my-2"></div>
