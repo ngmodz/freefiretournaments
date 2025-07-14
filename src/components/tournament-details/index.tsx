@@ -361,6 +361,7 @@ const TournamentDetailsContent: React.FC<TournamentProps> = ({
               progressPercentage={progressPercentage}
               spotsLeft={spotsLeft}
               onJoin={handleJoinTournament}
+              isHost={isHost}
             />
 
             {/* Prize Pool Card - Show if tournament has prize pool */}

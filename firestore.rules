@@ -18,7 +18,9 @@ service cloud.firestore {
         // Case 1: A user is updating their OWN profile (including wallet), but NOT changing their isHost status
         (request.auth.uid == userId && !('isHost' in request.resource.data)) ||
         // Case 2: Only specific admin can update isHost status for any user
-        (request.auth.uid == "EaiefFlrNzMgpPEBUjyJvZ4Ydlx1" && 'isHost' in request.resource.data)
+        (request.auth.uid == "EaiefFlrNzMgpPEBUjyJvZ4Ydlx1" && 'isHost' in request.resource.data) ||
+        // Case 3: Allow wallet-only updates for tournament operations
+        (request.auth.uid == userId && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['wallet']))
       );
 
       // Allow users to delete their own profiles
@@ -65,7 +67,10 @@ service cloud.firestore {
                          resource.data.filled_spots < resource.data.max_players &&
                          
                          // Check that tournament is in 'active' status
-                         resource.data.status == 'active'
+                         resource.data.status == 'active' &&
+                         
+                         // Ensure the joining user is authenticated
+                         request.auth.uid != null
                        ) ||
                        
                        // Special rule for prize distribution by tournament host

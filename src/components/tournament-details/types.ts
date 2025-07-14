@@ -21,6 +21,7 @@ export interface TournamentDetailsSidebarProps {
   progressPercentage: number;
   spotsLeft: number;
   onJoin: () => void;
+  isHost?: boolean;
 }
 
 export interface RoomDetailsProps {

@@ -3,15 +3,13 @@ import { Tournament } from "@/lib/tournamentService";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Coins, Users, Trophy, TrendingUp } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
 
 interface LivePrizePoolProps {
   tournament: Tournament;
+  isHost?: boolean;
 }
 
-const LivePrizePool: React.FC<LivePrizePoolProps> = ({ tournament }) => {
-  const { user } = useAuth();
-  const isHost = user?.uid === tournament.host_id;
+const LivePrizePool: React.FC<LivePrizePoolProps> = ({ tournament, isHost = false }) => {
   const {
     entry_fee,
     max_players,
@@ -31,11 +29,20 @@ const LivePrizePool: React.FC<LivePrizePoolProps> = ({ tournament }) => {
   const hostEarningsPercentage = Math.max(0, 100 - totalPrizePercentage);
 
   // Calculate actual credit amounts
-  const prizeCalculations = prizeEntries.map(([position, percentage]) => ({
+  let prizeCalculations = prizeEntries.map(([position, percentage]) => ({
     position,
     percentage,
     credits: Math.floor((percentage / 100) * actualPrizePool)
   }));
+
+  // Sort prizeCalculations to 1st, 2nd, 3rd, then others (if any)
+  const positionOrder = ["1st", "2nd", "3rd"];
+  prizeCalculations = [
+    ...positionOrder
+      .map(pos => prizeCalculations.find(p => p.position === pos))
+      .filter(Boolean),
+    ...prizeCalculations.filter(p => !positionOrder.includes(p.position))
+  ];
 
   const totalDistributedToWinners = prizeCalculations.reduce((sum, p) => sum + p.credits, 0);
   const hostEarningsCredits = actualPrizePool - totalDistributedToWinners;
@@ -92,7 +99,7 @@ const LivePrizePool: React.FC<LivePrizePoolProps> = ({ tournament }) => {
             </div>
           ))}
 
-          {/* Host Earnings */}
+          {/* Host Earnings - Only show to hosts */}
           {isHost && hostEarningsPercentage > 0 && (
             <div className="flex justify-between items-center p-2 bg-green-900/20 rounded-lg border border-green-400/20">
               <div className="flex items-center gap-2">

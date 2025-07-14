@@ -21,7 +21,8 @@ const TournamentSidebar: React.FC<TournamentDetailsSidebarProps> = ({
   tournament,
   progressPercentage,
   spotsLeft,
-  onJoin
+  onJoin,
+  isHost = false
 }) => {
   const [organizer, setOrganizer] = useState<OrganizerData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -44,7 +45,7 @@ const TournamentSidebar: React.FC<TournamentDetailsSidebarProps> = ({
         setOrganizer({
           ign: profile.ign || "Unknown Organizer",
           uid: profile.uid || "-",
-          verified: !!profile.isPremium,
+          verified: !!profile.isHost,
           tournamentsHosted: tournamentsSnapshot.size
         });
       } catch (error) {
@@ -137,7 +138,7 @@ const TournamentSidebar: React.FC<TournamentDetailsSidebarProps> = ({
       </Card>
 
       {/* Live Prize Pool Component */}
-      <LivePrizePool tournament={tournament} />
+      <LivePrizePool tournament={tournament} isHost={isHost} />
     </div>
   );
 };
