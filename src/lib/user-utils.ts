@@ -65,8 +65,8 @@ export function validateUserData(data: ProfileUpdate): { valid: boolean, errors:
   }
 
   // Validate IGN
-  if (data.ign && !/^[a-zA-Z0-9]{3,20}$/.test(data.ign)) {
-    errors.ign = 'In-game name must be alphanumeric and between 3-20 characters';
+  if (data.ign && data.ign.length < 3) {
+    errors.ign = 'In-game name must be at least 3 characters';
   }
 
   // Validate email

@@ -4,6 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TournamentFormData } from "@/pages/TournamentCreate";
+import React, { useRef } from "react";
+import { Calendar } from "lucide-react";
 
 interface BasicInfoFormProps {
   formData: TournamentFormData;
@@ -27,6 +29,8 @@ const BasicInfoForm = ({ formData, updateFormData, nextStep }: BasicInfoFormProp
     maxPlayers: "",
     startDate: ""
   });
+
+  const startDateInputRef = useRef<HTMLInputElement>(null);
 
   // Handle mode change with proper typing
   const handleModeChange = (value: string) => {
@@ -173,20 +177,47 @@ const BasicInfoForm = ({ formData, updateFormData, nextStep }: BasicInfoFormProp
             <label className="block text-sm font-medium">
               Start Date & Time <span className="text-red-500">*</span>
             </label>
-            <Input
-              type="datetime-local"
-              value={startDate}
-              onChange={(e) => {
-                setStartDate(e.target.value);
-                if (errors.startDate) {
-                  setErrors(prev => ({ ...prev, startDate: "" }));
-                }
-              }}
-              className={`bg-gaming-card border-2 text-white datetime-input ${
-                errors.startDate ? "border-red-500" : "border-gray-600"
-              }`}
-              required
-            />
+            <div className="relative group" style={{ width: '100%' }}>
+              <Input
+                ref={startDateInputRef}
+                type="datetime-local"
+                value={startDate}
+                onChange={(e) => {
+                  setStartDate(e.target.value);
+                  if (errors.startDate) {
+                    setErrors(prev => ({ ...prev, startDate: "" }));
+                  }
+                }}
+                className={`bg-gaming-card border-2 text-white datetime-input ${
+                  errors.startDate ? "border-red-500" : "border-gray-600"
+                } group-hover:border-gaming-primary focus:border-gaming-primary cursor-pointer pr-12 sm:pr-10`}
+                required
+              />
+              {/* White calendar icon overlay, always inside the input on all screens */}
+              <Calendar size={20} color="#fff" className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 pointer-events-none z-20" />
+              {/* Overlay to make the whole field clickable */}
+              <div
+                className="absolute inset-0 z-10 cursor-pointer"
+                onClick={() => {
+                  startDateInputRef.current?.focus();
+                  if (startDateInputRef.current?.showPicker) {
+                    startDateInputRef.current.showPicker();
+                  }
+                }}
+                tabIndex={0}
+                role="button"
+                aria-label="Open date and time picker"
+                onKeyDown={e => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    startDateInputRef.current?.focus();
+                    if (startDateInputRef.current?.showPicker) {
+                      startDateInputRef.current.showPicker();
+                    }
+                  }
+                }}
+                style={{ background: 'transparent' }}
+              />
+            </div>
             {errors.startDate && (
               <p className="text-xs text-red-500">{errors.startDate}</p>
             )}

@@ -3,12 +3,15 @@ import { Tournament } from "@/lib/tournamentService";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Coins, Users, Trophy, TrendingUp } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface LivePrizePoolProps {
   tournament: Tournament;
 }
 
 const LivePrizePool: React.FC<LivePrizePoolProps> = ({ tournament }) => {
+  const { user } = useAuth();
+  const isHost = user?.uid === tournament.host_id;
   const {
     entry_fee,
     max_players,
@@ -90,7 +93,7 @@ const LivePrizePool: React.FC<LivePrizePoolProps> = ({ tournament }) => {
           ))}
 
           {/* Host Earnings */}
-          {hostEarningsPercentage > 0 && (
+          {isHost && hostEarningsPercentage > 0 && (
             <div className="flex justify-between items-center p-2 bg-green-900/20 rounded-lg border border-green-400/20">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-green-300">Host Earnings</span>
@@ -125,7 +128,7 @@ const LivePrizePool: React.FC<LivePrizePoolProps> = ({ tournament }) => {
                   </span>
                 </div>
               ))}
-              {hostEarningsPercentage > 0 && (
+              {isHost && hostEarningsPercentage > 0 && (
                 <div className="flex justify-between border-t border-gaming-accent/20 pt-1">
                   <span className="text-gray-400">Host: {hostEarningsPercentage}%</span>
                   <span className="text-green-400 font-medium">

@@ -190,14 +190,14 @@ export const updateUserProfile = async (userId: string, updates: {
     let validationPassed = true;
     let validationErrors = [];
 
-    // Validate IGN format (alphanumeric, 3-20 characters)
+    // Validate IGN format (allow any characters, just check not empty and min length)
     if (updates.ign !== undefined) {
       if (!updates.ign) {
         validationErrors.push('IGN cannot be empty');
         validationPassed = false;
       }
-      else if (!/^[a-zA-Z0-9]{3,20}$/.test(updates.ign)) {
-        validationErrors.push('IGN must be alphanumeric and between 3-20 characters');
+      else if (updates.ign.length < 3) {
+        validationErrors.push('IGN must be at least 3 characters');
         validationPassed = false;
       }
       // Uniqueness check for IGN is removed as it's no longer required
