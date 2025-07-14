@@ -31,7 +31,7 @@ interface UserProfile {
   uid?: string;
   email: string;
   avatar_url: string | null;
-  isPremium: boolean;
+  isHost: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -60,7 +60,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (user) {
         try {
           const profile = await getUserProfile(user.uid);
-          setUserProfile(profile);
+          setUserProfile({
+            ...profile,
+            isHost: profile.isHost ?? false, // default to false if missing
+          });
         } catch (error) {
           console.error('Error fetching user profile:', error);
         }

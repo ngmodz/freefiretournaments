@@ -8,6 +8,7 @@ interface CreditPackageGridProps {
   hostPackages: Omit<CreditPackageProps, "onPurchase">[];
   onPurchase: (packageData: Omit<CreditPackageProps, "onPurchase">, packageType: "tournament" | "host") => void;
   processingPackageId: string | null;
+  showHostCredits?: boolean;
 }
 
 const CreditPackageGrid: React.FC<CreditPackageGridProps> = ({
@@ -15,6 +16,7 @@ const CreditPackageGrid: React.FC<CreditPackageGridProps> = ({
   hostPackages,
   onPurchase,
   processingPackageId,
+  showHostCredits = true,
 }) => {
   return (
     <Tabs defaultValue="tournament" className="w-full">
@@ -26,12 +28,14 @@ const CreditPackageGrid: React.FC<CreditPackageGridProps> = ({
           >
             Tournament Credits
           </TabsTrigger>
-          <TabsTrigger
-            value="host"
-            className="data-[state=active]:bg-gaming-primary data-[state=active]:text-white"
-          >
-            Host Credits
-          </TabsTrigger>
+          {showHostCredits && (
+            <TabsTrigger
+              value="host"
+              className="data-[state=active]:bg-gaming-primary data-[state=active]:text-white"
+            >
+              Host Credits
+            </TabsTrigger>
+          )}
         </TabsList>
       </div>
 
@@ -55,25 +59,27 @@ const CreditPackageGrid: React.FC<CreditPackageGridProps> = ({
         </div>
       </TabsContent>
 
-      <TabsContent value="host" className="mt-0">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-          {hostPackages.map((pkg, index) => (
-            <motion.div
-              key={pkg.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: index * 0.1 }}
-            >
-              <CreditPackageCard
-                {...pkg}
-                packageType="host"
-                onPurchase={() => onPurchase(pkg, "host")}
-                isProcessing={processingPackageId === pkg.id}
-              />
-            </motion.div>
-          ))}
-        </div>
-      </TabsContent>
+      {showHostCredits && (
+        <TabsContent value="host" className="mt-0">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+            {hostPackages.map((pkg, index) => (
+              <motion.div
+                key={pkg.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: index * 0.1 }}
+              >
+                <CreditPackageCard
+                  {...pkg}
+                  packageType="host"
+                  onPurchase={() => onPurchase(pkg, "host")}
+                  isProcessing={processingPackageId === pkg.id}
+                />
+              </motion.div>
+            ))}
+          </div>
+        </TabsContent>
+      )}
     </Tabs>
   );
 };

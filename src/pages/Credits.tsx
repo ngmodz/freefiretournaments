@@ -4,6 +4,7 @@ import NotchHeader from "@/components/NotchHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreditBalance } from "@/hooks/useCreditBalance";
+import { useUserProfile } from "@/hooks/use-user-profile";
 import {
   Coins,
   CreditCard,
@@ -35,10 +36,12 @@ interface CreditPackage {
   icon: React.ReactNode;
   gradient: string;
   description: string;
+  packageType: 'tournament' | 'host';
 }
 
 const Credits = () => {
   const { currentUser } = useAuth();
+  const { user } = useUserProfile();
   const { hostCredits, tournamentCredits, isLoading: creditsLoading } = useCreditBalance(currentUser?.uid);
   const [isProcessingPayment, setIsProcessingPayment] = useState<string | null>(null);
 
@@ -52,7 +55,8 @@ const Credits = () => {
       features: ['50 Tournament Credits', 'Entry fee up to ₹50', 'Perfect for beginners', 'Join multiple tournaments'],
       icon: <Coins size={24} />,
       gradient: 'from-blue-500/20 to-cyan-500/20',
-      description: 'Perfect for beginners to join tournaments with entry fees up to ₹50'
+      description: 'Perfect for beginners to join tournaments with entry fees up to ₹50',
+      packageType: 'tournament'
     },
     {
       id: 'popular_pack',
@@ -63,7 +67,8 @@ const Credits = () => {
       features: ['150 Tournament Credits', 'Entry fee up to ₹150', 'Most chosen package', 'Great value'],
       icon: <Star size={24} />,
       gradient: 'from-gaming-accent/20 to-orange-500/20',
-      description: 'Our most popular package with great value for tournament entries'
+      description: 'Our most popular package with great value for tournament entries',
+      packageType: 'tournament'
     },
     {
       id: 'pro_pack',
@@ -73,7 +78,8 @@ const Credits = () => {
       features: ['300 Tournament Credits', 'Entry fee up to ₹300', 'For serious gamers', 'Great value package'],
       icon: <Crown size={24} />,
       gradient: 'from-purple-500/20 to-pink-500/20',
-      description: 'For serious gamers who want to participate in higher value tournaments'
+      description: 'For serious gamers who want to participate in higher value tournaments',
+      packageType: 'tournament'
     },
     {
       id: 'elite_pack',
@@ -83,7 +89,8 @@ const Credits = () => {
       features: ['500 Tournament Credits', 'Entry fee up to ₹500', 'Elite gaming level', 'Premium tournaments'],
       icon: <Zap size={24} />,
       gradient: 'from-green-500/20 to-emerald-500/20',
-      description: 'Elite level access to premium tournaments with higher stakes'
+      description: 'Elite level access to premium tournaments with higher stakes',
+      packageType: 'tournament'
     },
     {
       id: 'champion_pack',
@@ -93,7 +100,8 @@ const Credits = () => {
       features: ['900 Tournament Credits', 'Entry fee up to ₹900', 'Champion level access', 'Maximum value'],
       icon: <Crown size={24} />,
       gradient: 'from-yellow-500/20 to-orange-600/20',
-      description: 'Maximum value package for champions who want to participate in the highest stakes tournaments'
+      description: 'Maximum value package for champions who want to participate in the highest stakes tournaments',
+      packageType: 'tournament'
     }
   ];
 
@@ -107,7 +115,8 @@ const Credits = () => {
       features: ['Create 3 tournaments', 'Basic host tools', 'Standard support', 'Tournament management'],
       icon: <CreditCard size={24} />,
       gradient: 'from-gaming-primary/20 to-blue-600/20',
-      description: 'Start hosting with 3 tournament credits and basic hosting tools'
+      description: 'Start hosting with 3 tournament credits and basic hosting tools',
+      packageType: 'host'
     },
     {
       id: 'standard_host_pack',
@@ -117,7 +126,8 @@ const Credits = () => {
       features: ['Create 5 tournaments', 'Enhanced host tools', 'Priority support', 'Great for regular hosts'],
       icon: <CreditCard size={24} />,
       gradient: 'from-blue-500/20 to-indigo-600/20',
-      description: 'Create 5 tournaments with enhanced hosting tools and priority support'
+      description: 'Create 5 tournaments with enhanced hosting tools and priority support',
+      packageType: 'host'
     },
     {
       id: 'premium_host_pack',
@@ -128,7 +138,8 @@ const Credits = () => {
       features: ['Create 10 tournaments', 'Premium host tools', 'Advanced analytics', 'Most chosen package'],
       icon: <Star size={24} />,
       gradient: 'from-purple-500/20 to-pink-600/20',
-      description: 'Our most popular hosting package with premium tools and analytics'
+      description: 'Our most popular hosting package with premium tools and analytics',
+      packageType: 'host'
     },
     {
       id: 'pro_host_pack',
@@ -138,7 +149,8 @@ const Credits = () => {
       features: ['Create 20 tournaments', 'Pro host features', 'Detailed analytics', 'Professional hosting'],
       icon: <Crown size={24} />,
       gradient: 'from-green-500/20 to-emerald-600/20',
-      description: 'Professional hosting with 20 tournament credits and detailed analytics'
+      description: 'Professional hosting with 20 tournament credits and detailed analytics',
+      packageType: 'host'
     },
     {
       id: 'ultimate_host_pack',
@@ -148,7 +160,8 @@ const Credits = () => {
       features: ['Create 50 tournaments', 'Ultimate host suite', 'Premium analytics', 'Best value package'],
       icon: <Zap size={24} />,
       gradient: 'from-yellow-500/20 to-orange-600/20',
-      description: 'Ultimate hosting package with 50 tournament credits and premium analytics'
+      description: 'Ultimate hosting package with 50 tournament credits and premium analytics',
+      packageType: 'host'
     }
   ];
 
@@ -232,6 +245,7 @@ const Credits = () => {
           tournamentCredits={tournamentCredits}
           hostCredits={hostCredits}
           isLoading={creditsLoading}
+          showHostCredits={user?.isHost || false}
         />
 
         {/* Credit Package Grid */}
@@ -246,6 +260,7 @@ const Credits = () => {
             hostPackages={hostPackages}
             onPurchase={handlePurchase}
             processingPackageId={isProcessingPayment}
+            showHostCredits={user?.isHost || false}
           />
         </motion.div>
 

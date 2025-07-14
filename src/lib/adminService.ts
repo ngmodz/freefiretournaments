@@ -170,4 +170,33 @@ export const AdminService = {
       throw error;
     }
   },
-}; 
+
+  async updateHostApplicationStatus(applicationId: string, updateData: {
+    status: 'approved' | 'rejected';
+    reviewedAt: Date;
+    reviewedBy?: string;
+    reviewNotes?: string;
+  }): Promise<void> {
+    try {
+      const applicationRef = doc(db, 'hostApplications', applicationId);
+      await updateDoc(applicationRef, {
+        status: updateData.status,
+        reviewedAt: Timestamp.fromDate(updateData.reviewedAt),
+        reviewedBy: updateData.reviewedBy,
+        reviewNotes: updateData.reviewNotes,
+      });
+    } catch (error) {
+      console.error('Error updating host application status:', error);
+      throw error;
+    }
+  },
+
+  async markWithdrawalAsDone(requestId: string): Promise<void> {
+    try {
+      await this.updateWithdrawalStatus(requestId, 'done');
+    } catch (error) {
+      console.error('Error marking withdrawal as done:', error);
+      throw error;
+    }
+  },
+};

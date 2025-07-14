@@ -78,9 +78,9 @@ const Profile = () => {
   const totalActive = activeJoined + activeHosted;
 
   // Wallet details
-  const totalBalance = creditData.hostCredits + creditData.tournamentCredits;
+  const totalBalance = (user?.isHost ? creditData.hostCredits : 0) + creditData.tournamentCredits;
   const totalEarnings = creditData.earnings || 0;
-  const totalPurchased = (creditData.totalPurchasedHostCredits || 0) + (creditData.totalPurchasedTournamentCredits || 0);
+  const totalPurchased = (user?.isHost ? (creditData.totalPurchasedHostCredits || 0) : 0) + (creditData.totalPurchasedTournamentCredits || 0);
 
   if (loading && !user) {
     return (
@@ -155,10 +155,10 @@ const Profile = () => {
                 />
                 
                 <div className="flex flex-wrap justify-center gap-2">
-                  {user?.isPremium && (
+                  {user?.isHost && (
                     <Badge variant="outline" className="bg-gaming-primary/20 text-gaming-primary border-gaming-primary/30">
                       <Shield size={12} className="mr-1" />
-                      Premium
+                      Verified Host
                     </Badge>
                   )}
                 </div>
@@ -332,11 +332,13 @@ const Profile = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <p className="text-gaming-muted text-sm">Host Credits</p>
-                  <p className="text-2xl font-bold text-gaming-primary">₹{creditData.hostCredits}</p>
-                </div>
+              <div className={`grid gap-4 ${user?.isHost ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-1 md:grid-cols-2'}`}>
+                {user?.isHost && (
+                  <div className="space-y-2">
+                    <p className="text-gaming-muted text-sm">Host Credits</p>
+                    <p className="text-2xl font-bold text-gaming-primary">₹{creditData.hostCredits}</p>
+                  </div>
+                )}
                 <div className="space-y-2">
                   <p className="text-gaming-muted text-sm">Tournament Credits</p>
                   <p className="text-2xl font-bold text-gaming-accent">₹{creditData.tournamentCredits}</p>
@@ -592,7 +594,7 @@ const Profile = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 1.0 }}
-          className="flex justify-center"
+          className="flex flex-col sm:flex-row gap-4 justify-center"
         >
           <Link to="/tournaments" className="flex-1 sm:flex-none max-w-xs">
             <motion.div
@@ -607,6 +609,38 @@ const Profile = () => {
               </Button>
             </motion.div>
           </Link>
+
+          {/* Host Actions - Conditional based on isHost status */}
+          {user?.isHost ? (
+            <Link to="/tournament/create" className="flex-1 sm:flex-none max-w-xs">
+              <motion.div
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+              >
+                <Button 
+                  className="w-full bg-gaming-accent hover:bg-gaming-accent/90 text-white font-medium py-2 px-6 rounded-md flex items-center justify-center gap-2 shadow-sm"
+                >
+                  <Shield size={16} />
+                  Create Tournament
+                </Button>
+              </motion.div>
+            </Link>
+          ) : (
+            <Link to="/apply-host" className="flex-1 sm:flex-none max-w-xs">
+              <motion.div
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+              >
+                <Button 
+                  variant="outline"
+                  className="w-full border-gaming-primary text-gaming-primary hover:bg-gaming-primary hover:text-white font-medium py-2 px-6 rounded-md flex items-center justify-center gap-2 shadow-sm transition-colors"
+                >
+                  <Shield size={16} />
+                  Apply to be Host
+                </Button>
+              </motion.div>
+            </Link>
+          )}
         </motion.div>
       </motion.div>
     </div>

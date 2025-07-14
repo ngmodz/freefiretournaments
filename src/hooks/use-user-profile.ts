@@ -17,7 +17,7 @@ interface UserProfile {
   location: string;
   birthdate: string;
   gender: string;
-  isPremium: boolean;
+  isHost: boolean;
   joinDate: string;
 }
 
@@ -86,7 +86,7 @@ export function useUserProfile(): UseUserProfileReturn {
           location: userProfile.location || '',
           birthdate: userProfile.birthdate || '',
           gender: userProfile.gender || '',
-          isPremium: userProfile.isPremium,
+          isHost: userProfile.isHost,
           joinDate: userProfile.created_at ? new Date(userProfile.created_at.toDate()).toLocaleDateString('en-US', {
             month: 'long',
             year: 'numeric'

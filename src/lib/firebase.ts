@@ -98,7 +98,7 @@ export const getUserProfile = async (userId: string) => {
         birthdate: string;
         gender: string;
         avatar_url: string | null;
-        isPremium: boolean;
+        isHost: boolean;
         created_at: Timestamp;
         updated_at: Timestamp;
       };
@@ -148,7 +148,7 @@ export const createUserProfile = async (userId: string, profileData: {
         birthdate: '',
         gender: '',
         avatar_url: profileData.photoURL || null,
-        isPremium: false,
+        isHost: false,
         created_at: serverTimestamp(),
         updated_at: serverTimestamp(),
       };
@@ -180,7 +180,7 @@ export const updateUserProfile = async (userId: string, updates: {
   birthdate?: string;
   gender?: string;
   avatar_url?: string;
-  isPremium?: boolean;
+  isHost?: boolean;
 }) => {
   try {
     if (!userId) {
@@ -458,7 +458,7 @@ export const verifyFirestoreConnection = async () => {
   try {
     // Just check if we can access Firestore by doing a simple operation
     const usersCollection = collection(db, 'users');
-    await getDocs(query(usersCollection, where('isPremium', '==', true), limit(1)));
+    await getDocs(query(usersCollection, where('isHost', '==', true), limit(1)));
     
     console.log("✅ Firestore connection verified successfully");
     return { success: true };

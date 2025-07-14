@@ -6,6 +6,7 @@ import TournamentCreate from "./pages/TournamentCreate";
 import Tournaments from "./pages/Tournaments";
 import HostedTournaments from "./pages/HostedTournaments";
 import Profile from "./pages/Profile";
+import ApplyHost from "./pages/ApplyHost";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import TermsAndPolicy from "./pages/TermsAndPolicy";
@@ -22,6 +23,7 @@ import Credits from "./pages/Credits";
 import PaymentStatus from "./pages/PaymentStatus";
 // Admin pages
 import AdminPage from "./pages/admin/withdrawals";
+import HostPanel from "./pages/admin/HostPanel";
 import "./App.css";
 
 function App() {
@@ -96,6 +98,11 @@ function App() {
                 <Profile />
               </ProtectedRoute>
             } />
+            <Route path="/apply-host" element={
+              <ProtectedRoute>
+                <ApplyHost />
+              </ProtectedRoute>
+            } />
             <Route path="/settings" element={
               <ProtectedRoute>
                 <Settings />
@@ -106,8 +113,13 @@ function App() {
           
           {/* Admin routes - separate from main layout */}
           <Route path="/admin" element={
-            <ProtectedRoute>
+            <ProtectedRoute adminRoute>
               <AdminPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/host-applications" element={
+            <ProtectedRoute adminRoute>
+              <HostPanel />
             </ProtectedRoute>
           } />
           

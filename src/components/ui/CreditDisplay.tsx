@@ -3,6 +3,7 @@ import { Coins, CreditCard, ShoppingCart } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreditBalance } from "@/hooks/useCreditBalance";
+import { useUserProfile } from "@/hooks/use-user-profile";
 import { cn } from "@/lib/utils";
 
 interface CreditDisplayProps {
@@ -17,7 +18,10 @@ const CreditDisplay = ({
   className
 }: CreditDisplayProps) => {
   const { currentUser } = useAuth();
+  const { user } = useUserProfile();
   const { hostCredits, tournamentCredits, isLoading } = useCreditBalance(currentUser?.uid);
+
+  const isHost = user?.isHost || false;
 
   // Compact variant (for headers, etc.)
   if (variant === 'compact') {
@@ -29,12 +33,14 @@ const CreditDisplay = ({
             {isLoading ? "..." : tournamentCredits}
           </span>
         </div>
-        <div className="flex items-center gap-1">
-          <CreditCard size={14} className="text-gaming-primary" />
-          <span className="text-xs font-medium text-gaming-text">
-            {isLoading ? "..." : hostCredits}
-          </span>
-        </div>
+        {isHost && (
+          <div className="flex items-center gap-1">
+            <CreditCard size={14} className="text-gaming-primary" />
+            <span className="text-xs font-medium text-gaming-text">
+              {isLoading ? "..." : hostCredits}
+            </span>
+          </div>
+        )}
         {showBuyLink && (
           <Link
             to="/credits"
@@ -60,15 +66,17 @@ const CreditDisplay = ({
             {isLoading ? "..." : tournamentCredits}
           </span>
         </div>
-        <div className="flex items-center justify-between bg-gaming-bg/50 rounded-lg p-2">
-          <div className="flex items-center gap-2">
-            <CreditCard size={16} className="text-gaming-primary" />
-            <span className="text-sm text-gaming-text">Host</span>
+        {isHost && (
+          <div className="flex items-center justify-between bg-gaming-bg/50 rounded-lg p-2">
+            <div className="flex items-center gap-2">
+              <CreditCard size={16} className="text-gaming-primary" />
+              <span className="text-sm text-gaming-text">Host</span>
+            </div>
+            <span className="text-sm font-bold text-gaming-primary">
+              {isLoading ? "..." : hostCredits}
+            </span>
           </div>
-          <span className="text-sm font-bold text-gaming-primary">
-            {isLoading ? "..." : hostCredits}
-          </span>
-        </div>
+        )}
         {showBuyLink && (
           <Link
             to="/credits"
@@ -93,13 +101,15 @@ const CreditDisplay = ({
           </span>
           <span className="text-xs text-gaming-muted">Tournament</span>
         </div>
-        <div className="flex items-center gap-1 bg-gaming-card/50 px-2 py-1 rounded-md">
-          <CreditCard size={14} className="text-gaming-primary" />
-          <span className="text-xs font-medium text-gaming-text">
-            {isLoading ? "..." : hostCredits}
-          </span>
-          <span className="text-xs text-gaming-muted">Host</span>
-        </div>
+        {isHost && (
+          <div className="flex items-center gap-1 bg-gaming-card/50 px-2 py-1 rounded-md">
+            <CreditCard size={14} className="text-gaming-primary" />
+            <span className="text-xs font-medium text-gaming-text">
+              {isLoading ? "..." : hostCredits}
+            </span>
+            <span className="text-xs text-gaming-muted">Host</span>
+          </div>
+        )}
       </div>
       {showBuyLink && (
         <Link

@@ -19,6 +19,7 @@ import { collection, getDocs, query, where, limit, Timestamp, doc, setDoc, getDo
 import { db } from "@/lib/firebase";
 import { motion } from "framer-motion";
 import { useCreditBalance } from "@/hooks/useCreditBalance";
+import { useUserProfile } from "@/hooks/use-user-profile";
 
 const Wallet = () => {
   const navigate = useNavigate();
@@ -30,6 +31,7 @@ const Wallet = () => {
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
   const [isConvertCreditsOpen, setIsConvertCreditsOpen] = useState(false);
   const { tournamentCredits, hostCredits, earnings, isLoading: isCreditsLoading } = useCreditBalance(currentUser?.uid);
+  const { user } = useUserProfile();
   
   useEffect(() => {
     let unsubscribe: (() => void) | null = null;
@@ -184,26 +186,28 @@ const Wallet = () => {
                       </div>
                     </div>
                     
-                    {/* Host Credits */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className="p-2 bg-gaming-primary/20 rounded-full">
-                          <CreditCard className="h-5 w-5 text-gaming-primary" />
+                    {/* Host Credits - Only for verified hosts */}
+                    {user?.isHost && (
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className="p-2 bg-gaming-primary/20 rounded-full">
+                            <CreditCard className="h-5 w-5 text-gaming-primary" />
+                          </div>
+                          <div>
+                            <p className="text-sm text-gaming-muted">Host Credits</p>
+                            <p className="text-2xl font-bold text-gaming-text">{hostCredits}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm text-gaming-muted">Host Credits</p>
-                          <p className="text-2xl font-bold text-gaming-text">{hostCredits}</p>
-                        </div>
+                        <Button 
+                          size="sm" 
+                          onClick={() => navigate('/credits')}
+                          className="bg-gaming-primary/20 hover:bg-gaming-primary/30 text-gaming-primary"
+                        >
+                          <ShoppingCart className="h-4 w-4 mr-1" />
+                          Buy
+                        </Button>
                       </div>
-                      <Button 
-                        size="sm" 
-                        onClick={() => navigate('/credits')}
-                        className="bg-gaming-primary/20 hover:bg-gaming-primary/30 text-gaming-primary"
-                      >
-                        <ShoppingCart className="h-4 w-4 mr-1" />
-                        Buy
-                      </Button>
-                    </div>
+                    )}
                     
                     {/* Earnings */}
                     <div className="flex items-center justify-between pt-4 border-t border-gaming-border/30">
@@ -252,8 +256,8 @@ const Wallet = () => {
               </motion.div>
             )}
 
-            {/* Low Host Credits Alert */}
-            {hostCredits < 1 && (
+            {/* Low Host Credits Alert - Only for verified hosts */}
+            {user?.isHost && hostCredits < 1 && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}

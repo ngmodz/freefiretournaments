@@ -13,7 +13,7 @@ export interface UserProfile {
   birthdate: string;
   gender: string;
   avatar_url: string | null;
-  isPremium: boolean;
+  isHost: boolean;
   created_at?: Timestamp;
   updated_at?: Timestamp;
 }
@@ -30,7 +30,7 @@ export interface ProfileUpdate {
   birthdate?: string;
   gender?: string;
   avatar_url?: string | null;
-  isPremium?: boolean;
+  isHost?: boolean;
 }
 
 // Auth user information
@@ -50,6 +50,26 @@ export interface WithdrawalRequest {
   status: 'pending' | 'done';
   timestamp: number;
   upiId?: string;
+  requestedAt?: Timestamp;
 }
 
-export type StatusFilter = 'all' | 'pending' | 'done'; 
+export interface HostApplication {
+  id: string;
+  userId: string;
+  userEmail: string;
+  userName?: string;
+  userUid?: string;
+  userIgn?: string;
+  experience: string;
+  reason: string;
+  preferredGameModes?: string;
+  availability?: string;
+  contactInfo?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  submittedAt: Timestamp;
+  reviewedAt?: Timestamp;
+  reviewedBy?: string;
+  reviewNotes?: string;
+}
+
+export type StatusFilter = 'all' | 'pending' | 'done' | 'approved' | 'rejected';

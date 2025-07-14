@@ -26,7 +26,7 @@ export const getUserProfile = async (userId: string) => {
         birthdate: string;
         gender: string;
         avatar_url: string | null;
-        isPremium: boolean;
+        isHost: boolean;
         created_at: Timestamp;
         updated_at: Timestamp;
       };
@@ -44,7 +44,7 @@ export const getUserProfile = async (userId: string) => {
         birthdate: '1995-07-15',
         gender: 'male',
         avatar_url: 'https://randomuser.me/api/portraits/men/1.jpg',
-        isPremium: false,
+        isHost: false,
         created_at: Timestamp.now(),
         updated_at: Timestamp.now(),
       };
@@ -83,7 +83,7 @@ export const createUserProfile = async (userId: string, profileData: {
       location: '',
       birthdate: '',
       gender: '',
-      isPremium: false,
+      isHost: false,
       created_at: timestamp,
       updated_at: timestamp
     };
@@ -108,7 +108,7 @@ export const updateUserProfile = async (userId: string, updates: {
   birthdate?: string;
   gender?: string;
   avatar_url?: string;
-  isPremium?: boolean;
+  isHost?: boolean;
 }) => {
   try {
     const userRef = doc(db, 'users', userId);

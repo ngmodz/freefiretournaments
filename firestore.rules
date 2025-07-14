@@ -2,32 +2,25 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Allow read/write access to user's own profile only
+    // This block replaces the three previous /users/{userId} blocks
     match /users/{userId} {
-      // Allow anyone to read user profiles (for tournament host display)
+      // Allow anyone to read user profiles (for tournament host display etc.)
       allow read: if true;
-      
-      // Allow creation with slightly more permissive rules - either:
-      // 1. The authenticated user is creating their own document
-      // 2. The document doesn't exist yet (first creation during registration)
+
+      // Allow creation of a user document
       allow create: if request.auth != null && (
         request.auth.uid == userId || 
         !exists(/databases/$(database)/documents/users/$(userId))
       );
-      
-      // Normal update rules - only allow the owner to update
+
+      // Define update logic - FIXED VERSION
       allow update: if request.auth != null && (
-        // Allow user to update their own document
-        request.auth.uid == userId ||
-        // Allow a transaction to update only the wallet field.
-        // WARNING: This is a security tradeoff. Ideally, this operation should be
-        // handled by a Cloud Function. This rule allows any authenticated user to
-        // initiate a transaction that updates another user's wallet. We rely on the
-        // other rules in the prize distribution transaction (like the secure 
-        // creditTransaction rule) to prevent abuse.
-        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['wallet']))
+        // Case 1: A user is updating their OWN profile, but NOT changing their isHost status
+        (request.auth.uid == userId && !('isHost' in request.resource.data)) ||
+        // Case 2: Only specific admin can update isHost status for any user
+        (request.auth.uid == "EaiefFlrNzMgpPEBUjyJvZ4Ydlx1" && 'isHost' in request.resource.data)
       );
-      
+
       // Allow users to delete their own profiles
       allow delete: if request.auth != null && request.auth.uid == userId;
     }
@@ -35,7 +28,11 @@ service cloud.firestore {
     // Tournament-related rules
     match /tournaments/{tournamentId} {
       allow read: if true; // Anyone can view tournaments
-      allow create: if request.auth != null; // Any authenticated user can create tournaments
+      
+      // Only verified hosts can create tournaments
+      allow create: if request.auth != null && 
+                    exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+                    get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isHost == true;
       
       // SPECIAL RULE FOR NOTIFICATION SYSTEM
       // Allow updates to just the notificationSent field by anyone
@@ -123,12 +120,6 @@ service cloud.firestore {
       allow create: if request.auth != null && 
                      request.resource.data.userId == request.auth.uid;
       allow update, delete: if request.auth != null && request.auth.token.admin == true;
-    }
-    
-    // Credit rules - allow users to access only their own wallet in user document
-    match /users/{userId} {
-      // Already covered by the rules above, but adding this clarification for credit-related operations
-      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
     
     // Tournament credit and host credit transactions
@@ -231,6 +222,29 @@ service cloud.firestore {
     // Explicitly deny access to test_connection collection
     match /test_connection/{document=**} {
       allow read, write: if false;
+    }
+    
+    // Host Applications collection - FIXED VERSION
+    match /hostApplications/{applicationId} {
+      // Allow any authenticated user to create an application
+      allow create: if request.auth != null;
+      
+      // Allow users to read their own applications OR admins to read all
+      allow read: if request.auth != null && (
+        resource.data.userId == request.auth.uid ||
+        request.auth.uid == "EaiefFlrNzMgpPEBUjyJvZ4Ydlx1"
+      );
+      
+      // Only specific admin can update applications (for approval/rejection)
+      allow update: if request.auth != null && request.auth.uid == "EaiefFlrNzMgpPEBUjyJvZ4Ydlx1";
+      
+      // No deletion allowed
+      allow delete: if false;
+    }
+    
+    // Only admin can list all host applications
+    match /hostApplications {
+      allow list: if request.auth != null && request.auth.uid == "EaiefFlrNzMgpPEBUjyJvZ4Ydlx1";
     }
     
     // Default deny all rule

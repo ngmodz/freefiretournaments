@@ -113,6 +113,12 @@ export const createTournament = async (tournamentData: Omit<TournamentFormData, 
       throw new Error("You must be logged in to create a tournament");
     }
 
+    // Check if user is a verified host
+    const userProfile = await getUserProfile(currentUser.uid);
+    if (!userProfile.isHost) { // Renamed from isPremium to isHost for clarity
+      throw new Error("You must be a verified host to create tournaments. Please apply to become a host.");
+    }
+
     // Verify authentication state
     console.log("Current user ID:", currentUser.uid);
 

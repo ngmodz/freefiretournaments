@@ -31,7 +31,7 @@ const TournamentHeader: React.FC<TournamentHeaderProps> = ({
           const profile = await getUserProfile(tournament.host_id);
           setHostIGN(profile.ign || "Unknown Host");
           setHostUID(profile.uid || "-");
-          setHostVerified(!!profile.isPremium);
+          setHostVerified(!!profile.isHost);
         }
       } catch (e) {
         setHostIGN("Unknown Host");

@@ -8,7 +8,7 @@ export const setupMockFirestore = () => {
         ign: 'TestPlayer123',
         email: 'test@example.com',
         avatar_url: 'https://randomuser.me/api/portraits/men/1.jpg',
-        isPremium: false,
+        isHost: false,
       }
     },
     tournaments: {},

@@ -17,6 +17,7 @@ import {
   Trash2,
   Mail,
   Github,
+  Crown,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -336,6 +337,13 @@ const Settings = () => {
       description: "Update your password",
       onClick: () => handleOpenSheet("password"),
     },
+   {
+     id: "apply-host",
+     icon: <Crown size={20} className="text-yellow-400" />,
+     title: "Apply as Host",
+     description: "Become a verified tournament host",
+     onClick: () => navigate("/apply-host"),
+   },
     {
       id: "contact",
       icon: <MessageSquare size={20} className="text-[#8b5cf6]" />,

@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { AdminService } from "@/lib/adminService";
 import { WithdrawalRequest, StatusFilter } from "@/lib/types";
 import { toast } from "sonner";
-import { Loader2, QrCode } from "lucide-react";
+import { Loader2, QrCode, Crown } from "lucide-react";
 import styles from "./withdrawals.module.css";
 import { getUserProfile } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
@@ -225,7 +225,16 @@ export default function AdminPage() {
   return (
     <div className={styles.container} style={{ fontFamily: 'Inter, sans-serif' }}>
       <div className={styles.card}>
-        <button className={styles.logoutBtn} onClick={logout}>Logout</button>
+        <div className={styles.headerActions}>
+          <button 
+            className={styles.hostApplicationsBtn} 
+            onClick={() => navigate('/admin/host-applications')}
+          >
+            <Crown size={16} />
+            Host Applications
+          </button>
+          <button className={styles.logoutBtn} onClick={logout}>Logout</button>
+        </div>
         <h1 className={styles.title}>Withdrawal Requests</h1>
         <div className={styles.controls}>
           <div className={styles.tabs}>
@@ -331,7 +340,7 @@ export default function AdminPage() {
                       </td>
                       <td>{new Date(req.timestamp).toLocaleString()}</td>
                       <td>
-                        <span className={`${styles.statusBadge} ${req.status === 'done' ? styles.statusDone : ''}`}>
+                        <span className={`${styles.statusBadge} ${req.status === 'done' ? styles.statusDone : ''} ${req.status === 'pending' ? styles.statusPending : ''}`}>
                           {req.status}
                         </span>
                       </td>
