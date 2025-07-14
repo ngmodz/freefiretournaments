@@ -20,7 +20,8 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogAction,
-  AlertDialogCancel
+  AlertDialogCancel,
+  AlertDialogTrigger
 } from '@/components/ui/alert-dialog';
 import { useHostCredit } from '@/lib/walletService';
 import { useAuth } from "@/contexts/AuthContext";
@@ -488,30 +489,38 @@ const ReviewAndPublish = ({ formData, prevStep }: ReviewAndPublishProps) => {
       )}
       {/* IGN/UID Required Dialog */}
       <AlertDialog open={showIgnDialog} onOpenChange={setShowIgnDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
+        <AlertDialogContent className="max-w-md mx-4 sm:mx-auto">
+          <AlertDialogHeader className="text-center sm:text-left">
+            <AlertDialogTitle className="text-lg sm:text-xl">
               {missingFields.ign && missingFields.uid
-                ? "IGN and UID Required"
+                ? "Complete Your Profile"
                 : missingFields.ign
                 ? "IGN Required"
                 : "UID Required"}
             </AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogDescription className="text-sm sm:text-base">
               {missingFields.ign && missingFields.uid ? (
                 <>
-                  You must update your <b>IGN</b> (in-game name) and <b>UID</b> (8-12 digit Free Fire ID) in your profile before hosting a tournament.
+                  To host tournaments, please update your <b>IGN</b> (in-game name) and <b>UID</b> (8-12 digit Free Fire ID) in your profile.
                 </>
               ) : missingFields.ign ? (
-                <>You must update your <b>IGN</b> (in-game name) in your profile before hosting a tournament.</>
+                <>Complete your profile by adding your <b>IGN</b> (in-game name) to host tournaments.</>
               ) : (
-                <>You must update your <b>UID</b> (8-12 digit Free Fire ID) in your profile before hosting a tournament.</>
+                <>Complete your profile by adding your <b>UID</b> (8-12 digit Free Fire ID) to host tournaments.</>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setShowIgnDialog(false)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => { setShowIgnDialog(false); openProfileEdit(); }}>
+          <AlertDialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+            <AlertDialogCancel 
+              onClick={() => setShowIgnDialog(false)}
+              className="order-2 sm:order-1 w-full sm:w-auto"
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => { setShowIgnDialog(false); openProfileEdit(); }}
+              className="order-1 sm:order-2 w-full sm:w-auto bg-gaming-primary hover:bg-gaming-primary/90"
+            >
               Update Profile
             </AlertDialogAction>
           </AlertDialogFooter>

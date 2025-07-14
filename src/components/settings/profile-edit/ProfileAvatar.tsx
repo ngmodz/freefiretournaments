@@ -28,15 +28,15 @@ const ProfileAvatar: React.FC<ProfileAvatarProps> = ({ formData }) => {
   const avatarUrl = getAvatarUrl();
 
   return (
-    <div className="flex flex-col sm:flex-row gap-8 items-center pb-4">
+    <div className="flex flex-col items-center gap-4 text-center">
       <div className="relative">
         <Avatar 
-          className="w-24 h-24 border-2 border-[#A0AEC0] shadow-md"
+          className="w-20 h-20 md:w-24 md:h-24 border-2 border-gaming-primary/50 shadow-lg"
         >
           {avatarUrl ? (
             <AvatarImage src={avatarUrl} alt="User avatar" />
           ) : (
-            <AvatarFallback className="bg-gaming-primary/20 text-[#FFD700] text-4xl font-bold">
+            <AvatarFallback className="bg-gaming-primary/20 text-[#FFD700] text-2xl md:text-4xl font-bold">
               {formData.fullName ? formData.fullName.charAt(0).toUpperCase() : 
                formData.ign ? formData.ign.charAt(0).toUpperCase() : 'U'}
             </AvatarFallback>
@@ -44,9 +44,9 @@ const ProfileAvatar: React.FC<ProfileAvatarProps> = ({ formData }) => {
         </Avatar>
       </div>
       
-      <div className="text-sm text-gray-400 text-center sm:text-left">
+      <div className="text-center">
         <h3 className="text-white font-medium text-lg mb-1">Profile Picture</h3>
-        <p>Select your gender in the form below to set your avatar.</p>
+        <p className="text-gaming-muted text-sm">Select your gender below to set your avatar</p>
       </div>
     </div>
   );

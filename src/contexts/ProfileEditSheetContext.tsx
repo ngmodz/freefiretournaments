@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import ProfileEditForm from "@/components/settings/ProfileEditForm";
 
 type ProfileEditSheetContextType = {
@@ -22,16 +22,47 @@ type ProfileEditSheetProviderProps = {
 
 export const ProfileEditSheetProvider: React.FC<ProfileEditSheetProviderProps> = ({ children }) => {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   const openProfileEdit = () => setIsSheetOpen(true);
   const closeProfileEdit = () => setIsSheetOpen(false);
+
+  // Check if device is mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   return (
     <ProfileEditSheetContext.Provider value={{ openProfileEdit }}>
       {children}
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetContent>
-            <ProfileEditForm onClose={closeProfileEdit} />
+        <SheetContent 
+          side={isMobile ? "bottom" : "right"} 
+          className="bg-gaming-bg border-gaming-border max-h-[95vh] overflow-y-auto p-4 rounded-t-xl bottom-sheet-ios-fix"
+          style={{
+            maxHeight: isMobile ? 'calc(95vh - env(safe-area-inset-bottom))' : '95vh',
+            paddingBottom: isMobile ? 'calc(1rem + env(safe-area-inset-bottom))' : '1rem',
+          }}
+        >
+          <div className="h-full flex flex-col">
+            {isMobile && (
+              <div className="w-12 h-1 bg-gray-600 rounded-full mx-auto mb-4 flex-shrink-0"></div>
+            )}
+            <SheetHeader className="mb-6 flex-shrink-0">
+              <SheetTitle className="text-xl font-bold text-white">Update Profile</SheetTitle>
+              <p className="text-sm text-gaming-muted">Complete your profile to join tournaments</p>
+            </SheetHeader>
+            
+            <div className="flex-1 min-h-0">
+              <ProfileEditForm onClose={closeProfileEdit} />
+            </div>
+          </div>
         </SheetContent>
       </Sheet>
     </ProfileEditSheetContext.Provider>

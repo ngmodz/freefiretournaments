@@ -22,6 +22,7 @@ interface AuthContextType {
   logout: () => Promise<any>;
   sendPasswordReset: (email: string) => Promise<any>;
   changeUserPassword: (currentPassword: string, newPassword: string) => Promise<any>;
+  refreshUserProfile: () => Promise<void>;
 }
 
 interface UserProfile {
@@ -53,26 +54,36 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const fetchUserProfile = async (user: User) => {
+    try {
+      const profile = await getUserProfile(user.uid);
+      if (profile) {
+        setUserProfile({
+          ...profile,
+          isHost: profile.isHost ?? false, // default to false if missing
+        });
+      } else {
+        // Profile doesn't exist yet - this is normal during registration
+        setUserProfile(null);
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      setUserProfile(null);
+    }
+  };
+
+  const refreshUserProfile = async () => {
+    if (currentUser) {
+      await fetchUserProfile(currentUser);
+    }
+  };
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
       
       if (user) {
-        try {
-          const profile = await getUserProfile(user.uid);
-          if (profile) {
-            setUserProfile({
-              ...profile,
-              isHost: profile.isHost ?? false, // default to false if missing
-            });
-          } else {
-            // Profile doesn't exist yet - this is normal during registration
-            setUserProfile(null);
-          }
-        } catch (error) {
-          console.error('Error fetching user profile:', error);
-          setUserProfile(null);
-        }
+        await fetchUserProfile(user);
       } else {
         setUserProfile(null);
       }
@@ -93,6 +104,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     logout: signOut,
     sendPasswordReset: resetPassword,
     changeUserPassword: changePassword,
+    refreshUserProfile,
   };
 
   return (

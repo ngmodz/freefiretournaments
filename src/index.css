@@ -630,3 +630,35 @@ input[type="password"]::-webkit-input-password-reveal-button,
 input[type="password"]::-webkit-input-password-reveal {
   display: none !important;
 }
+
+/* Mobile optimization for bottom sheets */
+@media (max-width: 768px) {
+  .bottom-sheet-ios-fix {
+    /* Fix for iOS Safari bottom sheet positioning */
+    padding-bottom: env(safe-area-inset-bottom);
+    border-radius: 12px 12px 0 0 !important;
+  }
+  
+  /* Enhanced mobile form styles */
+  .profile-edit-form input,
+  .profile-edit-form select,
+  .profile-edit-form textarea {
+    font-size: 16px !important; /* Prevents zoom on iOS */
+    min-height: 44px; /* Better touch targets */
+  }
+  
+  /* Improved mobile touch targets */
+  .profile-edit-form button {
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+  
+  /* Better mobile spacing */
+  .profile-edit-form .space-y-6 > * + * {
+    margin-top: 1.25rem !important;
+  }
+  
+  .profile-edit-form .space-y-5 > * + * {
+    margin-top: 1rem !important;
+  }
+}

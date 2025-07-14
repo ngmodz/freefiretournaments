@@ -14,7 +14,9 @@ service cloud.firestore {
       // Define update logic - FIXED VERSION
       allow update: if request.auth != null && (
         // Case 1: A user is updating their OWN profile (including wallet), but NOT changing their isHost status
-        (request.auth.uid == userId && !('isHost' in request.resource.data)) ||
+        (request.auth.uid == userId && 
+         (!('isHost' in request.resource.data) || 
+          request.resource.data.isHost == resource.data.isHost)) ||
         // Case 2: Only specific admin can update isHost status for any user
         (request.auth.uid == "EaiefFlrNzMgpPEBUjyJvZ4Ydlx1" && 'isHost' in request.resource.data) ||
         // Case 3: Allow wallet-only updates for tournament operations

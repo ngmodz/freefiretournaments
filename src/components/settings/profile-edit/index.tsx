@@ -45,40 +45,39 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({ onClose }) => {
   return (
     <form 
       onSubmit={handleSubmit} 
-      className="profile-edit-form space-y-8"
+      className="profile-edit-form space-y-6"
     >
-      {/* Profile Avatar */}
-      <ProfileAvatar formData={formData} />
+      {/* Profile Avatar - Mobile optimized */}
+      <div className="px-1">
+        <ProfileAvatar formData={formData} />
+      </div>
       
-      <Separator className="bg-gray-800" />
+      <Separator className="bg-gaming-border opacity-50" />
       
-      {/* Basic Information Section */}
-      <BasicInfoSection 
-        formData={formData}
-        errors={errors}
-        handleInputChange={handleInputChange}
-      />
+      {/* Basic Information Section - Mobile optimized */}
+      <div className="px-1">
+        <BasicInfoSection 
+          formData={formData}
+          errors={errors}
+          handleInputChange={handleInputChange}
+        />
+      </div>
       
-      <Separator className="my-6 bg-gaming-border" />
+      <Separator className="bg-gaming-border opacity-50" />
       
-      {/* Additional Information Section */}
-      <AdditionalInfoSection 
-        formData={formData}
-        errors={errors}
-        handleInputChange={handleInputChange}
-        handleSelectChange={handleSelectChange}
-      />
-      
-      {/* Form Actions */}
-      <FormActions 
-        loading={loading}
-        userLoading={userLoading}
-        onClose={onClose}
-      />
+      {/* Additional Information Section - Mobile optimized */}
+      <div className="px-1">
+        <AdditionalInfoSection 
+          formData={formData}
+          errors={errors}
+          handleInputChange={handleInputChange}
+          handleSelectChange={handleSelectChange}
+        />
+      </div>
       
       {/* Debug Button */}
       {(errors.ign || errors.uid) && (
-        <div className="mt-4 pt-4 border-t border-gray-800">
+        <div className="mt-4 pt-4 border-t border-gaming-border px-1">
           <Button
             type="button"
             onClick={handleDebugSubmit}
@@ -93,6 +92,15 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({ onClose }) => {
           </p>
         </div>
       )}
+      
+      {/* Form Actions at the bottom */}
+      <div className="border-t border-gaming-border pt-4 px-1 mt-8">
+        <FormActions 
+          loading={loading}
+          userLoading={userLoading}
+          onClose={onClose}
+        />
+      </div>
     </form>
   );
 };

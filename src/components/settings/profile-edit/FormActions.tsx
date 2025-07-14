@@ -13,23 +13,23 @@ const FormActions: React.FC<FormActionsProps> = ({
   onClose
 }) => {
   return (
-    <div className="flex justify-end gap-4 pt-4 pb-6">
-      <Button 
-        type="button" 
-        variant="outline" 
+    <div className="flex flex-col gap-3 w-full sm:flex-row sm:gap-4">
+      <Button
+        type="button"
+        variant="outline"
         onClick={onClose}
-        className="border-gaming-border text-gaming-muted hover:bg-gaming-card"
+        className="w-full rounded-lg border-gaming-border text-gaming-muted hover:bg-gaming-card py-3 text-base font-medium sm:w-1/2"
         disabled={loading || userLoading}
       >
         Cancel
       </Button>
-      <Button 
-        type="submit" 
-        className="bg-gaming-primary hover:bg-gaming-primary/90 py-6"
+      <Button
+        type="submit"
+        className="w-full rounded-lg bg-gaming-primary hover:bg-gaming-primary/90 py-3 text-base font-bold shadow-lg sm:w-1/2"
         disabled={loading || userLoading}
       >
         {loading || userLoading ? (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center gap-2">
             <span className="animate-spin h-4 w-4 border-2 border-white rounded-full border-t-transparent"></span>
             <span>Saving...</span>
           </div>

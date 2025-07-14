@@ -24,7 +24,7 @@ type ProfileUpdateKey = keyof ProfileFormData;
 export const useProfileForm = (onClose: () => void, bypassValidation: boolean = false) => {
   const { toast } = useToast();
   const { user, loading: userLoading, updateProfile, error: userError } = useUserProfile();
-  const { currentUser } = useAuth();
+  const { currentUser, refreshUserProfile } = useAuth();
   
   // Form state
   const [formData, setFormData] = useState<ProfileFormData>({
@@ -212,6 +212,11 @@ export const useProfileForm = (onClose: () => void, bypassValidation: boolean = 
       
       await updateProfile(updates);
       
+      // Refresh the user profile in AuthContext
+      if (currentUser) {
+        await refreshUserProfile();
+      }
+      
       onClose();
       toast({
         title: "Profile Updated",
@@ -254,6 +259,11 @@ export const useProfileForm = (onClose: () => void, bypassValidation: boolean = 
   const directSubmit = async () => {
     console.log("DIRECT SUBMIT - Bypassing validation");
     await submitProfileData();
+    
+    // Refresh the user profile in AuthContext
+    if (currentUser) {
+      await refreshUserProfile();
+    }
   };
 
   return {

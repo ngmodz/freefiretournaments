@@ -6,11 +6,13 @@ import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
 import TournamentDetailsContent from "@/components/tournament-details";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 const TournamentDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { userProfile } = useAuth();
   
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [loading, setLoading] = useState(true);
@@ -138,6 +140,7 @@ const TournamentDetails = () => {
       isHost={isHost}
       loading={loading}
       currentUser={currentUser}
+      userProfile={userProfile as any}
       onRefresh={fetchTournamentDetails}
     />
   );
