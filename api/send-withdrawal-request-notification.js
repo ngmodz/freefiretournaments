@@ -21,7 +21,7 @@ export default async function handler(req, res) {
     console.log(`EMAIL_USER: ${process.env.EMAIL_USER || 'NOT SET'}`);
     console.log(`EMAIL_PASSWORD length: ${process.env.EMAIL_PASSWORD ? process.env.EMAIL_PASSWORD.length : 'NOT SET'}`);
     
-    const { userId, userEmail, userName, amount, upiId, transactionId, originalAmount } = req.body;
+    const { userId, userEmail, userName, amount, upiId, transactionId, originalAmount, commission } = req.body;
     
     if (!userId || !userEmail || !amount) {
       return res.status(400).json({ error: 'Missing required fields' });
@@ -44,11 +44,12 @@ export default async function handler(req, res) {
     });
     
     const htmlBody = `
-      <div style="font-family: Arial, sans-serif; font-size: 15px;">
+      <div style="font-family: Arial, sans-serif; font-size: 15px; color: #000;">
         <p>Dear ${userName || 'User'},</p>
-        <p>We have successfully received your withdrawal request of <b>₹${Number(originalAmount || amount).toFixed(2)}</b> on ${formattedDate}.</p>
-        <p>After deductions, you will receive <b>₹${Number(amount).toFixed(2)}</b> in your account.</p>
-        <p><b>UPI ID:</b> ${upiId || 'Not provided'}</p>
+        <p>We have successfully received your withdrawal request of <b>₹${Math.floor(Number(originalAmount || amount))}</b> on ${formattedDate}.</p>
+        <p><b style='color: #000;'>Platform Fee (4%):</b> -₹${commission !== undefined ? Math.floor(Number(commission)) : (originalAmount ? Math.floor(Number(originalAmount) - Number(amount)) : '0')}</p>
+        <p>After deductions, you will receive <b style='color: #000;'>₹${Math.floor(Number(amount))}</b> in your account.</p>
+        <p><b style='color: #000;'>UPI ID:</b> ${upiId || 'Not provided'}</p>
         <p>Your request is now under review by our team. We will process your withdrawal within 2-3 business days. You will receive another email once the withdrawal is processed.</p>
         <p>Thank you for using our platform!</p>
         <br/>

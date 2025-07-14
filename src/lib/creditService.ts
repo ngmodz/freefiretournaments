@@ -74,10 +74,11 @@ export class CreditService {
    */
   static async requestWithdrawal(
     userId: string,
-    amount: number,
+    amount: number, // This will now be the original amount (before commission)
     upiId: string,
-    originalAmount?: number
+    _originalAmount?: number // Deprecated, use amount as original
   ): Promise<{ success: boolean; transactionId?: string; error?: string }> {
+    const COMMISSION_RATE = 0.04; // 4% enforced backend
     const userRef = doc(db, 'users', userId);
 
     try {
@@ -93,6 +94,10 @@ export class CreditService {
         userName = userData?.displayName || userData?.name || userEmail?.split('@')[0] || 'User';
       }
 
+      // Calculate commission and final amount
+      const commission = amount * COMMISSION_RATE;
+      const finalAmount = amount - commission;
+
       await runTransaction(db, async (transaction) => {
         const userDoc = await transaction.get(userRef);
 
@@ -105,20 +110,22 @@ export class CreditService {
         const currentEarnings = wallet.earnings || 0;
 
         // Check if user has enough earnings
-        if (currentEarnings < amount) {
+        if (currentEarnings < finalAmount) {
           throw new Error('Insufficient earnings');
         }
 
         // Create withdrawal request record
         const withdrawalData = {
           userId,
-          amount,
+          amount: finalAmount, // Amount after commission
           upiId,
           status: 'pending',
           requestedAt: Timestamp.now(),
           processedAt: null,
           userEmail: userEmail || 'Unknown',
-          notes: 'Withdrawal request pending. Funds will be transferred in 2-3 business days.'
+          notes: `Withdrawal request pending. Platform fee: 4% ( ${commission.toFixed(2)}). Funds will be transferred in 2-3 business days.`,
+          originalAmount: amount,
+          commission: commission
         };
 
         const withdrawalRef = doc(collection(db, 'withdrawalRequests'));
@@ -126,7 +133,7 @@ export class CreditService {
         transactionId = withdrawalRef.id;
 
         // Deduct from earnings
-        const newEarnings = currentEarnings - amount;
+        const newEarnings = currentEarnings - finalAmount;
         transaction.update(userRef, {
           'wallet.earnings': newEarnings
         });
@@ -135,15 +142,17 @@ export class CreditService {
         const transactionData = {
           userId,
           type: 'withdrawal',
-          amount: -amount,
+          amount: -finalAmount,
           balanceBefore: currentEarnings,
           balanceAfter: newEarnings,
           walletType: 'earnings',
-          description: `Withdrawal of ₹${amount} to UPI: ${upiId}`,
+          description: `Withdrawal of  ${finalAmount} to UPI: ${upiId} (Original:  ${amount}, Commission:  ${commission.toFixed(2)})`,
           transactionDetails: {
             withdrawalId: withdrawalRef.id,
             upiId,
-            status: 'pending'
+            status: 'pending',
+            originalAmount: amount,
+            commission: commission
           },
           createdAt: Timestamp.now()
         };
@@ -165,10 +174,11 @@ export class CreditService {
               userId,
               userEmail,
               userName,
-              amount, // final amount after deduction
+              amount: finalAmount, // after commission
               upiId,
               transactionId,
-              originalAmount: originalAmount ?? amount
+              originalAmount: amount,
+              commission: commission
             }),
           });
 

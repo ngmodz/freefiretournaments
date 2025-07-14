@@ -29,7 +29,7 @@ const HOST_TABS: { label: string; value: StatusFilter }[] = [
   { label: "All", value: "all" },
 ];
 
-const COMMISSION_RATE = 0.02; // 2%
+const COMMISSION_RATE = 0.04; // 4%
 const HIGHLIGHT_STYLE = { background: '#fff59d', borderRadius: '3px', padding: '0 2px' };
 const FOCUS_HIGHLIGHT_STYLE = { background: '#ffe066', borderRadius: '3px', padding: '0 2px', outline: '2px solid #ffd700' };
 

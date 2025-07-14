@@ -20,7 +20,7 @@ const TABS: { label: string; value: StatusFilter }[] = [
   { label: "All", value: "all" },
 ];
 
-const COMMISSION_RATE = 0.02; // 2%
+const COMMISSION_RATE = 0.04; // 4%
 const HIGHLIGHT_STYLE = { background: '#fff59d', borderRadius: '3px', padding: '0 2px' };
 const FOCUS_HIGHLIGHT_STYLE = { background: '#ffe066', borderRadius: '3px', padding: '0 2px', outline: '2px solid #ffd700' };
 
@@ -301,7 +301,9 @@ export default function AdminPage() {
             <tbody>
               {filteredRequests.length > 0 ? (
                 filteredRequests.map((req, rowIdx) => {
-                  const grossAmount = req.amount / (1 - COMMISSION_RATE);
+                  // Use backend-calculated originalAmount and commission if available
+                  const grossAmount = req.originalAmount !== undefined ? req.originalAmount : (req.commission !== undefined ? req.amount + req.commission : req.amount / (1 - COMMISSION_RATE));
+                  const commission = req.commission !== undefined ? req.commission : (grossAmount - req.amount);
                   // For each cell, pass the global match index and refs
                   let matchIdxUser = getCellMatchIndex(rowIdx, 'userName');
                   let matchIdxEmail = getCellMatchIndex(rowIdx, 'userEmail');
@@ -315,7 +317,7 @@ export default function AdminPage() {
                       </td>
                       <td>
                         <div className={styles.amountPayout}>₹{req.amount.toFixed(2)} <span style={{ fontWeight: 400, color: '#8c8c8c' }}>(Payout)</span></div>
-                        <div className={styles.amountOriginal}>₹{grossAmount.toFixed(2)} (Original)</div>
+                        <div className={styles.amountOriginal}>₹{grossAmount.toFixed(2)} (Original) <span style={{ color: '#b88c00', fontWeight: 400 }}>| Fee: ₹{commission.toFixed(2)}</span></div>
                       </td>
                       <td>
                         <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

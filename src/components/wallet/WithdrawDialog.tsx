@@ -27,7 +27,7 @@ interface WithdrawDialogProps {
   wallet: WalletType | null;
 }
 
-const COMMISSION_RATE = 0.02; // 2% commission
+const COMMISSION_RATE = 0.04; // 4% commission
 
 const WithdrawDialog = ({
   isOpen,
@@ -117,9 +117,8 @@ const WithdrawDialog = ({
       // Use the new CreditService method for withdrawal
       const result = await CreditService.requestWithdrawal(
         currentUser.uid,
-        finalAmount, // Use the final amount after commission
-        upiId,
-        numAmount // Pass original amount before commission
+        numAmount, // Send the original amount entered by the user
+        upiId
       );
       
       if (result.success) {
@@ -254,7 +253,7 @@ const WithdrawDialog = ({
                       <span className="text-gaming-text">₹{amount || "0"}</span>
                     </div>
                     <div className="flex justify-between text-sm mt-2">
-                      <span className="text-gaming-muted">Platform Fee (2%):</span>
+                      <span className="text-gaming-muted">Platform Fee (4%):</span>
                       <span className="text-gaming-text text-gaming-muted">-₹{commission.toFixed(2)}</span>
                     </div>
                     <div className="border-t border-gaming-border/30 my-2"></div>
