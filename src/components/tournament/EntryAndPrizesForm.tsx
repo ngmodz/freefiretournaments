@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronRight, ChevronLeft, Plus, Trash2 } from "lucide-react";
 import { TournamentFormData } from "@/pages/TournamentCreate";
 import { Slider } from "@/components/ui/slider";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface EntryAndPrizesFormProps {
   formData: TournamentFormData;
@@ -16,6 +17,7 @@ const DEFAULT_PERCENTAGES = [60, 25, 15];
 const DEFAULT_POSITIONS = ["1st", "2nd", "3rd"];
 
 const EntryAndPrizesForm = ({ formData, updateFormData, nextStep, prevStep }: EntryAndPrizesFormProps) => {
+  const isMobile = useIsMobile();
   const maxPlayers = formData.max_players || 12;
   const [entryFeeState, setEntryFee] = useState(formData.entry_fee || 0);
   const totalExpectedPrizePool = entryFeeState * maxPlayers || 0;
@@ -152,7 +154,78 @@ const EntryAndPrizesForm = ({ formData, updateFormData, nextStep, prevStep }: En
             )}
             
             {/* Prize Positions */}
-            <div className="space-y-3">
+            {isMobile ? (
+              <div className="space-y-4">
+                {prizePositions.map((position, idx) => (
+                  <div key={idx} className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-3 bg-gaming-bg/20 rounded-lg border border-gaming-primary/10">
+                    <div className="flex items-center gap-3 w-full sm:w-auto">
+                      <Input
+                        type="text"
+                        value={position}
+                        onChange={(e) => handlePositionChange(idx, e.target.value)}
+                        className="w-20 bg-gaming-card border-2 border-gray-600 text-white focus:border-gaming-primary"
+                        placeholder="Position"
+                      />
+                      <div className="flex-1 sm:hidden"></div> {/* Spacer for mobile */}
+                      {prizePositions.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removePrizePosition(idx)}
+                          className="ml-auto sm:ml-2 min-w-[32px] min-h-[32px] flex-shrink-0 text-red-400 hover:text-red-300"
+                        >
+                          <Trash2 size={16} />
+                        </Button>
+                      )}
+                    </div>
+                    
+                    <div className="w-full sm:flex-1">
+                      <div className="flex items-center gap-3">
+                        <Slider
+                          min={0}
+                          max={100}
+                          step={1}
+                          value={[percentages[idx] || 0]}
+                          onValueChange={([val]) => handlePercentChange(idx, String(val))}
+                          className="w-full"
+                        />
+                        <Input 
+                          type="number" 
+                          min={0}
+                          max={100}
+                          value={percentages[idx] || 0}
+                          onChange={e => handlePercentChange(idx, e.target.value)}
+                          className="w-20 bg-gaming-card border-2 border-gray-600 text-white focus:border-gaming-primary text-right text-sm px-2 py-1"
+                        />
+                        <span className="text-sm text-white">%</span>
+                      </div>
+                      <div className="text-right mt-1">
+                        <span className="text-xs text-gray-400">
+                          Estimated: {Math.round(((percentages[idx] || 0) / 100) * totalExpectedPrizePool)} credits
+                        </span>
+                      </div>
+                    </div>
+
+                    {prizePositions.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removePrizePosition(idx)}
+                        className="hidden sm:flex ml-2 min-w-[40px] min-h-[40px] flex-shrink-0 text-red-400 hover:text-red-300"
+                      >
+                        <Trash2 size={16} />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                <Button type="button" variant="outline" size="sm" className="mt-2" onClick={addPrizePosition}>
+                  <Plus size={16} className="mr-1" /> Add Position
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3">
               {prizePositions.map((position, idx) => (
                 <div key={idx} className="flex items-center gap-3">
                   <Input
@@ -201,6 +274,8 @@ const EntryAndPrizesForm = ({ formData, updateFormData, nextStep, prevStep }: En
                 <Plus size={16} className="mr-1" /> Add Position
               </Button>
             </div>
+            )}
+
 
             {/* Summary */}
             <div className="mt-4 p-3 bg-gaming-bg/50 rounded-lg border border-gaming-primary/10">
