@@ -8,6 +8,17 @@ import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTournament } from "@/contexts/TournamentContext";
 import TournamentCleanupService from "@/lib/tournamentCleanupService";
+import { useUserProfile } from "@/hooks/use-user-profile";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const HostedTournaments = () => {
   const [tournaments, setTournaments] = useState<TournamentType[]>([]);
@@ -18,6 +29,16 @@ const HostedTournaments = () => {
   const navigate = useNavigate();
   const { hostedTournaments, isLoadingHostedTournaments, refreshHostedTournaments } = useTournament();
   const loadingTimeoutRef = useRef<number | null>(null);
+  const [showHostApplyDialog, setShowHostApplyDialog] = useState(false);
+  const { user } = useUserProfile();
+
+  const handleCreateTournamentClick = () => {
+    if (user?.isHost) {
+      navigate('/tournament/create');
+    } else {
+      setShowHostApplyDialog(true);
+    }
+  };
   
   // Manual cleanup function
   const handleManualCleanup = async () => {
@@ -223,14 +244,31 @@ const HostedTournaments = () => {
           <div className="text-center py-10 bg-gaming-card rounded-lg p-6">
             <h3 className="text-lg font-medium text-white mb-2">No tournaments hosted yet</h3>
             <p className="text-[#A0A0A0] mb-4">Start creating tournaments and manage them here</p>
-            <Link to="/tournament/create">
-              <Button className="bg-gaming-primary hover:bg-gaming-primary/90">
-                Create Tournament
-              </Button>
-            </Link>
+            <Button className="bg-gaming-primary hover:bg-gaming-primary/90" onClick={handleCreateTournamentClick}>
+              Create Tournament
+            </Button>
           </div>
         )}
       </div>
+      <AlertDialog open={showHostApplyDialog} onOpenChange={setShowHostApplyDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Want to host your own tournament?</AlertDialogTitle>
+            <AlertDialogDescription>
+              To create a tournament, you need to be a host. Apply to become a host and start creating your own tournaments.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              navigate('/apply-host');
+              setShowHostApplyDialog(false);
+            }}>
+              Apply as Host
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

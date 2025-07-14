@@ -13,11 +13,12 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 const ApplyHost = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, userProfile } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
+    fullName: '',
     experience: '',
     reason: '',
     preferredGameModes: '',
@@ -48,7 +49,7 @@ const ApplyHost = () => {
     }
 
     // Validate required fields
-    if (!formData.experience || !formData.reason) {
+    if (!formData.fullName || !formData.experience || !formData.reason) {
       toast({
         title: "Missing Information",
         description: "Please fill in all required fields.",
@@ -61,9 +62,11 @@ const ApplyHost = () => {
 
     try {
       // Submit application to Firestore
+      // Prefer userProfile full name, fallback to displayName or email
       await addDoc(collection(db, 'hostApplications'), {
         userId: currentUser.uid,
         userEmail: currentUser.email,
+        userName: formData.fullName,
         ...formData,
         status: 'pending',
         submittedAt: serverTimestamp(),
@@ -129,8 +132,22 @@ const ApplyHost = () => {
                 </CardHeader>
                 <CardContent className="relative z-10">
                   <form onSubmit={handleSubmit} className="space-y-8">
-                    {/* Section: Experience */}
+                    {/* Section: Full Name & Experience */}
                     <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="fullName" className="text-base font-medium text-gray-300">
+                          Full Name *
+                        </Label>
+                        <Input
+                          id="fullName"
+                          name="fullName"
+                          placeholder="Enter your full name"
+                          value={formData.fullName}
+                          onChange={handleInputChange}
+                          className="mt-2 bg-zinc-900/50 border-zinc-700 text-white focus:border-gaming-primary focus:ring-gaming-primary/50 focus:ring-1 transition-all duration-300"
+                          required
+                        />
+                      </div>
                       <h3 className="text-lg font-semibold text-white flex items-center">
                         <Star className="mr-2 text-gaming-accent" size={18} />
                         Your Experience

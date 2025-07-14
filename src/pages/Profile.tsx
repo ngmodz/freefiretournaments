@@ -1,12 +1,12 @@
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
-import { 
-  User, 
-  Settings as SettingsIcon, 
+import {
+  User,
+  Settings as SettingsIcon,
   Trophy,
   Wallet,
-  Mail, 
-  MapPin, 
+  Mail,
+  MapPin,
   BadgeInfo,
   ArrowLeft,
   Calendar,
@@ -30,13 +30,23 @@ import { useCreditBalance } from "@/hooks/useCreditBalance";
 import { useTournament } from "@/contexts/TournamentContext";
 import AvatarDisplay from "@/components/ui/AvatarDisplay";
 import TournamentCard from "@/components/TournamentCard";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const Profile = () => {
   const { currentUser } = useAuth();
   const { user, loading } = useUserProfile();
   const creditData = useCreditBalance(currentUser?.uid);
-  const { 
-    hostedTournaments, 
+  const {
+    hostedTournaments,
     joinedTournaments,
     isLoadingHostedTournaments,
     isLoadingJoinedTournaments,
@@ -45,12 +55,21 @@ const Profile = () => {
   } = useTournament();
   const navigate = useNavigate();
   const [isMobile, setIsMobile] = useState(false);
+  const [showHostApplyDialog, setShowHostApplyDialog] = useState(false);
+
+  const handleCreateTournamentClick = () => {
+    if (user?.isHost) {
+      navigate('/tournament/create');
+    } else {
+      setShowHostApplyDialog(true);
+    }
+  };
 
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 1024); // lg breakpoint
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
@@ -66,12 +85,12 @@ const Profile = () => {
   const totalJoinedTournaments = joinedTournaments.length;
   const totalHostedTournaments = hostedTournaments.length;
   const totalTournaments = totalJoinedTournaments + totalHostedTournaments;
-  
+
   // Calculate completed tournaments (status === 'completed')
   const completedJoined = joinedTournaments.filter(t => t.status === 'completed').length;
   const completedHosted = hostedTournaments.filter(t => t.status === 'completed').length;
   const totalCompleted = completedJoined + completedHosted;
-  
+
   // Calculate active tournaments (ongoing status)
   const activeJoined = joinedTournaments.filter(t => t.status === 'ongoing').length;
   const activeHosted = hostedTournaments.filter(t => t.status === 'ongoing').length;
@@ -95,7 +114,7 @@ const Profile = () => {
     );
   }
 
-  const joinDate = currentUser?.metadata?.creationTime 
+  const joinDate = currentUser?.metadata?.creationTime
     ? new Date(currentUser.metadata.creationTime).toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long'
@@ -103,9 +122,9 @@ const Profile = () => {
     : 'Unknown';
 
   return (
-    <div 
-      className="container-padding min-h-screen overflow-auto" 
-      style={{ 
+    <div
+      className="container-padding min-h-screen overflow-auto"
+      style={{
         overscrollBehavior: 'contain',
         WebkitOverflowScrolling: 'touch'
       }}
@@ -117,15 +136,15 @@ const Profile = () => {
         className={`space-y-6 max-w-4xl mx-auto py-4 ${isMobile ? 'pb-24' : 'pb-8'}`}
       >
         {/* Header with back button */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
           className="flex items-center mb-6"
         >
-          <Button 
-            variant="ghost" 
-            size="icon" 
+          <Button
+            variant="ghost"
+            size="icon"
             className="mr-3 rounded-full bg-gaming-card hover:bg-gaming-card/80"
             onClick={() => navigate(-1)}
           >
@@ -148,12 +167,12 @@ const Profile = () => {
             <div className="flex flex-col lg:flex-row items-center lg:items-start gap-8">
               {/* Avatar Section */}
               <div className="flex flex-col items-center space-y-4">
-                <AvatarDisplay 
+                <AvatarDisplay
                   userProfile={user}
                   currentUser={currentUser}
-                  size="xl" 
+                  size="xl"
                 />
-                
+
                 <div className="flex flex-wrap justify-center gap-2">
                   {user?.isHost && (
                     <Badge variant="outline" className="bg-gaming-primary/20 text-gaming-primary border-gaming-primary/30">
@@ -186,7 +205,7 @@ const Profile = () => {
                       <Mail className="w-4 h-4 mr-3 text-gaming-muted" />
                       <span>{user?.email || currentUser?.email || "No email"}</span>
                     </div>
-                    
+
                     {user?.uid && (
                       <div className="flex items-center justify-center lg:justify-start text-gaming-text">
                         <User className="w-4 h-4 mr-3 text-gaming-muted" />
@@ -380,7 +399,7 @@ const Profile = () => {
                     Hosted ({totalHostedTournaments})
                   </TabsTrigger>
                 </TabsList>
-                
+
                 <TabsContent value="joined" className="mt-4">
                   {isLoadingJoinedTournaments ? (
                     <div className="text-center py-8">
@@ -389,8 +408,8 @@ const Profile = () => {
                   ) : joinedTournaments.length > 0 ? (
                     <div className="space-y-3 max-h-64 overflow-y-auto">
                       {joinedTournaments.slice(0, 5).map((tournament) => (
-                        <Link 
-                          key={tournament.id} 
+                        <Link
+                          key={tournament.id}
                           to={`/tournament/${tournament.id}`}
                           className="block p-3 bg-gaming-bg rounded-lg border border-gaming-border hover:bg-gaming-bg/80 hover:border-gaming-primary/50 transition-colors cursor-pointer relative overflow-hidden premium-card-border backdrop-blur-sm"
                         >
@@ -400,7 +419,7 @@ const Profile = () => {
                           <div className="absolute bottom-0 left-0 w-20 h-20 bg-gaming-accent/10 rounded-full -ml-10 -mb-10 blur-xl animate-pulse-slower"></div>
                           <div className="absolute top-1/2 left-1/4 w-12 h-12 bg-gaming-primary/5 rounded-full blur-xl animate-float"></div>
                           <div className="absolute bottom-1/3 right-1/4 w-10 h-10 bg-gaming-accent/5 rounded-full blur-xl animate-float-delayed"></div>
-                          
+
                           <div className="flex justify-between items-start relative z-10">
                             <div>
                               <h4 className="font-semibold text-white">{tournament.name}</h4>
@@ -421,8 +440,8 @@ const Profile = () => {
                               </p>
                             </div>
                             <div className="text-right">
-                              <Badge 
-                                variant="outline" 
+                              <Badge
+                                variant="outline"
                                 className={`
                                   ${tournament.status === 'completed' ? 'bg-green-500/20 text-green-500 border-green-500/30' : ''}
                                   ${tournament.status === 'ongoing' ? 'bg-gaming-primary/20 text-gaming-primary border-gaming-primary/30' : ''}
@@ -458,7 +477,7 @@ const Profile = () => {
                     </div>
                   )}
                 </TabsContent>
-                
+
                 <TabsContent value="hosted" className="mt-4">
                   {isLoadingHostedTournaments ? (
                     <div className="text-center py-8">
@@ -467,8 +486,8 @@ const Profile = () => {
                   ) : hostedTournaments.length > 0 ? (
                     <div className="space-y-3 max-h-64 overflow-y-auto">
                       {hostedTournaments.slice(0, 5).map((tournament) => (
-                        <Link 
-                          key={tournament.id} 
+                        <Link
+                          key={tournament.id}
                           to={`/tournament/${tournament.id}`}
                           className="block p-3 bg-gaming-bg rounded-lg border border-gaming-border hover:bg-gaming-bg/80 hover:border-gaming-accent/50 transition-colors cursor-pointer relative overflow-hidden premium-card-border backdrop-blur-sm"
                         >
@@ -478,7 +497,7 @@ const Profile = () => {
                           <div className="absolute bottom-0 left-0 w-20 h-20 bg-gaming-accent/10 rounded-full -ml-10 -mb-10 blur-xl animate-pulse-slower"></div>
                           <div className="absolute top-1/2 left-1/4 w-12 h-12 bg-gaming-primary/5 rounded-full blur-xl animate-float"></div>
                           <div className="absolute bottom-1/3 right-1/4 w-10 h-10 bg-gaming-accent/5 rounded-full blur-xl animate-float-delayed"></div>
-                          
+
                           <div className="flex justify-between items-start relative z-10">
                             <div>
                               <h4 className="font-semibold text-white">{tournament.name}</h4>
@@ -499,8 +518,8 @@ const Profile = () => {
                               </p>
                             </div>
                             <div className="text-right">
-                              <Badge 
-                                variant="outline" 
+                              <Badge
+                                variant="outline"
                                 className={`
                                   ${tournament.status === 'completed' ? 'bg-green-500/20 text-green-500 border-green-500/30' : ''}
                                   ${tournament.status === 'ongoing' ? 'bg-gaming-accent/20 text-gaming-accent border-gaming-accent/30' : ''}
@@ -528,11 +547,9 @@ const Profile = () => {
                     <div className="text-center py-8">
                       <Users className="w-12 h-12 text-gaming-muted mx-auto mb-3" />
                       <p className="text-gaming-muted mb-2">No tournaments hosted yet</p>
-                      <Link to="/tournament/create">
-                        <Button size="sm" className="bg-gaming-accent hover:bg-gaming-accent/90">
-                          Create Tournament
-                        </Button>
-                      </Link>
+                      <Button size="sm" className="bg-gaming-accent hover:bg-gaming-accent/90" onClick={handleCreateTournamentClick}>
+                        Create Tournament
+                      </Button>
                     </div>
                   )}
                 </TabsContent>
@@ -568,7 +585,7 @@ const Profile = () => {
             </Card>
           </Link>
 
-          <Link to="/tournament/create" className="block">
+          <div onClick={handleCreateTournamentClick} className="block cursor-pointer">
             <Card className="bg-gaming-card border-gaming-border hover:bg-gaming-card/80 transition-colors cursor-pointer h-full">
               <CardContent className="p-4 text-center">
                 <Users className="w-8 h-8 text-gaming-primary mx-auto mb-2" />
@@ -576,7 +593,7 @@ const Profile = () => {
                 <p className="text-xs text-gaming-muted">New tournament</p>
               </CardContent>
             </Card>
-          </Link>
+          </div>
 
           <Link to="/buy-credits" className="block">
             <Card className="bg-gaming-card border-gaming-border hover:bg-gaming-card/80 transition-colors cursor-pointer h-full">
@@ -590,7 +607,7 @@ const Profile = () => {
         </motion.div>
 
         {/* Action Buttons */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 1.0 }}
@@ -601,7 +618,7 @@ const Profile = () => {
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
             >
-              <Button 
+              <Button
                 className="w-full bg-gaming-primary hover:bg-gaming-primary/90 text-white font-medium py-2 px-6 rounded-md flex items-center justify-center gap-2 shadow-sm"
               >
                 <Trophy size={16} />
@@ -617,7 +634,7 @@ const Profile = () => {
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
               >
-                <Button 
+                <Button
                   className="w-full bg-gaming-accent hover:bg-gaming-accent/90 text-white font-medium py-2 px-6 rounded-md flex items-center justify-center gap-2 shadow-sm"
                 >
                   <Shield size={16} />
@@ -631,7 +648,7 @@ const Profile = () => {
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
               >
-                <Button 
+                <Button
                   variant="outline"
                   className="w-full border-gaming-primary text-gaming-primary hover:bg-gaming-primary hover:text-white font-medium py-2 px-6 rounded-md flex items-center justify-center gap-2 shadow-sm transition-colors"
                 >
@@ -643,6 +660,25 @@ const Profile = () => {
           )}
         </motion.div>
       </motion.div>
+      <AlertDialog open={showHostApplyDialog} onOpenChange={setShowHostApplyDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Want to host your own tournament?</AlertDialogTitle>
+            <AlertDialogDescription>
+              To create a tournament, you need to be a host. Apply to become a host and start creating your own tournaments.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              navigate('/apply-host');
+              setShowHostApplyDialog(false);
+            }}>
+              Apply as Host
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

@@ -6,12 +6,24 @@ import {
   Settings, 
   Plus
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { UserAvatar } from "./ui/UserAvatar";
 import CreditDisplay from "./ui/CreditDisplay";
+import { useUserProfile } from "@/hooks/use-user-profile";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "./ui/button";
 
 interface SidebarItemProps {
   icon: React.ReactNode;
@@ -68,11 +80,22 @@ const DesktopSidebar = ({ currentPath, onHoverChange }: DesktopSidebarProps) => 
   // Always default to collapsed
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
+  const { user } = useUserProfile();
+  const navigate = useNavigate();
+  const [showHostApplyDialog, setShowHostApplyDialog] = useState(false);
 
   useEffect(() => {
     // Keep sidebar collapsed by default
     setIsCollapsed(true);
   }, []);
+
+  const handleCreateTournamentClick = () => {
+    if (user?.isHost) {
+      navigate('/tournament/create');
+    } else {
+      setShowHostApplyDialog(true);
+    }
+  };
 
   const handleMouseEnter = () => {
     setIsHovered(true);
@@ -176,12 +199,12 @@ const DesktopSidebar = ({ currentPath, onHoverChange }: DesktopSidebarProps) => 
         
         {/* Create Tournament Button */}
         <div className="px-3 mb-4 mt-auto">
-          <Link
-            to="/tournament/create"
+          <div
+            onClick={handleCreateTournamentClick}
             className={cn(
               "flex items-center justify-center px-3 py-2.5 rounded-md transition-all duration-300 ease-in-out bg-gaming-accent text-white shadow-glow-accent",
               !isHovered && "justify-center",
-              "hover:-translate-y-1 hover:scale-[1.02]"
+              "hover:-translate-y-1 hover:scale-[1.02] cursor-pointer"
             )}
           >
             <motion.div
@@ -202,9 +225,25 @@ const DesktopSidebar = ({ currentPath, onHoverChange }: DesktopSidebarProps) => 
                 </motion.span>
               )}
             </AnimatePresence>
-          </Link>
+          </div>
         </div>
       </div>
+      <AlertDialog open={showHostApplyDialog} onOpenChange={setShowHostApplyDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Want to host your own tournament?</AlertDialogTitle>
+            <AlertDialogDescription>
+              To create a tournament, you need to be a host. Apply to become a host and start creating your own tournaments.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => navigate('/apply-host')}>
+              Apply as Host
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </motion.div>
   );
 };

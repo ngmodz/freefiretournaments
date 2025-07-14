@@ -5,6 +5,7 @@ import { db } from '../../lib/firebase';
 import { HostApplication } from '../../lib/types';
 import { ArrowLeft, Eye, Check, X, Crown } from 'lucide-react';
 import styles from './hostpanel.module.css';
+import withdrawStyles from './withdrawals.module.css';
 import { updateUserProfile } from '../../lib/firebase/profile';
 import { toast } from 'sonner';
 
@@ -25,6 +26,8 @@ const ApplicationRow: React.FC<ApplicationRowProps> = ({ application, onClick })
     }
   };
 
+  // Use context to get handleStatusUpdate from HostPanel
+  const { handleStatusUpdate } = React.useContext(HostPanelContext);
   return (
     <tr className={styles.tableRow} onClick={onClick}>
       <td>
@@ -60,19 +63,35 @@ const ApplicationRow: React.FC<ApplicationRowProps> = ({ application, onClick })
           {application.status}
         </span>
       </td>
-      <td>
+      <td style={{ display: 'flex', gap: 8 }}>
         <button className={styles.viewButton}>
           <Eye size={14} />
           View Details
         </button>
+        {(application.status === 'approved' || application.status === 'rejected') && (
+          <button
+            className={withdrawStyles.actionBtn}
+            onClick={e => {
+              e.stopPropagation();
+              handleStatusUpdate(application.id, 'pending');
+            }}
+          >
+            Move to Pending
+          </button>
+        )}
       </td>
     </tr>
   );
 };
 
+// Context to provide handleStatusUpdate to ApplicationRow
+const HostPanelContext = React.createContext<{ handleStatusUpdate: (id: string, status: 'approved' | 'rejected' | 'pending') => void }>({ handleStatusUpdate: () => {} });
+
 const HostPanel: React.FC = () => {
   const navigate = useNavigate();
   const [applications, setApplications] = useState<HostApplication[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'pending' | 'approved' | 'rejected' | 'all'>('pending');
   const [loading, setLoading] = useState(true);
   const [selectedApplication, setSelectedApplication] = useState<HostApplication | null>(null);
   const [reviewNotes, setReviewNotes] = useState('');
@@ -99,7 +118,7 @@ const HostPanel: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
-  const handleStatusUpdate = async (applicationId: string, status: 'approved' | 'rejected') => {
+  const handleStatusUpdate = async (applicationId: string, status: 'approved' | 'rejected' | 'pending') => {
     if (updating) return;
 
     setSelectedApplication(null); // Close dialog immediately
@@ -114,15 +133,47 @@ const HostPanel: React.FC = () => {
         reviewNotes: reviewNotes.trim() || null
       });
 
+
       // If changing from approved to rejected, remove host privileges
       if (previousStatus === 'approved' && status === 'rejected' && application?.userId) {
         await updateUserProfile(application.userId, { isHost: false });
         toast.success('Host privileges have been revoked.');
       }
-      // If approving, grant host privileges
+      // If approving, grant host privileges and send email
       if (status === 'approved' && application?.userId) {
         await updateUserProfile(application.userId, { isHost: true });
         toast.success('Host privileges have been granted.');
+
+        // Send approval email in the background
+        fetch('/api/send-host-approval-email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: application.userEmail,
+            name: application.userName || 'User',
+          }),
+        })
+        .then(response => {
+          if (response.ok) {
+            toast.success('Approval email sent successfully.');
+          } else {
+            toast.error('Failed to send approval email', {
+              description: 'The application status was updated, but the approval email could not be sent.'
+            });
+          }
+        })
+        .catch(emailError => {
+          console.error('Error sending approval email:', emailError);
+          toast.error('Failed to send approval email', {
+            description: 'The application status was updated, but the approval email could not be sent.'
+          });
+        });
+      }
+      // If moving to pending, just update status
+      if (status === 'pending') {
+        toast.success('Application moved to pending.');
       }
 
       setReviewNotes('');
@@ -159,8 +210,21 @@ const HostPanel: React.FC = () => {
     );
   }
 
+
+  // Filter applications by status and search term
+  const filteredApplications = applications
+    .filter(app => statusFilter === 'all' || app.status === statusFilter)
+    .filter(app => {
+      const term = searchTerm.trim().toLowerCase();
+      if (!term) return true;
+      const name = app.userName ? app.userName.toLowerCase() : '';
+      const email = app.userEmail ? app.userEmail.toLowerCase() : '';
+      return name.includes(term) || email.includes(term);
+    });
+
   return (
     <div className={styles.container}>
+
       <div className={styles.header}>
         <button onClick={() => navigate('/admin')} className={styles.backButton}>
           <ArrowLeft size={16} />
@@ -169,11 +233,36 @@ const HostPanel: React.FC = () => {
         <h1 className={styles.title}>Host Applications</h1>
       </div>
 
-      {applications.length === 0 ? (
+      <div className={withdrawStyles.controls} style={{ marginBottom: 24 }}>
+        <div className={withdrawStyles.tabs}>
+          {['pending', 'approved', 'rejected', 'all'].map((status) => (
+            <button
+              key={status}
+              className={
+                statusFilter === status
+                  ? `${withdrawStyles.tab} ${withdrawStyles.tabActive}`
+                  : withdrawStyles.tab
+              }
+              onClick={() => setStatusFilter(status as any)}
+            >
+              {status.charAt(0).toUpperCase() + status.slice(1)}
+            </button>
+          ))}
+        </div>
+        <input
+          type="text"
+          placeholder="Search by name or email..."
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+          className={withdrawStyles.searchInput}
+        />
+      </div>
+
+      {filteredApplications.length === 0 ? (
         <div className={styles.emptyState}>
           <Crown size={48} />
           <h3>No Host Applications</h3>
-          <p>No host applications have been submitted yet.</p>
+          <p>No host applications match your search.</p>
         </div>
       ) : (
         <div className={styles.tableContainer}>
@@ -188,13 +277,15 @@ const HostPanel: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {applications.map((application) => (
-                <ApplicationRow
-                  key={application.id}
-                  application={application}
-                  onClick={() => handleApplicationClick(application)}
-                />
-              ))}
+      <HostPanelContext.Provider value={{ handleStatusUpdate }}>
+        {filteredApplications.map((application) => (
+          <ApplicationRow
+            key={application.id}
+            application={application}
+            onClick={() => handleApplicationClick(application)}
+          />
+        ))}
+      </HostPanelContext.Provider>
             </tbody>
           </table>
         </div>
@@ -285,6 +376,13 @@ const HostPanel: React.FC = () => {
                     >
                       <Check size={16} /> Approve
                     </button>
+                    <button
+                      className={withdrawStyles.actionBtn}
+                      onClick={() => handleStatusUpdate(selectedApplication.id, 'pending')}
+                      disabled={updating}
+                    >
+                      Move to Pending
+                    </button>
                   </div>
                 </div>
               )}
@@ -297,6 +395,13 @@ const HostPanel: React.FC = () => {
                       disabled={updating}
                     >
                       <X size={16} /> Reject
+                    </button>
+                    <button
+                      className={withdrawStyles.actionBtn}
+                      onClick={() => handleStatusUpdate(selectedApplication.id, 'pending')}
+                      disabled={updating}
+                    >
+                      Move to Pending
                     </button>
                   </div>
                 </div>

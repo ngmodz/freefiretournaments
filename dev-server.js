@@ -10,7 +10,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.DEV_API_PORT || 8083;
+const PORT = process.env.DEV_API_PORT || 8084;
 
 // Middleware
 app.use(cors());
@@ -104,6 +104,16 @@ app.post('/api/send-withdrawal-notification', async (req, res) => {
   }
 });
 
+app.post('/api/send-host-approval-email', async (req, res) => {
+  try {
+    const { default: handler } = await import(`./api/send-host-approval-email.js?v=${Date.now()}`);
+    await handler(req, res);
+  } catch (error) {
+    console.error('API Error:', error);
+    res.status(500).json({ error: error.message, success: false });
+  }
+});
+
 app.post('/api/send-withdrawal-request-notification', async (req, res) => {
   try {
     // Bust the cache to always get the latest version in dev
@@ -146,6 +156,7 @@ app.listen(PORT, () => {
   console.log(`  - POST http://localhost:${PORT}/api/payment-webhook`);
   console.log(`  - POST http://localhost:${PORT}/api/verify-payment`);
   console.log(`  - POST http://localhost:${PORT}/api/send-withdrawal-notification`);
+  console.log(`  - POST http://localhost:${PORT}/api/send-host-approval-email`);
   console.log(`  - POST http://localhost:${PORT}/api/send-withdrawal-request-notification`);
   console.log('');
   console.log('💡 Start your frontend with: npm run dev');

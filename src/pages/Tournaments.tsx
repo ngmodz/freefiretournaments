@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,6 +9,17 @@ import { TournamentType, TournamentStatus } from "@/components/home/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTournament } from "@/contexts/TournamentContext";
 import { getTournaments } from "@/lib/tournamentService";
+import { useUserProfile } from "@/hooks/use-user-profile";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const Tournaments = () => {
   const [filter, setFilter] = useState("all");
@@ -16,6 +27,9 @@ const Tournaments = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("joined-tournaments");
   const [loading, setLoading] = useState(true);
+  const [showHostApplyDialog, setShowHostApplyDialog] = useState(false);
+  const { user } = useUserProfile();
+  const navigate = useNavigate();
 
   const { currentUser } = useAuth();
   const { 
@@ -26,6 +40,14 @@ const Tournaments = () => {
     isLoadingJoinedTournaments,
     refreshJoinedTournaments
   } = useTournament();
+
+  const handleCreateTournamentClick = () => {
+    if (user?.isHost) {
+      navigate('/tournament/create');
+    } else {
+      setShowHostApplyDialog(true);
+    }
+  };
 
   // Fetch tournaments on mount
   useEffect(() => {
@@ -254,16 +276,33 @@ const Tournaments = () => {
               <div className="text-center py-10 bg-gaming-card rounded-lg p-6">
                 <h3 className="text-lg font-medium text-white mb-2">No tournaments hosted yet</h3>
                 <p className="text-[#A0A0A0] mb-4">Start creating tournaments and manage them here</p>
-                <Link to="/tournament/create">
-                  <Button className="bg-gaming-primary hover:bg-gaming-primary/90">
-                    Create Tournament
-                  </Button>
-                </Link>
+                <Button className="bg-gaming-primary hover:bg-gaming-primary/90" onClick={handleCreateTournamentClick}>
+                  Create Tournament
+                </Button>
               </div>
             )}
           </div>
         </TabsContent>
       </Tabs>
+      <AlertDialog open={showHostApplyDialog} onOpenChange={setShowHostApplyDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Want to host your own tournament?</AlertDialogTitle>
+            <AlertDialogDescription>
+              To create a tournament, you need to be a host. Apply to become a host and start creating your own tournaments.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              navigate('/apply-host');
+              setShowHostApplyDialog(false);
+            }}>
+              Apply as Host
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

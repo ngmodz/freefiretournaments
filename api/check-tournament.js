@@ -217,6 +217,13 @@ async function checkAllTournaments() {
       // We'll check notificationSent in the code instead of in the query
     );
     
+    // --- Detailed Debug Logging ---
+    console.log('--- Firestore Query Details ---');
+    console.log('Collection: tournaments');
+    console.log("Query Constraint: where('status', '==', 'active')");
+    console.log('-----------------------------');
+    // --- End Debug Logging ---
+
     const tournamentDocs = await getDocs(tournamentsQuery);
     results.checked = tournamentDocs.size;
 

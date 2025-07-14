@@ -1,9 +1,21 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import TournamentCard from "@/components/TournamentCard";
 import { TournamentType } from "@/components/home/types";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useInView } from "framer-motion";
 import { useRef, useEffect, useState } from "react";
+import { useUserProfile } from "@/hooks/use-user-profile";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "../ui/button";
 
 interface TournamentCardWrapperProps {
   tournament: TournamentType;
@@ -108,33 +120,66 @@ interface TournamentListProps {
 }
 
 const TournamentList = ({ tournaments }: TournamentListProps) => {
+  const { user } = useUserProfile();
+  const navigate = useNavigate();
+  const [showHostApplyDialog, setShowHostApplyDialog] = useState(false);
+
+  const handleCreateTournamentClick = () => {
+    if (user?.isHost) {
+      navigate('/tournament/create');
+    } else {
+      setShowHostApplyDialog(true);
+    }
+  };
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 transform-gpu">
-      {tournaments.length > 0 ? (
-        tournaments.map((tournament, index) => (
-          <TournamentCardWrapper 
-            key={tournament.id} 
-            tournament={tournament}
-            index={index}
-          />
-        ))
-      ) : (
-        <motion.div 
-          className="col-span-full text-center py-10"
-          initial={{ opacity: 0, y: 5 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ 
-            duration: 0.2,
-            ease: "easeOut",
-          }}
-        >
-          <p className="text-[#A0A0A0] mb-2">No tournaments match your filter criteria</p>
-          <Link to="/tournament/create" className="text-gaming-primary hover:underline">
-            Create a tournament?
-          </Link>
-        </motion.div>
-      )}
-    </div>
+    <>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 transform-gpu">
+        {tournaments.length > 0 ? (
+          tournaments.map((tournament, index) => (
+            <TournamentCardWrapper 
+              key={tournament.id} 
+              tournament={tournament}
+              index={index}
+            />
+          ))
+        ) : (
+          <motion.div 
+            className="col-span-full text-center py-10"
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ 
+              duration: 0.2,
+              ease: "easeOut",
+            }}
+          >
+            <p className="text-[#A0A0A0] mb-2">No tournaments match your filter criteria</p>
+            <button onClick={handleCreateTournamentClick} className="text-gaming-primary hover:underline">
+              Create a tournament?
+            </button>
+          </motion.div>
+        )}
+      </div>
+      <AlertDialog open={showHostApplyDialog} onOpenChange={setShowHostApplyDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Want to host your own tournament?</AlertDialogTitle>
+            <AlertDialogDescription>
+              To create a tournament, you need to be a host. Apply to become a host and start creating your own tournaments.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              navigate('/apply-host');
+              setShowHostApplyDialog(false);
+            }}>
+              Apply as Host
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };
 

@@ -6,7 +6,7 @@ import { WithdrawalRequest, StatusFilter, HostApplication } from "@/lib/types";
 import { toast } from "sonner";
 import { Loader2, QrCode, Crown, Users, DollarSign } from "lucide-react";
 import styles from "./withdrawals.module.css";
-import { getUserProfile } from '@/lib/firebase';
+import { getUserProfile, updateUserProfile } from '@/lib/firebase';
 import { doc, getDoc, collection, getDocs, query, orderBy, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { QRCodeCanvas } from 'qrcode.react';
@@ -193,6 +193,45 @@ export default function AdminPage() {
         reviewedBy: currentUser?.uid,
         reviewNotes: notes || '',
       });
+
+      // If approved, grant host privileges and send an email
+      if (newStatus === 'approved') {
+        if (application.userId) {
+          await updateUserProfile(application.userId, { isHost: true });
+          toast.success('Host privileges have been granted.');
+        }
+
+        try {
+          const response = await fetch('/api/send-host-approval-email', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              email: application.userEmail,
+              name: application.userName || 'User',
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to send approval email');
+          }
+
+          toast.success('Approval email sent successfully.');
+
+        } catch (emailError) {
+          console.error('Error sending approval email:', emailError);
+          toast.error('Failed to send approval email', {
+            description: 'The application status was updated, but the approval email could not be sent.',
+          });
+        }
+      } else if (newStatus === 'rejected') {
+        // If rejected, revoke host privileges if they existed
+        if (application.userId) {
+          await updateUserProfile(application.userId, { isHost: false });
+          toast.info('Host privileges have been revoked.');
+        }
+      }
 
       // Update local state
       setHostApplications((prev) =>
