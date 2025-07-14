@@ -75,6 +75,23 @@ const ApplyHost = () => {
         reviewNotes: ''
       });
 
+      // Send confirmation email via API
+      try {
+        await fetch('/api/send-application-confirmation', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: currentUser.email,
+            name: formData.fullName || userProfile?.displayName || 'User',
+          }),
+        });
+      } catch (emailError) {
+        console.error('Failed to trigger confirmation email:', emailError);
+        // We don't block the user flow for this, just log the error.
+      }
+
       toast({
         title: "Application Submitted!",
         description: "Your host application has been submitted successfully. You'll be notified once it's reviewed.",

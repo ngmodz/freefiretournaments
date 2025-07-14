@@ -114,6 +114,50 @@ app.post('/api/send-host-approval-email', async (req, res) => {
   }
 });
 
+app.post('/api/send-application-confirmation', async (req, res) => {
+  try {
+    const { default: handler } = await import(`./api/send-application-confirmation.js?v=${Date.now()}`);
+    await handler(req, res);
+  } catch (error) {
+    console.error('API Error:', error);
+    res.status(500).json({ error: error.message, success: false });
+  }
+});
+
+app.get('/api/test-application-email', async (req, res) => {
+  console.log('--- Running Email Test ---');
+  try {
+    const { default: handler } = await import(`./api/send-application-confirmation.js?v=${Date.now()}`);
+    
+    // Mock the request and response objects for the handler
+    const mockReq = {
+      method: 'POST',
+      body: {
+        email: 'microft1007@gmail.com',
+        name: 'Email Test User'
+      }
+    };
+    const mockRes = {
+      status: (code) => {
+        console.log(`Test response status: ${code}`);
+        return {
+          json: (data) => {
+            console.log('Test response data:', data);
+            // Send the final response to the browser
+            res.status(code).json(data);
+          }
+        };
+      }
+    };
+
+    await handler(mockReq, mockRes);
+    
+  } catch (error) {
+    console.error('API Test Error:', error);
+    res.status(500).json({ error: error.message, success: false });
+  }
+});
+
 app.post('/api/send-withdrawal-request-notification', async (req, res) => {
   try {
     // Bust the cache to always get the latest version in dev

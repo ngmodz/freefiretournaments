@@ -3,9 +3,21 @@
  * Handles service account credentials from environment variables
  */
 
-const admin = require('firebase-admin');
-const path = require('path');
-const fs = require('fs');
+import dotenv from 'dotenv';
+import admin from 'firebase-admin';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+// Load .env file from the project root
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
+
+
+// Recreate __dirname for ES Modules
+// const __filename = fileURLToPath(import.meta.url);
+// const __dirname = path.dirname(__filename);
 
 let firebaseApp = null;
 
@@ -13,7 +25,7 @@ let firebaseApp = null;
  * Initialize Firebase Admin SDK securely
  * @returns {Object} Firebase Admin app instance
  */
-function initializeFirebaseAdmin() {
+export function initializeFirebaseAdmin() {
   if (firebaseApp) {
     return firebaseApp;
   }
@@ -56,7 +68,9 @@ function initializeFirebaseAdmin() {
     else {
       const secureFilePath = path.join(__dirname, '..', 'firebase-service-account.json.SECURE');
       if (fs.existsSync(secureFilePath)) {
-        serviceAccount = require(secureFilePath);
+        // For ES Modules, we need to read and parse JSON files, not require() them.
+        const fileContents = fs.readFileSync(secureFilePath, 'utf8');
+        serviceAccount = JSON.parse(fileContents);
         console.log('⚠️  Using Firebase service account from secure file (not recommended for production)');
       } else {
         throw new Error('No Firebase service account configuration found. Please set up environment variables.');
@@ -88,7 +102,7 @@ function initializeFirebaseAdmin() {
  * Get Firestore instance
  * @returns {Object} Firestore instance
  */
-function getFirestore() {
+export function getFirestore() {
   const app = initializeFirebaseAdmin();
   return admin.firestore(app);
 }
@@ -97,14 +111,10 @@ function getFirestore() {
  * Get Auth instance
  * @returns {Object} Auth instance
  */
-function getAuth() {
+export function getAuth() {
   const app = initializeFirebaseAdmin();
   return admin.auth(app);
 }
 
-module.exports = {
-  initializeFirebaseAdmin,
-  getFirestore,
-  getAuth,
-  admin
-};
+// Export admin for direct use if needed
+export { admin };

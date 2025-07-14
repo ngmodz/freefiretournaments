@@ -11,16 +11,21 @@ service cloud.firestore {
       allow create: if request.auth != null && 
         request.auth.uid == userId;
 
-      // Define update logic - FIXED VERSION
+      // SECURE UPDATE LOGIC
       allow update: if request.auth != null && (
-        // Case 1: A user is updating their OWN profile (including wallet), but NOT changing their isHost status
+        // Case 1: Users can update their OWN profile, but NOT the isHost field
         (request.auth.uid == userId && 
          (!('isHost' in request.resource.data) || 
           request.resource.data.isHost == resource.data.isHost)) ||
-        // Case 2: Only specific admin can update isHost status for any user
-        (request.auth.uid == "EaiefFlrNzMgpPEBUjyJvZ4Ydlx1" && 'isHost' in request.resource.data) ||
+        
+        // Case 2: Admin can ONLY update isHost field (for host approval)
+        (request.auth.uid == "EaiefFlrNzMgpPEBUjyJvZ4Ydlx1" && 
+         request.resource.data.diff(resource.data).affectedKeys().hasAll(['isHost']) &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isHost', 'updated_at'])) ||
+        
         // Case 3: Allow wallet-only updates for tournament operations
-        (request.auth.uid == userId && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['wallet']))
+        (request.auth.uid == userId && 
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['wallet']))
       );
 
       // Allow users to delete their own profiles

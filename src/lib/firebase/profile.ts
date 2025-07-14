@@ -5,7 +5,7 @@ import {
   setDoc,
   Timestamp
 } from 'firebase/firestore';
-import { db, isMock } from './index';
+import { db, isMock, auth } from './index';
 
 // Profile-related functions
 export const getUserProfile = async (userId: string) => {
@@ -119,7 +119,15 @@ export const updateUserProfile = async (userId: string, updates: {
       updated_at: Timestamp.now()
     };
     
-    await updateDoc(userRef, updatedData);
+    // Debug logging
+    console.log('🔍 Updating user profile:');
+    console.log('📤 User ID:', userId);
+    console.log('📦 Updates:', updates);
+    console.log('📋 Final data:', updatedData);
+    console.log('👤 Current auth user:', auth.currentUser?.uid);
+    
+    // Use setDoc with merge to create document if it doesn't exist
+    await setDoc(userRef, updatedData, { merge: true });
     return { success: true };
   } catch (error) {
     console.error('Error updating user profile:', error);
