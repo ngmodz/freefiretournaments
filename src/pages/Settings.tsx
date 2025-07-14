@@ -26,7 +26,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import SettingsItem from "@/components/settings/SettingsItem";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import ContactDeveloperForm from "@/components/settings/ContactDeveloperForm";
+import ContactSupportForm from "@/components/settings/ContactSupportForm";
 import ProfileEditForm from "@/components/settings/ProfileEditForm";
 import ChangePasswordDialog from "@/components/settings/ChangePasswordDialog";
 import ForgotPasswordDialog from "@/components/settings/ForgotPasswordDialog";
@@ -357,7 +357,7 @@ const Settings = () => {
     {
       id: "contact",
       icon: <MessageSquare size={20} className="text-[#8b5cf6]" />,
-      title: "Contact Developer",
+      title: "Contact Support",
       description: "Help & support",
       onClick: () => handleOpenSheet("contact"),
     },
@@ -573,7 +573,7 @@ const Settings = () => {
         </SheetContent>
       </Sheet>
 
-      {/* Sheet for Contact Developer */}
+      {/* Sheet for Contact Support */}
       <Sheet open={openSheet === "contact"} onOpenChange={handleCloseSheet}>
         <SheetContent 
           side={isMobile ? "bottom" : "right"} 
@@ -588,12 +588,12 @@ const Settings = () => {
               <div className="w-12 h-1 bg-gray-600 rounded-full mx-auto mb-4"></div>
             )}
             <div className="mb-6">
-              <h2 className="text-xl font-bold text-white">Contact Developer</h2>
+              <h2 className="text-xl font-bold text-white">Contact Support</h2>
               <p className="text-sm text-gaming-muted">Questions, feedback, or bug reports</p>
             </div>
             
             <div className="flex-1 overflow-auto">
-              <ContactDeveloperForm onClose={handleCloseSheet} />
+              <ContactSupportForm onClose={handleCloseSheet} />
             </div>
           </div>
         </SheetContent>

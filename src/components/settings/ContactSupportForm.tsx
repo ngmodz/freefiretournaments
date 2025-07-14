@@ -15,8 +15,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
-// Define form schema with Zod for contact developer form
+// Define form schema with Zod for contact support form
 const formSchema = z.object({
   name: z.string().min(2, {
     message: "Name must be at least 2 characters",
@@ -34,33 +35,59 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-interface ContactDeveloperFormProps {
+interface ContactSupportFormProps {
   onClose: () => void;
 }
 
-const ContactDeveloperForm = ({ onClose }: ContactDeveloperFormProps) => {
+const ContactSupportForm = ({ onClose }: ContactSupportFormProps) => {
   const { toast } = useToast();
+  const { currentUser } = useAuth();
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: "",
-      email: "",
+      name: currentUser?.displayName || "",
+      email: currentUser?.email || "",
       subject: "",
       message: "",
     },
   });
 
-  const onSubmit = (data: FormValues) => {
-    console.log("Form submitted:", data);
-    // Here you would typically send the data to your backend
-    // For now, we'll just show a success toast
+  const { formState: { isSubmitting } } = form;
 
-    toast({
-      title: "Message sent successfully",
-      description: "Thank you for your message. We'll respond soon!",
-    });
-    
-    onClose();
+  const onSubmit = async (data: FormValues) => {
+    try {
+      const response = await fetch('/api/contact-support', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...data,
+          uid: currentUser?.uid,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Something went wrong');
+      }
+
+      toast({
+        title: "Message sent successfully",
+        description: "Thank you for your message. We'll respond soon!",
+      });
+      
+      onClose();
+    } catch (error) {
+      console.error("Failed to send message:", error);
+      toast({
+        title: "Failed to send message",
+        description: error instanceof Error ? error.message : "An unknown error occurred.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -163,10 +190,11 @@ const ContactDeveloperForm = ({ onClose }: ContactDeveloperFormProps) => {
             </Button>
             <Button 
               type="submit"
+              disabled={isSubmitting}
               className="bg-gaming-primary hover:bg-gaming-primary/90 text-white"
             >
               <Send size={16} className="mr-2" />
-              Send Message
+              {isSubmitting ? 'Sending...' : 'Send Message'}
             </Button>
           </div>
         </form>
@@ -175,4 +203,4 @@ const ContactDeveloperForm = ({ onClose }: ContactDeveloperFormProps) => {
   );
 };
 
-export default ContactDeveloperForm;
+export default ContactSupportForm; 

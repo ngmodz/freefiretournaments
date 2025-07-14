@@ -248,13 +248,29 @@ service cloud.firestore {
       // Only specific admin can update applications (for approval/rejection)
       allow update: if request.auth != null && request.auth.uid == "EaiefFlrNzMgpPEBUjyJvZ4Ydlx1";
       
-      // No deletion allowed
-      allow delete: if false;
+      // Allow user to delete their own application (if they change their mind)
+      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
     
-    // Only admin can list all host applications
+    // Admins can list all host applications
     match /hostApplications {
       allow list: if request.auth != null && request.auth.uid == "EaiefFlrNzMgpPEBUjyJvZ4Ydlx1";
+    }
+
+    // Contact Submissions
+    match /contactSubmissions/{submissionId} {
+      // Allow anyone to create a submission.
+      // If a UID is provided, it must match the authenticated user.
+      allow create: if request.resource.data.uid == null || 
+                      (request.auth != null && request.resource.data.uid == request.auth.uid);
+      
+      // Only admins can read, update, or delete submissions.
+      allow read, update, delete: if request.auth != null && request.auth.token.admin == true;
+    }
+
+    // Admins can list all contact submissions.
+    match /contactSubmissions {
+      allow list: if request.auth != null && request.auth.token.admin == true;
     }
     
     // Default deny all rule

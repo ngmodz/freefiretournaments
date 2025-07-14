@@ -143,8 +143,8 @@ export const sections = [
         title: "10.1 Support",
         content: (
           <ul className="list-disc pl-6 space-y-2">
-            <li>For questions or concerns about these Terms, please contact our support team through the in-app Contact Developer form.</li>
-            <li>For urgent matters, email us at support@freefireapp.example.com</li>
+            <li>For questions or concerns about these Terms, please contact our support team through the in-app Contact Support form.</li>
+            <li>For urgent matters, email us at freefiretournaments03@gmail.com</li>
           </ul>
         )
       }

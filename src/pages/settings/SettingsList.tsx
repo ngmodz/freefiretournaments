@@ -24,7 +24,7 @@ const SettingsList = ({ options }: SettingsListProps) => {
       case "password":
         return <Lock size={20} className="text-[#ec4899]" />;
       case "contact":
-        return <MessageSquare size={20} className="text-[#8b5cf6]" />;
+        return <MessageSquare size={20} className="text-[#8b5cf6]" title="Contact Support" />;
       default:
         return null;
     }

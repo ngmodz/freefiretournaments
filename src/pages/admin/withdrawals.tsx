@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { AdminService } from "@/lib/adminService";
 import { WithdrawalRequest, StatusFilter } from "@/lib/types";
 import { toast } from "sonner";
-import { Loader2, QrCode, Crown } from "lucide-react";
+import { Loader2, QrCode, Crown, MessageSquare } from "lucide-react";
 import styles from "./withdrawals.module.css";
 import { getUserProfile } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
@@ -232,6 +232,13 @@ export default function AdminPage() {
           >
             <Crown size={16} />
             Host Applications
+          </button>
+          <button 
+            className={styles.hostApplicationsBtn} 
+            onClick={() => navigate('/admin/contactsupport')}
+          >
+            <MessageSquare size={16} />
+            Contact Support
           </button>
           <button className={styles.logoutBtn} onClick={logout}>Logout</button>
         </div>

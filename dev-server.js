@@ -169,6 +169,26 @@ app.post('/api/send-withdrawal-request-notification', async (req, res) => {
   }
 });
 
+app.get('/api/get-contact-submissions', async (req, res) => {
+  try {
+    const { default: handler } = await import(`./api/get-contact-submissions.js?v=${Date.now()}`);
+    await handler(req, res);
+  } catch (error) {
+    console.error('API Error:', error);
+    res.status(500).json({ error: error.message, success: false });
+  }
+});
+
+app.post('/api/contact-support', async (req, res) => {
+  try {
+    const { default: handler } = await import(`./api/contact-support.js?v=${Date.now()}`);
+    await handler(req, res);
+  } catch (error) {
+    console.error('API Error:', error);
+    res.status(500).json({ error: error.message, success: false });
+  }
+});
+
 app.options('/api/*', (req, res) => {
   res.status(200).end();
 });
