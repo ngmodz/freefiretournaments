@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, createContext, useContext } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import { 
@@ -43,6 +43,15 @@ import {
   signInWithPopup, 
   getAuth
 } from "firebase/auth";
+
+// Context for opening the profile edit sheet globally
+type ProfileEditSheetContextType = { openProfileEdit: () => void };
+const ProfileEditSheetContext = createContext<ProfileEditSheetContextType | undefined>(undefined);
+export const useProfileEditSheet = () => {
+  const ctx = useContext(ProfileEditSheetContext);
+  if (!ctx) throw new Error("useProfileEditSheet must be used within ProfileEditSheetProvider");
+  return ctx;
+};
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -100,6 +109,7 @@ const Settings = () => {
   const handleOpenSheet = (id: string) => {
     setOpenSheet(id);
   };
+  const openProfileEdit = () => setOpenSheet("profile");
 
   const handleCloseSheet = () => {
     setOpenSheet(null);
@@ -354,7 +364,8 @@ const Settings = () => {
   ];
 
   return (
-    <div className="container-padding py-4 min-h-screen">
+    <ProfileEditSheetContext.Provider value={{ openProfileEdit }}>
+      <div className="container-padding py-4 min-h-screen">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -588,6 +599,7 @@ const Settings = () => {
         </SheetContent>
       </Sheet>
     </div>
+    </ProfileEditSheetContext.Provider>
   );
 };
 

@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 import { signUpWithEmail, auth, db } from "@/lib/firebase";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
 interface RegisterFormProps {
   setActiveTab: (tab: string) => void;
@@ -131,6 +131,8 @@ const RegisterForm = ({ setActiveTab }: RegisterFormProps) => {
           // Wait a short moment to ensure Firebase Auth is fully initialized
           await new Promise(resolve => setTimeout(resolve, 1000));
           
+          console.log("Creating user profile for:", result.user.uid);
+          
           // Create a user profile in the Firestore database with all required fields
           await setDoc(doc(db, 'users', result.user.uid), {
             id: result.user.uid,
@@ -145,8 +147,8 @@ const RegisterForm = ({ setActiveTab }: RegisterFormProps) => {
             gender: "",
             avatar_url: null,
             isHost: false,
-            created_at: new Date(),
-            updated_at: new Date(),
+            created_at: serverTimestamp(),
+            updated_at: serverTimestamp(),
             displayName: registerName
           });
           
@@ -167,14 +169,15 @@ const RegisterForm = ({ setActiveTab }: RegisterFormProps) => {
           // If writing to Firestore fails, delete the authentication user to avoid orphaned accounts
           try {
             await result.user.delete();
+            console.log("Deleted orphaned auth user due to Firestore error");
           } catch (deleteError) {
-            console.error("Error deleting orphaned user:", deleteError);
+            console.error("Failed to delete orphaned auth user:", deleteError);
           }
           
           toast({
-            variant: "destructive",
             title: "Registration failed",
-            description: "Unable to create user profile. Please try again later.",
+            description: `Failed to create user profile: ${firestoreError.message}`,
+            variant: "destructive",
           });
         }
       }

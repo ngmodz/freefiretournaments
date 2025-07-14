@@ -12,8 +12,19 @@ import { auth } from "@/lib/firebase";
 import { signOut, onAuthStateChanged } from "firebase/auth";
 import { useTournament } from "@/contexts/TournamentContext";
 import { useCreditBalance } from '@/hooks/useCreditBalance';
-import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogFooter, AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel } from '@/components/ui/alert-dialog';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel
+} from '@/components/ui/alert-dialog';
 import { useHostCredit } from '@/lib/walletService';
+import { useAuth } from "@/contexts/AuthContext";
+import { useProfileEditSheet } from "@/contexts/ProfileEditSheetContext";
 
 // Array of banner images to randomly assign to tournaments
 const bannerImages = [
@@ -46,8 +57,11 @@ const ReviewAndPublish = ({ formData, prevStep }: ReviewAndPublishProps) => {
   const [selectedBannerIndex, setSelectedBannerIndex] = useState(0);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [hostCreditError, setHostCreditError] = useState<string | null>(null);
-  const currentUser = auth.currentUser;
+  const { currentUser, userProfile } = useAuth();
+  const { openProfileEdit } = useProfileEditSheet();
   const { hostCredits, isLoading: isHostCreditsLoading } = useCreditBalance(currentUser?.uid);
+  const [showIgnDialog, setShowIgnDialog] = useState(false);
+  const [missingFields, setMissingFields] = useState<{ ign: boolean; uid: boolean }>({ ign: false, uid: false });
   
   useEffect(() => {
     // Generate a random index between 0 and bannerImages.length-1
@@ -174,6 +188,15 @@ const ReviewAndPublish = ({ formData, prevStep }: ReviewAndPublishProps) => {
       if (!validateTournamentData()) {
         return;
       }
+      // --- IGN/UID validation (frontend) ---
+      const ignMissing = !userProfile?.ign || userProfile.ign.length < 3;
+      const uidMissing = !userProfile?.uid || !/^[0-9]{8,12}$/.test(userProfile.uid);
+      if (ignMissing || uidMissing) {
+        setMissingFields({ ign: ignMissing, uid: uidMissing });
+        setShowIgnDialog(true);
+        return;
+      }
+      // --- END IGN/UID validation ---
       // Host credit check only if from dialog
       if (fromDialog) {
         if (isHostCreditsLoading) return;
@@ -463,6 +486,37 @@ const ReviewAndPublish = ({ formData, prevStep }: ReviewAndPublishProps) => {
           </Alert>
         </div>
       )}
+      {/* IGN/UID Required Dialog */}
+      <AlertDialog open={showIgnDialog} onOpenChange={setShowIgnDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {missingFields.ign && missingFields.uid
+                ? "IGN and UID Required"
+                : missingFields.ign
+                ? "IGN Required"
+                : "UID Required"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {missingFields.ign && missingFields.uid ? (
+                <>
+                  You must update your <b>IGN</b> (in-game name) and <b>UID</b> (8-12 digit Free Fire ID) in your profile before hosting a tournament.
+                </>
+              ) : missingFields.ign ? (
+                <>You must update your <b>IGN</b> (in-game name) in your profile before hosting a tournament.</>
+              ) : (
+                <>You must update your <b>UID</b> (8-12 digit Free Fire ID) in your profile before hosting a tournament.</>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowIgnDialog(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setShowIgnDialog(false); openProfileEdit(); }}>
+              Update Profile
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

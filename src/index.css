@@ -621,3 +621,12 @@
     }
   }
 }
+
+/* Hide browser's default password reveal icon (for Chrome, Edge, Opera, Safari) */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear,
+input[type="password"]::-webkit-credentials-auto-fill-button,
+input[type="password"]::-webkit-input-password-reveal-button,
+input[type="password"]::-webkit-input-password-reveal {
+  display: none !important;
+}

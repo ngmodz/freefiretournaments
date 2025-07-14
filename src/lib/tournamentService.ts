@@ -119,6 +119,15 @@ export const createTournament = async (tournamentData: Omit<TournamentFormData, 
       throw new Error("You must be a verified host to create tournaments. Please apply to become a host.");
     }
 
+    // --- IGN/UID validation ---
+    if (!userProfile.ign || userProfile.ign.length < 3) {
+      throw new Error("You must update your IGN (in-game name) in your profile before hosting a tournament.");
+    }
+    if (!userProfile.uid || !/^[0-9]{8,12}$/.test(userProfile.uid)) {
+      throw new Error("You must update your UID (8-12 digit Free Fire ID) in your profile before hosting a tournament.");
+    }
+    // --- END IGN/UID validation ---
+
     // Verify authentication state
     console.log("Current user ID:", currentUser.uid);
 
@@ -405,6 +414,15 @@ export const joinTournament = async (tournamentId: string) => {
         throw new Error("User profile not found");
       }
       const userProfile = userDoc.data();
+
+      // --- IGN/UID validation ---
+      if (!userProfile.ign || userProfile.ign.length < 3) {
+        throw new Error("You must update your IGN (in-game name) in your profile before joining a tournament.");
+      }
+      if (!userProfile.uid || !/^[0-9]{8,12}$/.test(userProfile.uid)) {
+        throw new Error("You must update your UID (8-12 digit Free Fire ID) in your profile before joining a tournament.");
+      }
+      // --- END IGN/UID validation ---
 
       // 2. Perform validation checks
       if (tournament.status !== "active") {

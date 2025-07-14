@@ -18,6 +18,7 @@ import { Toaster as SonnerToaster } from "./components/ui/sonner";
 import Landing from "./pages/Landing";
 import { useAuth } from "./contexts/AuthContext";
 import { TournamentProvider } from "./contexts/TournamentContext";
+import { ProfileEditSheetProvider } from "./contexts/ProfileEditSheetContext";
 import Wallet from "./pages/Wallet";
 import Credits from "./pages/Credits";
 import PaymentStatus from "./pages/PaymentStatus";
@@ -31,103 +32,105 @@ function App() {
 
   return (
     <PWALayoutWrapper>
-      <TournamentProvider>
-        <Routes>
-          {/* Landing page redirects based on auth status */}
-          <Route path="/" element={<Landing />} />
-          
-          {/* Auth page - redirects to home if already logged in */}
-          <Route path="/auth" element={<Auth />} />
-          
-          {/* Protected routes inside main layout */}
-          <Route element={<Layout />}>
-            <Route path="/home" element={
-              <ProtectedRoute>
-                <Index />
+      <ProfileEditSheetProvider>
+        <TournamentProvider>
+          <Routes>
+            {/* Landing page redirects based on auth status */}
+            <Route path="/" element={<Landing />} />
+            
+            {/* Auth page - redirects to home if already logged in */}
+            <Route path="/auth" element={<Auth />} />
+            
+            {/* Protected routes inside main layout */}
+            <Route element={<Layout />}>
+              <Route path="/home" element={
+                <ProtectedRoute>
+                  <Index />
+                </ProtectedRoute>
+              } />
+              <Route path="/tournament/create" element={
+                <ProtectedRoute>
+                  <TournamentCreate />
+                </ProtectedRoute>
+              } />
+              <Route path="/tournament/:id" element={
+                <ProtectedRoute>
+                  <TournamentDetails />
+                </ProtectedRoute>
+              } />
+              <Route path="/tournaments" element={
+                <ProtectedRoute>
+                  <Tournaments />
+                </ProtectedRoute>
+              } />
+              <Route path="/wallet" element={
+                <ProtectedRoute>
+                  <Wallet />
+                </ProtectedRoute>
+              } />
+              {/* Credits routes - available at multiple paths */}
+              <Route path="/credits" element={
+                <ProtectedRoute>
+                  <Credits />
+                </ProtectedRoute>
+              } />
+              <Route path="/packages" element={
+                <ProtectedRoute>
+                  <Credits />
+                </ProtectedRoute>
+              } />
+              <Route path="/subscription" element={
+                <ProtectedRoute>
+                  <Credits />
+                </ProtectedRoute>
+              } />
+              <Route path="/buy-credits" element={
+                <ProtectedRoute>
+                  <Credits />
+                </ProtectedRoute>
+              } />
+              {/* Payment status page */}
+              <Route path="/payment-status" element={
+                <ProtectedRoute>
+                  <PaymentStatus />
+                </ProtectedRoute>
+              } />
+              <Route path="/profile" element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              } />
+              <Route path="/apply-host" element={
+                <ProtectedRoute>
+                  <ApplyHost />
+                </ProtectedRoute>
+              } />
+              <Route path="/settings" element={
+                <ProtectedRoute>
+                  <Settings />
+                </ProtectedRoute>
+              } />
+              <Route path="/terms-and-privacy" element={<TermsAndPolicy />} />
+            </Route>
+            
+            {/* Admin routes - separate from main layout */}
+            <Route path="/admin" element={
+              <ProtectedRoute adminRoute>
+                <AdminPage />
               </ProtectedRoute>
             } />
-            <Route path="/tournament/create" element={
-              <ProtectedRoute>
-                <TournamentCreate />
+            <Route path="/admin/host-applications" element={
+              <ProtectedRoute adminRoute>
+                <HostPanel />
               </ProtectedRoute>
             } />
-            <Route path="/tournament/:id" element={
-              <ProtectedRoute>
-                <TournamentDetails />
-              </ProtectedRoute>
-            } />
-            <Route path="/tournaments" element={
-              <ProtectedRoute>
-                <Tournaments />
-              </ProtectedRoute>
-            } />
-            <Route path="/wallet" element={
-              <ProtectedRoute>
-                <Wallet />
-              </ProtectedRoute>
-            } />
-            {/* Credits routes - available at multiple paths */}
-            <Route path="/credits" element={
-              <ProtectedRoute>
-                <Credits />
-              </ProtectedRoute>
-            } />
-            <Route path="/packages" element={
-              <ProtectedRoute>
-                <Credits />
-              </ProtectedRoute>
-            } />
-            <Route path="/subscription" element={
-              <ProtectedRoute>
-                <Credits />
-              </ProtectedRoute>
-            } />
-            <Route path="/buy-credits" element={
-              <ProtectedRoute>
-                <Credits />
-              </ProtectedRoute>
-            } />
-            {/* Payment status page */}
-            <Route path="/payment-status" element={
-              <ProtectedRoute>
-                <PaymentStatus />
-              </ProtectedRoute>
-            } />
-            <Route path="/profile" element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            } />
-            <Route path="/apply-host" element={
-              <ProtectedRoute>
-                <ApplyHost />
-              </ProtectedRoute>
-            } />
-            <Route path="/settings" element={
-              <ProtectedRoute>
-                <Settings />
-              </ProtectedRoute>
-            } />
-            <Route path="/terms-and-privacy" element={<TermsAndPolicy />} />
-          </Route>
-          
-          {/* Admin routes - separate from main layout */}
-          <Route path="/admin" element={
-            <ProtectedRoute adminRoute>
-              <AdminPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/host-applications" element={
-            <ProtectedRoute adminRoute>
-              <HostPanel />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-        <Toaster />
-        <SonnerToaster />
-      </TournamentProvider>
+            
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+          <Toaster />
+          <SonnerToaster />
+        </TournamentProvider>
+      </ProfileEditSheetProvider>
     </PWALayoutWrapper>
   );
 }

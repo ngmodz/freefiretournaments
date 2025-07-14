@@ -60,12 +60,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (user) {
         try {
           const profile = await getUserProfile(user.uid);
-          setUserProfile({
-            ...profile,
-            isHost: profile.isHost ?? false, // default to false if missing
-          });
+          if (profile) {
+            setUserProfile({
+              ...profile,
+              isHost: profile.isHost ?? false, // default to false if missing
+            });
+          } else {
+            // Profile doesn't exist yet - this is normal during registration
+            setUserProfile(null);
+          }
         } catch (error) {
           console.error('Error fetching user profile:', error);
+          setUserProfile(null);
         }
       } else {
         setUserProfile(null);

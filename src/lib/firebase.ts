@@ -366,12 +366,8 @@ export const onAuthChange = (callback: (user: FirebaseUser | null) => void) => {
 export const signUpWithEmail = async (email: string, password: string) => {
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    // Create a user profile in Firestore
-    await createUserProfile(userCredential.user.uid, {
-      email: userCredential.user.email,
-      displayName: userCredential.user.displayName,
-      photoURL: userCredential.user.photoURL,
-    });
+    // Note: Profile creation is handled by the calling component (RegisterForm)
+    // to ensure all required fields are included
     
     return { success: true, user: userCredential.user };
   } catch (error) {

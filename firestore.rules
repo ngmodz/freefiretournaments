@@ -8,10 +8,8 @@ service cloud.firestore {
       allow read: if true;
 
       // Allow creation of a user document
-      allow create: if request.auth != null && (
-        request.auth.uid == userId || 
-        !exists(/databases/$(database)/documents/users/$(userId))
-      );
+      allow create: if request.auth != null && 
+        request.auth.uid == userId;
 
       // Define update logic - FIXED VERSION
       allow update: if request.auth != null && (
