@@ -165,12 +165,13 @@ export class CreditService {
       if (userEmail && transactionId) {
         try {
           // Use relative URL for frontend/browser compatibility
-          const response = await fetch('/api/send-withdrawal-request-notification', {
+          const response = await fetch('/api/withdrawal-notification', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
+              type: 'request', // Specify the notification type
               userId,
               userEmail,
               userName,

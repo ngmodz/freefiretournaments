@@ -202,12 +202,13 @@ export default function AdminPage() {
         }
 
         try {
-          const response = await fetch('/api/send-host-approval-email', {
+          const response = await fetch('/api/send-email', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
+              type: 'hostApproval',
               email: application.userEmail,
               name: application.userName || 'User',
             }),

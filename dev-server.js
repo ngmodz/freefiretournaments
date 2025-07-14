@@ -63,9 +63,31 @@ app.post('/api/verify-payment', async (req, res) => {
   }
 });
 
-app.get('/api/health-check', async (req, res) => {
+app.post('/api/health-check', async (req, res) => {
   try {
-    const { default: handler } = await import('./api/health-check.js');
+    // Bust the cache to always get the latest version in dev
+    const { default: handler } = await import(`./api/health-check.js?v=${Date.now()}`);
+    await handler(req, res);
+  } catch (error) {
+    console.error('API Error:', error);
+    res.status(500).json({ error: error.message, success: false });
+  }
+});
+
+app.post('/api/withdrawal-notification', async (req, res) => {
+  try {
+    const { default: handler } = await import(`./api/withdrawal-notification.js?v=${Date.now()}`);
+    await handler(req, res);
+  } catch (error) {
+    console.error('API Error:', error);
+    res.status(500).json({ error: error.message, success: false });
+  }
+});
+
+// Tournament management endpoints
+app.post('/api/check-tournament', async (req, res) => {
+  try {
+    const { default: handler } = await import('./api/check-tournament.js');
     await handler(req, res);
   } catch (error) {
     console.error('API Error:', error);
@@ -83,20 +105,10 @@ app.get('/api/tournament-notifications', async (req, res) => {
   }
 });
 
-app.get('/api/check-tournament', async (req, res) => {
-  try {
-    const { default: handler } = await import('./api/check-tournament.js');
-    await handler(req, res);
-  } catch (error) {
-    console.error('API Error:', error);
-    res.status(500).json({ error: error.message, success: false });
-  }
-});
-
-app.post('/api/send-withdrawal-notification', async (req, res) => {
+app.post('/api/get-contact-submissions', async (req, res) => {
   try {
     // Bust the cache to always get the latest version in dev
-    const { default: handler } = await import(`./api/send-withdrawal-notification.js?v=${Date.now()}`);
+    const { default: handler } = await import(`./api/get-contact-submissions.js?v=${Date.now()}`);
     await handler(req, res);
   } catch (error) {
     console.error('API Error:', error);
@@ -104,19 +116,9 @@ app.post('/api/send-withdrawal-notification', async (req, res) => {
   }
 });
 
-app.post('/api/send-host-approval-email', async (req, res) => {
+app.post('/api/send-email', async (req, res) => {
   try {
-    const { default: handler } = await import(`./api/send-host-approval-email.js?v=${Date.now()}`);
-    await handler(req, res);
-  } catch (error) {
-    console.error('API Error:', error);
-    res.status(500).json({ error: error.message, success: false });
-  }
-});
-
-app.post('/api/send-application-confirmation', async (req, res) => {
-  try {
-    const { default: handler } = await import(`./api/send-application-confirmation.js?v=${Date.now()}`);
+    const { default: handler } = await import(`./api/send-email.js?v=${Date.now()}`);
     await handler(req, res);
   } catch (error) {
     console.error('API Error:', error);
@@ -158,27 +160,6 @@ app.get('/api/test-application-email', async (req, res) => {
   }
 });
 
-app.post('/api/send-withdrawal-request-notification', async (req, res) => {
-  try {
-    // Bust the cache to always get the latest version in dev
-    const { default: handler } = await import(`./api/send-withdrawal-request-notification.js?v=${Date.now()}`);
-    await handler(req, res);
-  } catch (error) {
-    console.error('API Error:', error);
-    res.status(500).json({ error: error.message, success: false });
-  }
-});
-
-app.get('/api/get-contact-submissions', async (req, res) => {
-  try {
-    const { default: handler } = await import(`./api/get-contact-submissions.js?v=${Date.now()}`);
-    await handler(req, res);
-  } catch (error) {
-    console.error('API Error:', error);
-    res.status(500).json({ error: error.message, success: false });
-  }
-});
-
 app.post('/api/contact-support', async (req, res) => {
   try {
     const { default: handler } = await import(`./api/contact-support.js?v=${Date.now()}`);
@@ -214,14 +195,18 @@ app.use('/api/*', (req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 Development API server running on http://localhost:${PORT}`);
   console.log('📡 Available endpoints:');
-  console.log(`  - GET  http://localhost:${PORT}/api/health-check`);
+  console.log(`  - POST http://localhost:${PORT}/api/check-tournament`);
+  console.log(`  - POST http://localhost:${PORT}/api/contact-support`);
   console.log(`  - POST http://localhost:${PORT}/api/create-payment-order`);
+  console.log(`  - POST http://localhost:${PORT}/api/get-contact-submissions`);
+  console.log(`  - POST http://localhost:${PORT}/api/health-check`);
   console.log(`  - POST http://localhost:${PORT}/api/mock-create-payment-order`);
   console.log(`  - POST http://localhost:${PORT}/api/payment-webhook`);
+  console.log(`  - POST http://localhost:${PORT}/api/send-email`);
+  console.log(`  - GET  http://localhost:${PORT}/api/test-application-email`);
+  console.log(`  - GET  http://localhost:${PORT}/api/tournament-notifications`);
   console.log(`  - POST http://localhost:${PORT}/api/verify-payment`);
-  console.log(`  - POST http://localhost:${PORT}/api/send-withdrawal-notification`);
-  console.log(`  - POST http://localhost:${PORT}/api/send-host-approval-email`);
-  console.log(`  - POST http://localhost:${PORT}/api/send-withdrawal-request-notification`);
+  console.log(`  - POST http://localhost:${PORT}/api/withdrawal-notification`);
   console.log('');
   console.log('💡 Start your frontend with: npm run dev');
   console.log('🔄 Or run both together with: npm run dev:full');

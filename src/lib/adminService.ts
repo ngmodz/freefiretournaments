@@ -146,16 +146,17 @@ export const AdminService = {
   ): Promise<void> {
     try {
       // Call the backend REST API directly
-      const response = await fetch('/api/send-withdrawal-notification', {
+      const response = await fetch('/api/withdrawal-notification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          type: 'processed', // Specify the notification type
           userId: request.userId,
           userEmail: request.userEmail,
           userName: request.userName,
           upiId: request.upiId,
           amount: request.amount,
-          remainingBalance: request.balance, // Changed from 'balance' to 'remainingBalance'
+          remainingBalance: request.balance,
           processedAt: request.processedAt,
           status: 'completed',
           notes: request.notes || ''

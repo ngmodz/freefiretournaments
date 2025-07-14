@@ -145,12 +145,13 @@ const HostPanel: React.FC = () => {
         toast.success('Host privileges have been granted.');
 
         // Send approval email in the background
-        fetch('/api/send-host-approval-email', {
+        fetch('/api/send-email', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
+            type: 'hostApproval',
             email: application.userEmail,
             name: application.userName || 'User',
           }),

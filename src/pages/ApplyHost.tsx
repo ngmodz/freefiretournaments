@@ -77,12 +77,13 @@ const ApplyHost = () => {
 
       // Send confirmation email via API
       try {
-        await fetch('/api/send-application-confirmation', {
+        await fetch('/api/send-email', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
+            type: 'applicationConfirmation',
             email: currentUser.email,
             name: formData.fullName || userProfile?.displayName || 'User',
           }),
