@@ -33,7 +33,7 @@ const ContactSupportPanel: React.FC = () => {
         }
         const token = await user.getIdToken();
 
-        const response = await fetch('/api/get-contact-submissions', {
+        const response = await fetch('/api/contact', {
           headers: {
             'Authorization': `Bearer ${token}`
           }

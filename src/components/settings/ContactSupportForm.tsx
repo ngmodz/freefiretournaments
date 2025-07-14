@@ -57,7 +57,7 @@ const ContactSupportForm = ({ onClose }: ContactSupportFormProps) => {
 
   const onSubmit = async (data: FormValues) => {
     try {
-      const response = await fetch('/api/contact-support', {
+      const response = await fetch('/api/contact', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

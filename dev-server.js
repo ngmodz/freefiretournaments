@@ -105,10 +105,9 @@ app.get('/api/tournament-notifications', async (req, res) => {
   }
 });
 
-app.post('/api/get-contact-submissions', async (req, res) => {
+app.all('/api/contact', async (req, res) => {
   try {
-    // Bust the cache to always get the latest version in dev
-    const { default: handler } = await import(`./api/get-contact-submissions.js?v=${Date.now()}`);
+    const { default: handler } = await import(`./api/contact.js?v=${Date.now()}`);
     await handler(req, res);
   } catch (error) {
     console.error('API Error:', error);
@@ -160,16 +159,6 @@ app.get('/api/test-application-email', async (req, res) => {
   }
 });
 
-app.post('/api/contact-support', async (req, res) => {
-  try {
-    const { default: handler } = await import(`./api/contact-support.js?v=${Date.now()}`);
-    await handler(req, res);
-  } catch (error) {
-    console.error('API Error:', error);
-    res.status(500).json({ error: error.message, success: false });
-  }
-});
-
 app.options('/api/*', (req, res) => {
   res.status(200).end();
 });
@@ -196,9 +185,8 @@ app.listen(PORT, () => {
   console.log(`🚀 Development API server running on http://localhost:${PORT}`);
   console.log('📡 Available endpoints:');
   console.log(`  - POST http://localhost:${PORT}/api/check-tournament`);
-  console.log(`  - POST http://localhost:${PORT}/api/contact-support`);
+  console.log(`  - ALL  http://localhost:${PORT}/api/contact`);
   console.log(`  - POST http://localhost:${PORT}/api/create-payment-order`);
-  console.log(`  - POST http://localhost:${PORT}/api/get-contact-submissions`);
   console.log(`  - POST http://localhost:${PORT}/api/health-check`);
   console.log(`  - POST http://localhost:${PORT}/api/mock-create-payment-order`);
   console.log(`  - POST http://localhost:${PORT}/api/payment-webhook`);
