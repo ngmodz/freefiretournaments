@@ -48,8 +48,7 @@ const Index = () => {
                     tournament.status === 'ongoing' ? 'ongoing' : 
                     tournament.status === 'ended' ? 'ended' :
                     tournament.status === 'completed' ? 'completed' :
-                    tournament.status === 'cancelled' ? 'cancelled' : 'active',
-            isPremium: tournament.entry_fee > 100 // Just an example condition for premium
+                    tournament.status === 'cancelled' ? 'cancelled' : 'active'
           };
         });
         

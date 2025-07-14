@@ -85,7 +85,6 @@ const Tournaments = () => {
       totalSpots: tournament.max_players,
       filledSpots: tournament.filled_spots || 0,
       status: tournament.status as TournamentStatus,
-      isPremium: tournament.entry_fee > 100,
       ttl: tournament.ttl?.toDate().toISOString()
     };
   });
@@ -115,7 +114,6 @@ const Tournaments = () => {
       totalSpots: tournament.max_players,
       filledSpots: tournament.filled_spots || 0,
       status: tournament.status as TournamentStatus,
-      isPremium: tournament.entry_fee > 100,
       ttl: tournament.ttl?.toDate().toISOString()
     };
   });

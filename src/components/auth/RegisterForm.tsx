@@ -144,7 +144,7 @@ const RegisterForm = ({ setActiveTab }: RegisterFormProps) => {
             birthdate: "",
             gender: "",
             avatar_url: null,
-            isPremium: false,
+            isHost: false,
             created_at: new Date(),
             updated_at: new Date(),
             displayName: registerName

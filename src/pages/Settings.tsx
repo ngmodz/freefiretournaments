@@ -61,7 +61,7 @@ const Settings = () => {
   const user = userProfile || {
     name: currentUser?.displayName || "ElitePlayer123",
     email: currentUser?.email || "player@example.com",
-    isPremium: true,
+    isHost: true,
     ign: "ElitePlayer123",
     uid: "FF123456789"
   };

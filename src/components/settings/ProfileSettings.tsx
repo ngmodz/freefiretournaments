@@ -15,7 +15,7 @@ const ProfileSettings = () => {
   const user = userProfile || {
     name: currentUser?.displayName || "ElitePlayer123",
     email: currentUser?.email || "player@example.com",
-    isPremium: true,
+    isHost: true,
     ign: "ElitePlayer123",
     uid: "FF123456789"
   };
@@ -82,16 +82,14 @@ const ProfileSettings = () => {
                 <span className="text-sm text-[#A0A0A0]">User ID</span>
                 <p className="text-white font-medium">{user.uid || "Not set"}</p>
               </div>
-            </div>
-            
-            <div className="bg-[#222222] p-3 rounded-md">
-              <span className="text-sm text-[#A0A0A0]">Account Type</span>
-              <div className="flex items-center mt-1">
-                <span className={`px-2.5 py-0.5 rounded text-xs font-medium ${user.isPremium ? "bg-gaming-accent/20 text-gaming-accent" : "bg-blue-500/20 text-blue-400"}`}>
-                  {user.isPremium ? "Premium" : "Standard"}
-                </span>
+            </div>              <div className="bg-[#222222] p-3 rounded-md">
+                <span className="text-sm text-[#A0A0A0]">Account Type</span>
+                <div className="flex items-center mt-1">
+                  <span className={`px-2.5 py-0.5 rounded text-xs font-medium ${user.isHost ? "bg-gaming-accent/20 text-gaming-accent" : "bg-blue-500/20 text-blue-400"}`}>
+                    {user.isHost ? "Host" : "Player"}
+                  </span>
+                </div>
               </div>
-            </div>
           </div>
         </div>
       </div>

@@ -12,6 +12,5 @@ export interface TournamentType {
   totalSpots: number;
   filledSpots: number;
   status: TournamentStatus;
-  isPremium: boolean;
   ttl?: string; // ISO string of deletion time
 }

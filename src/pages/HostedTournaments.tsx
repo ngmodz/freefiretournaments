@@ -169,7 +169,6 @@ const HostedTournaments = () => {
               status: tournament.status === 'active' ? 'active' : 
                       tournament.status === 'ongoing' ? 'ongoing' : 
                       tournament.status === 'completed' ? 'completed' : 'active',
-              isPremium: (tournament.entry_fee || 0) > 100, // Just an example condition for premium
               ttl: tournament.ttl?.toDate().toISOString()
             };
           });

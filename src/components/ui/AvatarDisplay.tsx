@@ -14,7 +14,7 @@ interface ExtendedUserProfile {
   uid?: string;
   email: string;
   avatar_url: string | null;
-  isPremium: boolean;
+  isHost: boolean;
   gender?: string;
   fullName?: string;
 }

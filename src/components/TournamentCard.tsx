@@ -40,7 +40,6 @@ const TournamentCard = ({ tournament }: TournamentCardProps) => {
     totalSpots,
     filledSpots,
     status,
-    isPremium = false,
   } = tournament;
   
   // Use the tournament ID to generate a consistent index for banner image
