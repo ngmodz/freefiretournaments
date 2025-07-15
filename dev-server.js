@@ -125,6 +125,16 @@ app.post('/api/send-email', async (req, res) => {
   }
 });
 
+app.post('/api/start-tournament-notification', async (req, res) => {
+  try {
+    const { default: handler } = await import(`./api/start-tournament-notification.js?v=${Date.now()}`);
+    await handler(req, res);
+  } catch (error) {
+    console.error('API Error:', error);
+    res.status(500).json({ error: error.message, success: false });
+  }
+});
+
 app.get('/api/test-application-email', async (req, res) => {
   console.log('--- Running Email Test ---');
   try {
@@ -191,6 +201,7 @@ app.listen(PORT, () => {
   console.log(`  - POST http://localhost:${PORT}/api/mock-create-payment-order`);
   console.log(`  - POST http://localhost:${PORT}/api/payment-webhook`);
   console.log(`  - POST http://localhost:${PORT}/api/send-email`);
+  console.log(`  - POST http://localhost:${PORT}/api/start-tournament-notification`);
   console.log(`  - GET  http://localhost:${PORT}/api/test-application-email`);
   console.log(`  - GET  http://localhost:${PORT}/api/tournament-notifications`);
   console.log(`  - POST http://localhost:${PORT}/api/verify-payment`);

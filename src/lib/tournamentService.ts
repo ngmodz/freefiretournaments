@@ -672,6 +672,27 @@ export const startTournament = async (tournamentId: string) => {
 
     console.log(`Tournament ${tournamentId} started successfully with TTL set to ${ttlTimestamp.toDate().toISOString()} (2 hours after scheduled time)`);
 
+    // --- Send notification to participants (fire-and-forget) ---
+    try {
+      fetch('/api/start-tournament-notification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tournamentId }),
+      })
+      .then(res => {
+        if (!res.ok) {
+          console.error('Failed to trigger start tournament notification API', res.statusText);
+        }
+      })
+      .catch(err => {
+        console.error('Error calling start tournament notification API:', err);
+      });
+    } catch (notificationError) {
+      // Log error but don't block the main flow
+      console.error('Failed to send start tournament notification:', notificationError);
+    }
+    // --- End of notification ---
+
     return {
       success: true,
       message: "Tournament started successfully",
