@@ -1,3 +1,4 @@
+import { inject } from "@vercel/analytics";
 import { Route, Routes, Navigate } from "react-router-dom";
 import Auth from "./pages/Auth";
 import Index from "./pages/Index";
@@ -29,6 +30,7 @@ import ContactSupportPanel from "./pages/admin/ContactSupportPanel";
 import "./App.css";
 
 function App() {
+  inject();
   const { currentUser } = useAuth();
 
   return (
