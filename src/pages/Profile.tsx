@@ -178,17 +178,22 @@ const Profile = () => {
 
   return (
     <div
-      className="container-padding min-h-screen overflow-auto"
+      className="container-padding min-h-screen overflow-hidden"
       style={{
-        overscrollBehavior: 'contain',
-        WebkitOverflowScrolling: 'touch'
+        overscrollBehavior: 'none',
+        WebkitOverflowScrolling: 'touch',
+        maxHeight: '100vh'
       }}
     >
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
-        className={`space-y-6 max-w-4xl mx-auto py-4 ${isMobile ? 'pb-24' : 'pb-8'}`}
+        className={`space-y-6 max-w-4xl mx-auto py-4 ${isMobile ? 'pb-40' : 'pb-8'} overflow-auto`}
+        style={{
+          maxHeight: 'calc(100vh - 2rem)',
+          overscrollBehavior: 'contain'
+        }}
       >
         {/* Header with back button */}
         <motion.div
@@ -461,65 +466,6 @@ const Profile = () => {
             </CardContent>
           </Card>
         </motion.div>
-
-        {/* Quick Actions (Mobile Only) */}
-        {isMobile && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.6 }}
-            className="fixed bottom-0 left-0 right-0 bg-gaming-card border-t border-gaming-border p-4 shadow-top z-40"
-          >
-            <h3 className="text-lg font-bold text-white mb-4">Quick Actions</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <Card 
-                className="bg-gaming-card border-gaming-border p-4 flex flex-col items-center justify-center space-y-2 text-center relative overflow-hidden cursor-pointer hover:bg-gaming-card/80 transition-colors"
-                onClick={() => navigate('/wallet')}
-              >
-                <div className="absolute top-0 right-0 w-20 h-20 bg-gaming-primary/10 rounded-full -mr-10 -mt-10 blur-xl"></div>
-                <div className="absolute bottom-0 left-0 w-16 h-16 bg-gaming-accent/10 rounded-full -ml-8 -mb-8 blur-lg"></div>
-                <Wallet className="h-6 w-6 text-gaming-primary relative z-10" />
-                <span className="text-sm text-gaming-text font-medium relative z-10">Manage funds</span>
-            </Card>
-              <Card 
-                className="bg-gaming-card border-gaming-border p-4 flex flex-col items-center justify-center space-y-2 text-center relative overflow-hidden cursor-pointer hover:bg-gaming-card/80 transition-colors"
-                onClick={() => navigate('/tournaments')}
-              >
-                <div className="absolute top-0 right-0 w-20 h-20 bg-gaming-primary/10 rounded-full -mr-10 -mt-10 blur-xl"></div>
-                <div className="absolute bottom-0 left-0 w-16 h-16 bg-gaming-accent/10 rounded-full -ml-8 -mb-8 blur-lg"></div>
-                <Trophy className="h-6 w-6 text-gaming-accent relative z-10" />
-                <span className="text-sm text-gaming-text font-medium relative z-10">View all</span>
-              </Card>
-              <Card 
-                className="bg-gaming-card border-gaming-border p-4 flex flex-col items-center justify-center space-y-2 text-center relative overflow-hidden cursor-pointer hover:bg-gaming-card/80 transition-colors"
-                onClick={handleCreateTournamentClick}
-              >
-                <div className="absolute top-0 right-0 w-20 h-20 bg-gaming-primary/10 rounded-full -mr-10 -mt-10 blur-xl"></div>
-                <div className="absolute bottom-0 left-0 w-16 h-16 bg-gaming-accent/10 rounded-full -ml-8 -mb-8 blur-lg"></div>
-                <Users className="h-6 w-6 text-gaming-primary relative z-10" />
-                <span className="text-sm text-gaming-text font-medium relative z-10">New tournament</span>
-              </Card>
-              <Card 
-                className="bg-gaming-card border-gaming-border p-4 flex flex-col items-center justify-center space-y-2 text-center relative overflow-hidden cursor-pointer hover:bg-gaming-card/80 transition-colors"
-                onClick={() => navigate('/credits')}
-              >
-                <div className="absolute top-0 right-0 w-20 h-20 bg-gaming-primary/10 rounded-full -mr-10 -mt-10 blur-xl"></div>
-                <div className="absolute bottom-0 left-0 w-16 h-16 bg-gaming-accent/10 rounded-full -ml-8 -mb-8 blur-lg"></div>
-                <Star className="h-6 w-6 text-gaming-accent relative z-10" />
-                <span className="text-sm text-gaming-text font-medium relative z-10">Add funds</span>
-              </Card>
-            </div>
-            {/* Mobile-only action buttons for View Tournaments and Create Tournament */}
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Button onClick={() => navigate('/tournaments')} className="w-full bg-gaming-primary hover:bg-gaming-primary/90 text-white shadow-lg">
-                <Trophy size={20} className="mr-2" /> View Tournaments
-              </Button>
-              <Button onClick={handleCreateTournamentClick} className="w-full bg-gaming-accent hover:bg-gaming-accent/90 text-white shadow-lg">
-                <Users size={20} className="mr-2" /> Create Tournament
-                </Button>
-            </div>
-              </motion.div>
-          )}
 
         {/* Host Apply Dialog */}
       <AlertDialog open={showHostApplyDialog} onOpenChange={setShowHostApplyDialog}>
