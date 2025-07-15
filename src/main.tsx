@@ -6,6 +6,8 @@ import './ios-font.css'
 import './index.css'
 import { registerServiceWorker } from './registerSW'
 import TournamentCleanupService from './lib/tournamentCleanupService'
+import { SpeedInsights } from "@vercel/speed-insights/react"
+import { Analytics } from "@vercel/analytics/react"
 
 // Initialize tournament cleanup service
 TournamentCleanupService.initializeCleanup();
@@ -20,6 +22,8 @@ createRoot(document.getElementById("root")!).render(
   <BrowserRouter>
     <AuthProvider>
       <App />
+      <SpeedInsights />
+      <Analytics />
     </AuthProvider>
   </BrowserRouter>
 );
