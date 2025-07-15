@@ -1,7 +1,8 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { getTournamentById, Tournament } from "@/lib/tournamentService";
-import { auth } from "@/lib/firebase";
+import { doc, onSnapshot } from "firebase/firestore";
+import { db, auth } from "@/lib/firebase";
+import { Tournament } from "@/lib/tournamentService";
 import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
 import TournamentDetailsContent from "@/components/tournament-details";
 import { Loader2 } from "lucide-react";
@@ -21,71 +22,50 @@ const TournamentDetails = () => {
   const [isHost, setIsHost] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
     });
-    return () => unsubscribe();
+    return () => unsubscribeAuth();
   }, []);
 
-  const fetchTournamentDetails = async () => {
+  useEffect(() => {
     if (!id) {
       setError("Tournament ID is missing");
       setLoading(false);
       return;
     }
-    
+
     setLoading(true);
-    setError(null);
-    
-    try {
-      console.log("Fetching tournament details for ID:", id);
-      const data = await getTournamentById(id);
-      
-      if (!data) {
+    const tournamentRef = doc(db, "tournaments", id);
+
+    const unsubscribeSnapshot = onSnapshot(tournamentRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = { id: docSnap.id, ...docSnap.data() } as Tournament;
+        console.log("Tournament data updated in real-time:", data);
+        setTournament(data);
+        if (currentUser) {
+          setIsHost(data.host_id === currentUser.uid);
+        }
+      } else {
         console.error("Tournament not found");
         setError("Tournament not found");
         setTournament(null);
-        return;
       }
-      
-      // Validate tournament data
-      if (!data.name || !data.host_id) {
-        console.error("Invalid tournament data:", data);
-        setError("Tournament data is invalid");
-        return;
-      }
-      
-      console.log("Tournament data loaded successfully:", data);
-      setTournament(data);
-      
-      if (currentUser) {
-        setIsHost(data.host_id === currentUser.uid);
-      }
-    } catch (error) {
-      console.error("Failed to fetch tournament details:", error);
-      setError(error instanceof Error ? error.message : "Failed to load tournament details");
-      
-      // Show an error toast
+      setLoading(false);
+    }, (err) => {
+      console.error("Failed to fetch tournament details:", err);
+      setError(err.message || "Failed to load tournament details");
+      setLoading(false);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to load tournament details",
+        description: err.message || "Failed to load tournament details",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
-    }
-  };
+    });
 
-  useEffect(() => {
-    fetchTournamentDetails();
-  }, [id]);
-
-  // Update isHost when either tournament or currentUser changes
-  useEffect(() => {
-    if (tournament && currentUser) {
-      setIsHost(tournament.host_id === currentUser.uid);
-    }
-  }, [tournament, currentUser]);
+    // Cleanup listener on unmount
+    return () => unsubscribeSnapshot();
+  }, [id, currentUser, toast]);
 
   // Handle missing tournament ID
   if (!id) {
@@ -106,7 +86,7 @@ const TournamentDetails = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <Loader2 className="h-12 w-12 animate-spin text-gaming-primary" />
+        <Loader2 className="h-8 w-8 sm:h-12 sm:w-12 animate-spin text-gaming-primary shadow-glow" />
         <p className="ml-4 text-lg">Loading tournament details...</p>
       </div>
     );
@@ -124,7 +104,7 @@ const TournamentDetails = () => {
           Go back to tournaments
         </button>
         <button 
-          onClick={fetchTournamentDetails}
+          onClick={() => window.location.reload()}
           className="mt-2 border border-gaming-primary text-gaming-primary px-4 py-2 rounded"
         >
           Try again
@@ -141,7 +121,7 @@ const TournamentDetails = () => {
       loading={loading}
       currentUser={currentUser}
       userProfile={userProfile as any}
-      onRefresh={fetchTournamentDetails}
+      onRefresh={() => { /* No longer needed, but prop can remain for now */ }}
     />
   );
 };

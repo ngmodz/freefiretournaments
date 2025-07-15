@@ -252,9 +252,10 @@ exports.setTournamentTTLAtScheduledTime = onSchedule("every 5 minutes", async (c
     throw error;
   }
 });
-  
-// Cloud Function to automatically delete expired tournaments
-exports.deleteExpiredTournaments = onSchedule("every 1 hours", async (context) => {
+
+
+// Cloud Function to automatically delete expired tournaments from Firestore
+exports.cleanupExpiredTournaments = onSchedule("every 15 minutes", async (context) => {
   try {
     const now = new Date();
     logger.info(`Running tournament cleanup job at ${now.toISOString()}`);

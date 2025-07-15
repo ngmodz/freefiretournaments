@@ -24,11 +24,20 @@ const TournamentCountdown: React.FC<TournamentCountdownProps> = ({
   const [tournamentStarted, setTournamentStarted] = React.useState(false);
 
   React.useEffect(() => {
-    if (!ttl) return;
-
     const updateCountdown = () => {
       const now = new Date();
-      const deletionTime = new Date(ttl);
+      
+      // If no TTL is set, show info about automatic cleanup
+      if (!ttl) {
+        setTimeRemaining("");
+        setIsExpired(false);
+        setIsWarning(false);
+        setTournamentStarted(false);
+        return;
+      }
+      
+      // Handle both ISO string and Firestore Timestamp object for ttl
+      const deletionTime = ttl.toDate ? ttl.toDate() : new Date(ttl);
       
       // TTL can now be set automatically when tournament reaches scheduled start time
       // or when host manually starts the tournament
@@ -48,6 +57,7 @@ const TournamentCountdown: React.FC<TournamentCountdownProps> = ({
       }
 
       // Tournament has TTL, so it has either been started by host or reached scheduled time
+      // Always show the countdown if TTL exists, regardless of start status
       setTournamentStarted(true);
 
       // Calculate time components
@@ -87,17 +97,20 @@ const TournamentCountdown: React.FC<TournamentCountdownProps> = ({
     // Initial update
     updateCountdown();
 
-    // Update every second
-    const interval = setInterval(updateCountdown, 1000);
+    // Update every second only if TTL is set
+    const interval = ttl ? setInterval(updateCountdown, 1000) : null;
 
-    return () => clearInterval(interval);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [ttl, startDate]);
 
-  if (!ttl) return null;
+  if (!ttl && !showWarning) return null; // Only hide if TTL is missing and warnings are disabled
 
   const getTextColor = () => {
     if (isExpired) return "text-red-500";
     if (isWarning) return "text-yellow-500";
+    if (!ttl) return "text-blue-400"; // Blue for informational message when TTL is not set
     if (!tournamentStarted) return "text-blue-400";
     return "text-gray-400";
   };
@@ -109,10 +122,12 @@ const TournamentCountdown: React.FC<TournamentCountdownProps> = ({
   };
 
   const getDisplayText = () => {
-    if (!ttl) return "No expiration set";
-    if (isExpired) return "Expired";
+    if (!ttl) {
+      return "Auto-deletion timer will be set when tournament reaches scheduled start time";
+    }
+    if (isExpired) return "Expired - being deleted";
     if (tournamentStarted) return `Auto-delete in ${timeRemaining}`;
-    return "Tournament not started by host";
+    return `Auto-delete in ${timeRemaining}`;
   };
 
   return (

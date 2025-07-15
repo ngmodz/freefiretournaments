@@ -105,6 +105,24 @@ export interface Tournament {
   currentPrizePool: number; // Current prize pool accumulated from entry fees
 }
 
+// Helper to convert Firestore timestamps to ISO strings
+const processTournamentData = (data: any) => {
+  const processedData = { ...data };
+  for (const key of ['created_at', 'started_at', 'ended_at', 'completed_at', 'ttl']) {
+    if (processedData[key] && typeof processedData[key].toDate === 'function') {
+      // Keep it as a Timestamp object for now, let consumers handle it
+      // processedData[key] = processedData[key].toDate().toISOString();
+    }
+  }
+  // Also ensure start_date is consistent if it's a timestamp
+  if (processedData.start_date && typeof processedData.start_date.toDate === 'function') {
+    // Keep as timestamp
+    // processedData.start_date = processedData.start_date.toDate().toISOString();
+  }
+  return processedData;
+};
+
+
 // Create a new tournament
 export const createTournament = async (tournamentData: Omit<TournamentFormData, "banner_image">) => {
   try {
@@ -147,11 +165,10 @@ export const createTournament = async (tournamentData: Omit<TournamentFormData, 
       throw new Error('Invalid start date format');
     }
 
-    // Check if prize distribution adds up to 100%
-    const totalPrizePool = tournamentData.entry_fee * tournamentData.max_players;
-    const prizeTotal = Object.values(tournamentData.prize_distribution).reduce((sum, value) => sum + value, 0);
-    if (prizeTotal > totalPrizePool) {
-      throw new Error(`Prize distribution total cannot exceed the total expected prize pool. Current total: ${prizeTotal}`);
+    // Validate prize distribution percentages
+    const prizeTotalPercentage = Object.values(tournamentData.prize_distribution).reduce((sum, value) => sum + value, 0);
+    if (prizeTotalPercentage > 100) {
+      throw new Error(`Prize distribution total cannot exceed 100%. Current total: ${prizeTotalPercentage}%`);
     }
 
     // Don't set TTL during creation - only when tournament is started by host
@@ -712,6 +729,44 @@ export const startTournament = async (tournamentId: string) => {
   }
 };
 
+// Cancel tournament (only for host)
+export const cancelTournament = async (tournamentId: string) => {
+  try {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      throw new Error("You must be logged in to cancel a tournament.");
+    }
+
+    const token = await currentUser.getIdToken();
+
+    const response = await fetch('/api/cancel-tournament', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ tournamentId }),
+    });
+
+    let result;
+    try {
+      result = await response.json();
+    } catch (jsonError) {
+      console.error("Failed to parse JSON response:", jsonError);
+      throw new Error(`Server error: ${response.status} ${response.statusText}`);
+    }
+
+    if (!response.ok) {
+      throw new Error(result.error || 'Failed to cancel tournament.');
+    }
+
+    return { success: true, message: result.message };
+  } catch (error) {
+    console.error("Error cancelling tournament:", error);
+    throw error;
+  }
+};
+
 // Check if tournament can be started by host
 export const canStartTournament = (tournament: Tournament, currentUserId?: string) => {
   if (!currentUserId || tournament.host_id !== currentUserId) {
@@ -772,19 +827,19 @@ export const endTournament = async (tournamentId: string) => {
       throw new Error(`Tournament cannot be ended. Current status: ${tournament.status}`);
     }
 
-    // Update tournament status to "ended" and set TTL for 10 minutes (for prize distribution)
+    // Update tournament status to "ended" and set TTL for 30 minutes (for prize distribution)
     const endedAt = new Date();
-    const ttlDate = new Date(endedAt.getTime() + 10 * 60 * 1000); // Add 10 minutes for prize distribution
+    const ttlDate = new Date(endedAt.getTime() + 30 * 60 * 1000); // Add 30 minutes for prize distribution
     const ttlTimestamp = Timestamp.fromDate(ttlDate);
 
     const docRef = doc(db, "tournaments", tournamentId);
     await updateDoc(docRef, {
       status: "ended",
       ended_at: serverTimestamp(), // Add timestamp when tournament was ended
-      ttl: ttlTimestamp // Set TTL to 10 minutes after ending for prize distribution
+      ttl: ttlTimestamp // Set TTL to 30 minutes after ending for prize distribution
     });
 
-    console.log(`Tournament ${tournamentId} ended successfully with TTL set to ${ttlDate.toISOString()} (10 minutes for prize distribution)`);
+    console.log(`Tournament ${tournamentId} ended successfully with TTL set to ${ttlDate.toISOString()} (30 minutes for prize distribution)`);
 
     return {
       success: true,
@@ -828,18 +883,47 @@ export const setTTLForScheduledTournaments = async () => {
     const now = new Date();
     const nowTimestamp = Timestamp.fromDate(now);
 
-    // Query for active tournaments that have reached their scheduled start time but don't have TTL set yet
-    const tournamentsQuery = query(
-      collection(db, "tournaments"),
-      where("status", "==", "active"),
-      where("start_date", "<=", nowTimestamp),
-      where("ttl", "==", null)
+    console.log(`🔍 Checking for tournaments needing TTL at ${now.toISOString()}`);
+
+    // First, get ALL tournaments to debug what's happening
+    const allTournamentsQuery = query(
+      collection(db, "tournaments")
     );
 
-    const tournaments = await getDocs(tournamentsQuery);
+    const allTournaments = await getDocs(allTournamentsQuery);
+    
+    console.log(`� DEBUGGING: Found ${allTournaments.size} total tournaments`);
 
-    if (tournaments.empty) {
-      console.log("No tournaments found that need TTL set");
+    // Filter and debug each tournament
+    const tournamentsNeedingTTL: any[] = [];
+    
+    allTournaments.docs.forEach(doc => {
+      const data = doc.data();
+      const tournamentStartTime = data.start_date?.toDate ? data.start_date.toDate() : new Date(data.start_date);
+      const hasTTL = data.ttl !== null && data.ttl !== undefined;
+      const isPastScheduled = tournamentStartTime <= now;
+      const isCorrectStatus = ["upcoming", "active"].includes(data.status);
+      
+      console.log(`🔍 Tournament ${doc.id} (${data.name}):`);
+      console.log(`   Status: ${data.status} (valid: ${isCorrectStatus})`);
+      console.log(`   Scheduled: ${tournamentStartTime.toISOString()}`);
+      console.log(`   Current: ${now.toISOString()}`);
+      console.log(`   Past scheduled: ${isPastScheduled}`);
+      console.log(`   Has TTL: ${hasTTL}`);
+      console.log(`   TTL value: ${data.ttl}`);
+      
+      if (isCorrectStatus && isPastScheduled && !hasTTL) {
+        console.log(`   ✅ NEEDS TTL!`);
+        tournamentsNeedingTTL.push(doc);
+      } else {
+        console.log(`   ❌ Doesn't need TTL`);
+      }
+    });
+
+    console.log(`🎯 ${tournamentsNeedingTTL.length} tournaments need TTL set`);
+
+    if (tournamentsNeedingTTL.length === 0) {
+      console.log("✅ No tournaments found that need TTL set");
       return {
         success: true,
         updatedCount: 0,
@@ -847,21 +931,25 @@ export const setTTLForScheduledTournaments = async () => {
       };
     }
 
-    console.log(`Found ${tournaments.size} tournaments that need TTL set`);
-
     // Set TTL for tournaments in batches
     const batch = writeBatch(db);
     let updatedCount = 0;
 
-    tournaments.forEach((doc) => {
+    tournamentsNeedingTTL.forEach((doc) => {
       const tournamentData = doc.data();
-      const scheduledStartTime = new Date(tournamentData.start_date);
+      const scheduledStartTime = tournamentData.start_date?.toDate ? tournamentData.start_date.toDate() : new Date(tournamentData.start_date);
+
+      console.log(`🎯 Processing tournament: ${doc.id} - ${tournamentData.name}`);
+      console.log(`   Status: ${tournamentData.status}`);
+      console.log(`   Scheduled: ${scheduledStartTime.toISOString()}`);
+      console.log(`   Current: ${now.toISOString()}`);
+      console.log(`   TTL exists: ${!!tournamentData.ttl}`);
 
       // Calculate TTL (2 hours after scheduled start time)
       const ttlDate = new Date(scheduledStartTime.getTime() + 2 * 60 * 60 * 1000); // Add 2 hours
       const ttlTimestamp = Timestamp.fromDate(ttlDate);
 
-      console.log(`Setting TTL for tournament: ${doc.id} - ${tournamentData.name} to ${ttlDate.toISOString()}`);
+      console.log(`⏰ Setting TTL for tournament: ${doc.id} to ${ttlDate.toISOString()}`);
 
       batch.update(doc.ref, {
         ttl: ttlTimestamp
@@ -892,17 +980,70 @@ export const setTTLForScheduledTournaments = async () => {
 
 // Initialize automatic TTL setting
 export const initializeAutomaticTTLSetting = () => {
-  // Check for tournaments that need TTL set every 5 minutes
+  // Check for tournaments that need TTL set every 30 seconds during development
   setInterval(async () => {
     try {
+      console.log("🔄 Checking for tournaments that need TTL set...");
       await setTTLForScheduledTournaments();
     } catch (error) {
       console.error("Error in automatic TTL setting:", error);
     }
-  }, 5 * 60 * 1000); // 5 minutes
+  }, 30 * 1000); // 30 seconds
 
   // Also check immediately on initialization
   setTTLForScheduledTournaments().catch(console.error);
 
-  console.log("✅ Automatic TTL setting initialized (5-minute intervals)");
+  console.log("✅ Automatic TTL setting initialized (30-second intervals for development)");
+};
+
+// Function to force TTL setting for a specific tournament
+export const forceTTLForTournament = async (tournamentId: string) => {
+  try {
+    const tournament = await getTournamentById(tournamentId);
+    if (!tournament) {
+      throw new Error("Tournament not found");
+    }
+
+    let ttlTimestamp: Timestamp;
+    const now = new Date();
+    const scheduledStartTime = new Date(tournament.start_date);
+
+    if (tournament.status === "ended") {
+      // For ended tournaments, set TTL to 30 minutes after ending (or 5 min from now if overdue)
+      const endedAt = tournament.ended_at ? tournament.ended_at.toDate() : now;
+      const thirtyMinsAfterEnd = new Date(endedAt.getTime() + 30 * 60 * 1000);
+      const ttlDate = thirtyMinsAfterEnd < now ? new Date(now.getTime() + 5 * 60 * 1000) : thirtyMinsAfterEnd;
+      ttlTimestamp = Timestamp.fromDate(ttlDate);
+    } else if (tournament.status === "cancelled") {
+      // For cancelled tournaments, set TTL to 15 minutes from now
+      const ttlDate = new Date(now.getTime() + 15 * 60 * 1000);
+      ttlTimestamp = Timestamp.fromDate(ttlDate);
+    } else {
+      // For active/ongoing tournaments, set TTL to 2 hours after scheduled time (or from now if overdue)
+      const twoHoursAfterStart = new Date(scheduledStartTime.getTime() + 2 * 60 * 60 * 1000);
+      const ttlDate = now > scheduledStartTime ? new Date(now.getTime() + 2 * 60 * 60 * 1000) : twoHoursAfterStart;
+      ttlTimestamp = Timestamp.fromDate(ttlDate);
+    }
+
+    const docRef = doc(db, "tournaments", tournamentId);
+    await updateDoc(docRef, {
+      ttl: ttlTimestamp
+    });
+
+    console.log(`Forced TTL for tournament ${tournamentId} (${tournament.name}) to ${ttlTimestamp.toDate().toISOString()}`);
+
+    return {
+      success: true,
+      message: `TTL set successfully for "${tournament.name}"`,
+      ttl: ttlTimestamp.toDate().toISOString(),
+      tournamentName: tournament.name
+    };
+
+  } catch (error) {
+    console.error("Error forcing TTL for tournament:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error occurred"
+    };
+  }
 };

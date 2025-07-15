@@ -94,10 +94,12 @@ const ReviewAndPublish = ({ formData, prevStep }: ReviewAndPublishProps) => {
     return () => unsubscribe();
   }, []);
   
-  // Calculate total prize pool
+  // Calculate total prize pool and distributions
   const totalPrizePool = formData.entry_fee * formData.max_players;
-  const totalPrizeCredits = Object.values(formData.prize_distribution).reduce((sum, value) => sum + value, 0);
-  const hostEarnings = Math.max(0, totalPrizePool - totalPrizeCredits);
+  const totalPrizePercentage = Object.values(formData.prize_distribution).reduce((sum, value) => sum + value, 0);
+  const totalPrizeCreditsInCredits = Math.round((totalPrizePercentage / 100) * totalPrizePool);
+  const hostEarningsPercentage = Math.max(0, 100 - totalPrizePercentage);
+  const hostEarnings = Math.round((hostEarningsPercentage / 100) * totalPrizePool);
 
   // Format date from ISO string
   const formatDate = (dateString: string): string => {
@@ -111,13 +113,16 @@ const ReviewAndPublish = ({ formData, prevStep }: ReviewAndPublishProps) => {
   // Helper to render prize distribution
   const renderPrizeDistribution = () => {
     return Object.entries(formData.prize_distribution)
-      .filter(([_, credits]) => credits > 0)
-      .map(([position, credits]) => (
-        <div key={position} className="flex justify-between items-center text-sm">
-          <span>{position} Place</span>
-          <span className="text-gaming-accent font-semibold">{credits} credits</span>
-        </div>
-      ));
+      .filter(([_, percentage]) => percentage > 0)
+      .map(([position, percentage]) => {
+        const credits = Math.round((percentage / 100) * totalPrizePool);
+        return (
+          <div key={position} className="flex justify-between items-center text-sm">
+            <span>{position} Place</span>
+            <span className="text-gaming-accent font-semibold">{credits} credits ({percentage}%)</span>
+          </div>
+        );
+      });
   };
 
   // Validate tournament data
@@ -148,10 +153,10 @@ const ReviewAndPublish = ({ formData, prevStep }: ReviewAndPublishProps) => {
       return false;
     }
     
-    // Validate prize distribution (credits mode)
-    const totalPrizeCredits = Object.values(formData.prize_distribution).reduce((sum, value) => sum + value, 0);
-    if (totalPrizeCredits > totalPrizePool) {
-      setError(`Total prize credits cannot exceed the total expected prize pool. Current total: ${totalPrizeCredits}`);
+    // Validate prize distribution percentages
+    const totalPercentage = Object.values(formData.prize_distribution).reduce((sum, value) => sum + value, 0);
+    if (totalPercentage > 100) {
+      setError(`Total prize percentage cannot exceed 100%. Current total: ${totalPercentage}%`);
       return false;
     }
     
@@ -399,8 +404,13 @@ const ReviewAndPublish = ({ formData, prevStep }: ReviewAndPublishProps) => {
                 <div className="space-y-2 mt-2">
                   {renderPrizeDistribution()}
                 </div>
-                <div className="mt-2">
-                  <span className="font-semibold text-green-400">Host Earnings:</span> <span className="font-semibold text-green-300">{hostEarnings}</span> credits
+                <div className="mt-2 flex justify-between">
+                  <span className="font-semibold text-green-400">Host Earnings:</span>
+                  <span className="font-semibold text-green-300">{hostEarnings} credits ({hostEarningsPercentage}%)</span>
+                </div>
+                <div className="mt-2 flex justify-between">
+                    <span className="font-semibold text-purple-400">Total to Winners:</span>
+                    <span className="font-semibold text-purple-300">{totalPrizeCreditsInCredits} credits ({totalPrizePercentage}%)</span>
                 </div>
               </div>
               

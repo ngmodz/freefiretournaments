@@ -48,20 +48,49 @@ export class TournamentCleanupService {
       );
       
       const endedTournaments = await getDocs(endedTournamentsQuery);
+
+      // Also check for cancelled tournaments that might have a missing/invalid TTL
+      const cancelledTournamentsQuery = query(
+        collection(db, 'tournaments'),
+        where('status', '==', 'cancelled'),
+        limit(maxBatchSize)
+      );
+      const cancelledTournaments = await getDocs(cancelledTournamentsQuery);
       
-      // Filter ended tournaments without TTL that should have expired (10 minutes after ending)
+      // Filter ended tournaments without TTL that should have expired (30 minutes after ending)
       const expiredEndedTournaments = endedTournaments.docs.filter(doc => {
         const data = doc.data();
         if (data.ended_at && !data.ttl) {
           const endedAt = data.ended_at.toDate();
-          const shouldExpireAt = new Date(endedAt.getTime() + 10 * 60 * 1000);
+          const shouldExpireAt = new Date(endedAt.getTime() + 30 * 60 * 1000);
           return now.toDate() > shouldExpireAt;
         }
         return false;
       });
       
-      // Combine both sets of tournaments to delete
-      const allExpiredTournaments = [...expiredTournaments.docs, ...expiredEndedTournaments];
+      // Filter cancelled tournaments that are more than 10 minutes old, regardless of TTL
+      const expiredCancelledTournaments = cancelledTournaments.docs.filter(doc => {
+        const data = doc.data();
+        if (data.cancelled_at) {
+          const cancelledAt = data.cancelled_at.toDate();
+          const shouldExpireAt = new Date(cancelledAt.getTime() + 10 * 60 * 1000);
+          return now.toDate() > shouldExpireAt;
+        }
+        // If no cancelled_at, but it is cancelled, and older than an hour, clean it up.
+        if (data.created_at) {
+          const createdAt = data.created_at.toDate();
+          const shouldExpireAt = new Date(createdAt.getTime() + 60 * 60 * 1000);
+          return now.toDate() > shouldExpireAt;
+        }
+        return false;
+      });
+
+      // Combine all sets of tournaments to delete
+      const allExpiredTournaments = [
+        ...expiredTournaments.docs, 
+        ...expiredEndedTournaments,
+        ...expiredCancelledTournaments
+      ];
       
       if (allExpiredTournaments.length === 0) {
         console.log('✅ No expired tournaments found');
@@ -132,12 +161,12 @@ export class TournamentCleanupService {
       
       const endedTournaments = await getDocs(endedTournamentsQuery);
       
-      // Filter ended tournaments without TTL that should have expired (10 minutes after ending)
+      // Filter ended tournaments without TTL that should have expired (30 minutes after ending)
       const expiredEndedTournaments = endedTournaments.docs.filter(doc => {
         const data = doc.data();
         if (data.ended_at && !data.ttl) {
           const endedAt = data.ended_at.toDate();
-          const shouldExpireAt = new Date(endedAt.getTime() + 10 * 60 * 1000);
+          const shouldExpireAt = new Date(endedAt.getTime() + 30 * 60 * 1000);
           return now.toDate() > shouldExpireAt;
         }
         return false;

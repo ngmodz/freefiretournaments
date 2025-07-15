@@ -97,7 +97,7 @@ const Wallet = () => {
     return (
       <div className="min-h-screen bg-gaming-bg flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-12 w-12 animate-spin text-gaming-primary" />
+          <Loader2 className="h-8 w-8 sm:h-12 sm:w-12 animate-spin text-gaming-primary shadow-glow" />
           <p className="text-gaming-primary animate-pulse">Loading wallet data...</p>
         </div>
       </div>

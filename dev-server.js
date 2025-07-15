@@ -101,9 +101,19 @@ app.post('/api/withdrawal-notification', async (req, res) => {
 });
 
 // Tournament management endpoints
-app.post('/api/check-tournament', async (req, res) => {
+app.get('/api/check-tournament', async (req, res) => {
   try {
     const { default: handler } = await import('./api/check-tournament.js');
+    await handler(req, res);
+  } catch (error) {
+    console.error('API Error:', error);
+    res.status(500).json({ error: error.message, success: false });
+  }
+});
+
+app.post('/api/cancel-tournament', async (req, res) => {
+  try {
+    const { default: handler } = await import('./api/cancel-tournament.js');
     await handler(req, res);
   } catch (error) {
     console.error('API Error:', error);
@@ -219,6 +229,7 @@ app.listen(PORT, () => {
   console.log(`🚀 Development API server running on http://localhost:${PORT}`);
   console.log('📡 Available endpoints:');
   console.log(`  - POST http://localhost:${PORT}/api/check-tournament`);
+  console.log(`  - POST http://localhost:${PORT}/api/cancel-tournament`);
   console.log(`  - ALL  http://localhost:${PORT}/api/contact`);
   console.log(`  - POST http://localhost:${PORT}/api/create-payment-order`);
   console.log(`  - POST http://localhost:${PORT}/api/health-check`);

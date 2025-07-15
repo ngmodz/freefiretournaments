@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Calendar, Clock, Trophy, Check, Edit3, Users, Share2 } from "lucide-react";
+import { Calendar, Clock, Trophy, Check, Edit3, Users, Share2, Ban } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TournamentHeaderProps } from "./types";
 import { cn } from "@/lib/utils";
@@ -10,12 +10,27 @@ import StartTournamentButton from "../StartTournamentButton";
 import EndTournamentButton from "../EndTournamentButton";
 import { useTournament } from "@/contexts/TournamentContext";
 import { useToast } from "@/hooks/use-toast";
+import { Tournament } from "@/lib/tournamentService";
+import { Badge } from "@/components/ui/badge";
+import { useTournamentStart } from "@/hooks/useTournamentStart";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { cancelTournament } from "@/lib/tournamentService";
 
 const TournamentHeader: React.FC<TournamentHeaderProps> = ({
   tournament,
   isHost,
   onSetRoomDetails,
-  onRefresh
 }) => {
   const [hostName, setHostName] = useState<string | null>(null);
   const [hostVerified, setHostVerified] = useState<boolean>(false);
@@ -23,6 +38,9 @@ const TournamentHeader: React.FC<TournamentHeaderProps> = ({
   const [hostUID, setHostUID] = useState<string | null>(null);
   const { refreshHostedTournaments } = useTournament();
   const { toast } = useToast();
+  const { currentUser } = useAuth();
+  const startInfo = useTournamentStart(tournament, currentUser?.uid);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   useEffect(() => {
     async function fetchHostName() {
@@ -82,6 +100,27 @@ const TournamentHeader: React.FC<TournamentHeaderProps> = ({
     }
   };
 
+  const handleCancelTournament = async () => {
+    if (!tournament.id) return;
+    setIsCancelling(true);
+    try {
+      const result = await cancelTournament(tournament.id);
+      toast({
+        title: "Tournament Cancelled",
+        description: result.message,
+      });
+      // onRefresh is no longer needed due to real-time updates
+    } catch (error) {
+      toast({
+        title: "Cancellation Failed",
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
   return (
     <div className="w-full mb-6">
       <div className="bg-gradient-to-b from-gaming-card to-gaming-bg text-gaming-text rounded-lg shadow-lg border border-gaming-primary/20 overflow-hidden backdrop-blur-sm relative">
@@ -110,42 +149,56 @@ const TournamentHeader: React.FC<TournamentHeaderProps> = ({
               <Share2 size={16} className="mr-1.5" />
               Share
             </Button>
-            {isHost && (
-              <Button 
-                onClick={onSetRoomDetails} 
-                size="sm" 
-                className="bg-gaming-accent hover:bg-gaming-accent/90 text-white"
-              >
+
+            {isHost && (tournament.status === 'active' || tournament.status === 'ongoing') && (
+              <Button variant="outline" size="sm" onClick={onSetRoomDetails}>
                 <Edit3 size={16} className="mr-1.5" />
                 Set Room Details
               </Button>
             )}
-            
-            {/* Start Tournament Button */}
-            <StartTournamentButton 
-              tournament={tournament}
-              onTournamentStarted={async () => {
-                // Refresh tournaments data
-                await refreshHostedTournaments();
-                // Refresh current tournament details
-                if (onRefresh) {
-                  onRefresh();
-                }
-              }}
-            />
-            
-            {/* End Tournament Button */}
-            <EndTournamentButton 
-              tournament={tournament}
-              onTournamentEnded={async () => {
-                // Refresh tournaments data
-                await refreshHostedTournaments();
-                // Refresh current tournament details
-                if (onRefresh) {
-                  onRefresh();
-                }
-              }}
-            />
+
+            {isHost && tournament.status === 'ongoing' && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm" disabled={isCancelling}>
+                    <Ban size={16} className="mr-1.5" />
+                    {isCancelling ? "Cancelling..." : "Cancel"}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will cancel the tournament and refund all participants. This cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Back</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleCancelTournament}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Yes, Cancel
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+
+            {isHost && tournament.status === 'active' && startInfo.canStart && (
+              <StartTournamentButton
+                tournament={tournament}
+                onTournamentStarted={() => { /* Real-time update handles this */ }}
+                className="bg-green-500 hover:bg-green-600"
+              />
+            )}
+
+            {isHost && tournament.status === 'ongoing' && (
+              <EndTournamentButton
+                tournament={tournament}
+                onTournamentEnded={() => { /* Real-time update handles this */ }}
+              />
+            )}
           </div>
         </div>
         
@@ -187,11 +240,11 @@ const TournamentHeader: React.FC<TournamentHeaderProps> = ({
           </div>
         </div>
         
-        {/* Tournament Auto-Delete Countdown */}
-        {tournament.ttl && (
+        {/* Tournament Auto-Delete Countdown - Always show for hosts */}
+        {isHost && (
           <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-md">
             <TournamentCountdown 
-              ttl={tournament.ttl.toDate().toISOString()} 
+              ttl={tournament.ttl ? tournament.ttl.toDate().toISOString() : null} 
               startDate={tournament.start_date}
               className="text-yellow-400"
               showWarning={true}

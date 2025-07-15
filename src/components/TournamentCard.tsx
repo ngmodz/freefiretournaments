@@ -9,6 +9,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import TournamentCountdown from "./TournamentCountdown";
 import TournamentStatusBadge from "./TournamentStatusBadge";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Array of banner images to randomly assign to tournaments
 const bannerImages = [
@@ -30,6 +31,7 @@ interface TournamentCardProps {
 
 const TournamentCard = ({ tournament }: TournamentCardProps) => {
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
   const {
     id,
     title,
@@ -40,7 +42,10 @@ const TournamentCard = ({ tournament }: TournamentCardProps) => {
     totalSpots,
     filledSpots,
     status,
+    host_id,
   } = tournament;
+
+  const isHost = currentUser?.uid === host_id;
   
   // Use the tournament ID to generate a consistent index for banner image
   const getBannerImage = () => {
@@ -147,7 +152,7 @@ const TournamentCard = ({ tournament }: TournamentCardProps) => {
           </div>
           
           {/* Tournament Auto-Delete Countdown */}
-          {tournament.ttl && (
+          {tournament.ttl && isHost && (
             <div className="transition-transform duration-300 hover:translate-x-1">
               <TournamentCountdown 
                 ttl={tournament.ttl} 

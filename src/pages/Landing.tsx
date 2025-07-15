@@ -8,7 +8,7 @@ const Landing = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen bg-gaming-bg">
-        <Loader2 className="h-8 w-8 animate-spin text-gaming-primary" />
+        <Loader2 className="h-8 w-8 sm:h-12 sm:w-12 animate-spin text-gaming-primary shadow-glow" />
       </div>
     );
   }

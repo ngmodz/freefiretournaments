@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Loader2, AlertCircle, Trophy } from "lucide-react";
+import { ArrowLeft, Loader2, AlertCircle, Trophy, Share2, KeyRound, Ban } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { updateTournamentRoomDetails, joinTournament, Participant } from "@/lib/tournamentService";
-import { TournamentProps } from "./types";
+import { updateTournamentRoomDetails, joinTournament, Participant, startTournament, endTournament, cancelTournament } from "@/lib/tournamentService";
+import { Tournament as TournamentType } from "@/lib/tournamentService";
 import TournamentHeader from "./TournamentHeader";
 import TournamentTabs from "./TournamentTabs";
 import TournamentSidebar from "./TournamentSidebar";
@@ -22,11 +22,13 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogAction,
-  AlertDialogCancel
+  AlertDialogCancel,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useProfileEditSheet } from "@/contexts/ProfileEditSheetContext";
 import { useAuth } from '@/contexts/AuthContext';
 import { UserProfile } from '@/lib/types';
+import { useTournamentStart } from "@/hooks/useTournamentStart";
 
 // Extend the Tournament type to include prizePool
 declare module "@/lib/tournamentService" {
@@ -78,7 +80,12 @@ function copyToClipboard(text: string): Promise<void> {
   }
 }
 
-interface TournamentDetailsContentProps extends TournamentProps {
+interface TournamentDetailsContentProps {
+  id: string;
+  tournament: TournamentType;
+  isHost: boolean;
+  loading: boolean;
+  currentUser: { uid: string; ign: string } | null;
   userProfile: UserProfile | null;
 }
 
@@ -89,7 +96,6 @@ const TournamentDetailsContent: React.FC<TournamentDetailsContentProps> = ({
   loading,
   currentUser,
   userProfile,
-  onRefresh
 }) => {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -104,6 +110,12 @@ const TournamentDetailsContent: React.FC<TournamentDetailsContentProps> = ({
   const [showJoinDialog, setShowJoinDialog] = useState(false);
   const [showIgnDialog, setShowIgnDialog] = useState(false);
   const [missingFields, setMissingFields] = useState<{ ign: boolean; uid: boolean }>({ ign: false, uid: false });
+  const [isStarting, setIsStarting] = useState(false);
+  const [isEnding, setIsEnding] = useState(false);
+  const [isRoomDetailsModalOpen, setRoomDetailsModalOpen] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+
+  const startInfo = useTournamentStart(tournament, currentUser?.uid);
 
   // Update room input fields when tournament changes
   useEffect(() => {
@@ -222,9 +234,9 @@ const TournamentDetailsContent: React.FC<TournamentDetailsContentProps> = ({
       setShowJoinDialog(false);
       
       // Refresh tournament data
-      if (onRefresh) {
-        await onRefresh();
-      }
+      // if (onRefresh) { // Removed as per edit hint
+      //   await onRefresh();
+      // }
     } catch (error) {
       console.error("Failed to join tournament:", error);
       let errorMessage = "Failed to join the tournament.";
@@ -263,9 +275,9 @@ const TournamentDetailsContent: React.FC<TournamentDetailsContentProps> = ({
           description: "Room details updated successfully.",
         });
         setShowSetRoomModal(false);
-        if (onRefresh) {
-          await onRefresh();
-        }
+        // if (onRefresh) { // Removed as per edit hint
+        //   await onRefresh();
+        // }
       } else {
         throw new Error(result.message);
       }
@@ -322,11 +334,39 @@ const TournamentDetailsContent: React.FC<TournamentDetailsContentProps> = ({
     );
   };
 
+  const handleCancelTournament = async () => {
+    if (!tournament.id) return;
+    setIsCancelling(true);
+    try {
+      const result = await cancelTournament(tournament.id);
+      toast({
+        title: "Tournament Cancelled",
+        description: result.message,
+      });
+      // onRefresh(); // Removed as per edit hint
+    } catch (error) {
+      toast({
+        title: "Cancellation Failed",
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
+  const onTournamentStarted = (updatedTournament: Partial<TournamentType>) => {
+    console.log("Tournament started, refreshing details...", updatedTournament);
+    // if (onRefresh) { // Removed as per edit hint
+    //   onRefresh();
+    // }
+  };
+
   try {
     if (loading) {
       return (
         <div className="flex items-center justify-center h-96">
-          <Loader2 className="h-12 w-12 animate-spin text-gaming-primary" />
+          <Loader2 className="h-8 w-8 sm:h-12 sm:w-12 animate-spin text-gaming-primary shadow-glow" />
           <p className="ml-4 text-lg">Loading tournament details...</p>
         </div>
       );
@@ -360,7 +400,7 @@ const TournamentDetailsContent: React.FC<TournamentDetailsContentProps> = ({
             Go back to tournaments
           </button>
           <button 
-            onClick={() => onRefresh && onRefresh()}
+            onClick={() => { /* onRefresh && onRefresh() */ }} // Removed as per edit hint
             className="mt-2 border border-gaming-primary text-gaming-primary px-4 py-2 rounded"
           >
             Try again
@@ -421,7 +461,6 @@ const TournamentDetailsContent: React.FC<TournamentDetailsContentProps> = ({
             tournament={tournament} 
             isHost={isHost}
             onSetRoomDetails={() => setShowSetRoomModal(true)}
-            onRefresh={onRefresh}
           />
 
           {/* Main content */}
@@ -502,6 +541,7 @@ const TournamentDetailsContent: React.FC<TournamentDetailsContentProps> = ({
                 onSetRoomDetails={() => setShowSetRoomModal(true)}
                 onCopy={handleCopy}
               />
+              
               {/* Joined Users List (Host Only, below details) */}
               {isHost && (
                 <JoinedUsersList participantUids={tournament.participants as (string | Participant)[] || []} />
@@ -533,7 +573,7 @@ const TournamentDetailsContent: React.FC<TournamentDetailsContentProps> = ({
                 participants: (tournament.participants || []).map(p => typeof p === 'string' ? p : p.authUid)
               }}
               hostUid={currentUser?.uid || ''}
-              onSuccess={onRefresh}
+              onSuccess={() => { /* onRefresh && onRefresh() */ }} // Removed as per edit hint
             />
           )}
 
@@ -568,4 +608,4 @@ const TournamentDetailsContent: React.FC<TournamentDetailsContentProps> = ({
   }
 };
 
-export default TournamentDetailsContent; 
+export default TournamentDetailsContent;

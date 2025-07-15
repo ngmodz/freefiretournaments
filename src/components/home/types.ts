@@ -12,5 +12,6 @@ export interface TournamentType {
   totalSpots: number;
   filledSpots: number;
   status: TournamentStatus;
-  ttl?: string; // ISO string of deletion time
+  ttl?: any; // Can be a Firestore Timestamp
+  host_id?: string;
 }
