@@ -144,14 +144,19 @@ const TournamentHeader: React.FC<TournamentHeaderProps> = ({
               onClick={handleShare}
               size="sm"
               variant="outline"
-              className="text-white border-gaming-accent hover:bg-gaming-accent/20"
+              className="text-white border-gaming-accent hover:bg-gaming-accent/20 rounded-lg shadow-sm transition-all duration-200 hover:shadow-md"
             >
               <Share2 size={16} className="mr-1.5" />
               Share
             </Button>
 
             {isHost && (tournament.status === 'active' || tournament.status === 'ongoing') && (
-              <Button variant="outline" size="sm" onClick={onSetRoomDetails}>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={onSetRoomDetails}
+                className="border-gaming-primary/40 hover:border-gaming-primary text-white hover:bg-gaming-primary/20 rounded-lg shadow-sm transition-all duration-200 hover:shadow-md"
+              >
                 <Edit3 size={16} className="mr-1.5" />
                 Set Room Details
               </Button>
@@ -160,7 +165,12 @@ const TournamentHeader: React.FC<TournamentHeaderProps> = ({
             {isHost && tournament.status === 'ongoing' && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="destructive" size="sm" disabled={isCancelling}>
+                  <Button 
+                    variant="destructive" 
+                    size="sm" 
+                    disabled={isCancelling}
+                    className="bg-rose-700/80 hover:bg-rose-700 text-white rounded-lg shadow-sm transition-all duration-200 hover:shadow-md"
+                  >
                     <Ban size={16} className="mr-1.5" />
                     {isCancelling ? "Cancelling..." : "Cancel"}
                   </Button>
@@ -173,10 +183,10 @@ const TournamentHeader: React.FC<TournamentHeaderProps> = ({
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Back</AlertDialogCancel>
+                    <AlertDialogCancel className="bg-transparent border border-gray-600 hover:bg-gray-800 text-gray-300 rounded-lg">Back</AlertDialogCancel>
                     <AlertDialogAction
                       onClick={handleCancelTournament}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      className="bg-rose-700 hover:bg-rose-800 text-white rounded-lg shadow-sm hover:shadow-md"
                     >
                       Yes, Cancel
                     </AlertDialogAction>
@@ -189,7 +199,6 @@ const TournamentHeader: React.FC<TournamentHeaderProps> = ({
               <StartTournamentButton
                 tournament={tournament}
                 onTournamentStarted={() => { /* Real-time update handles this */ }}
-                className="bg-green-500 hover:bg-green-600"
               />
             )}
 

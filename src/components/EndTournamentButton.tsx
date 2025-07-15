@@ -75,8 +75,8 @@ const EndTournamentButton: React.FC<EndTournamentButtonProps> = ({
         className={`
           flex items-center gap-2 px-4 py-2 font-semibold rounded-lg transition-all duration-200
           ${endCheck.canEnd 
-            ? 'bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-xl' 
-            : 'bg-gray-600 text-gray-300 cursor-not-allowed'
+            ? 'bg-rose-600/90 hover:bg-rose-700 text-white shadow-md hover:shadow-lg border border-rose-500/50' 
+            : 'bg-gray-700/80 text-gray-300 border border-gray-600/50 cursor-not-allowed'
           }
         `}
       >
@@ -87,7 +87,7 @@ const EndTournamentButton: React.FC<EndTournamentButtonProps> = ({
           </>
         ) : (
           <>
-            <Square size={16} />
+            <Square size={16} className="text-rose-300" />
             End Tournament
           </>
         )}

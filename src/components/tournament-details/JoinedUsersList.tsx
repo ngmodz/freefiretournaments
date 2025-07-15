@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { getUserProfile } from "@/lib/firebase/profile";
-import { ClipboardCopyIcon } from '@radix-ui/react-icons';
+import { ClipboardCopy, User, AtSign, Hash } from 'lucide-react';
 
 interface Participant {
   customUid: string;
@@ -20,17 +21,15 @@ interface UserProfile {
   _notFound?: boolean;
 }
 
-function CopyButton({ value }: { value: string }) {
+function CopyButton({ value, className }: { value: string, className?: string }) {
   const [copied, setCopied] = React.useState(false);
   
   const copyToClipboard = async (text: string) => {
     try {
-      // Try the modern clipboard API first
       if (navigator.clipboard && window.isSecureContext) {
         await navigator.clipboard.writeText(text);
         return true;
       } else {
-        // Fallback for older browsers and iOS
         const textArea = document.createElement('textarea');
         textArea.value = text;
         textArea.style.position = 'fixed';
@@ -59,27 +58,33 @@ function CopyButton({ value }: { value: string }) {
     const success = await copyToClipboard(value);
     if (success) {
       setCopied(true);
-      setTimeout(() => setCopied(false), 1000);
+      setTimeout(() => setCopied(false), 1500);
     } else {
-      // Fallback: show the text in an alert for manual copying
       alert(`Copy this text: ${value}`);
     }
   };
 
   return (
-    <button
+    <motion.button
       onClick={handleCopy}
       title="Copy"
-      className="inline-flex items-center justify-center mr-1 text-gaming-muted hover:text-gaming-primary focus:outline-none"
-      style={{ fontSize: '1em', verticalAlign: 'middle' }}
-      tabIndex={0}
+      className={`inline-flex items-center justify-center text-gaming-muted/70 hover:text-gaming-primary focus:outline-none transition-colors ${className || ''}`}
+      whileTap={{ scale: 0.9 }}
     >
-      <ClipboardCopyIcon />
-      <span className="sr-only">Copy</span>
-      {copied && (
-        <span className="ml-1 text-xs text-gaming-primary">Copied!</span>
-      )}
-    </button>
+      <ClipboardCopy className="h-4 w-4" />
+      <AnimatePresence>
+        {copied && (
+          <motion.span
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -5 }}
+            className="absolute -top-6 left-1/2 -translate-x-1/2 px-2 py-1 bg-gaming-primary text-white text-xs rounded-md shadow-lg"
+          >
+            Copied!
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </motion.button>
   );
 }
 
@@ -105,13 +110,26 @@ const JoinedUsersList: React.FC<JoinedUsersListProps> = ({ participantUids }) =>
           // Handle new format: participant is an object with {customUid, authUid, ign}
           if (typeof participant === 'object' && participant !== null && 'customUid' in participant) {
             const participantObj = participant as Participant;
-            userProfiles.push({
-              id: participantObj.authUid,
-              uid: participantObj.customUid,
-              ign: participantObj.ign,
-              email: "N/A", // We don't have email in the participant object
-              _notFound: false,
-            });
+            try {
+              // Fetch the user profile to get the email
+              const profile = await getUserProfile(participantObj.authUid);
+              userProfiles.push({
+                id: participantObj.authUid,
+                uid: participantObj.customUid,
+                ign: participantObj.ign,
+                email: profile.email,
+                _notFound: false,
+              });
+            } catch (err) {
+              // If profile not found, still show participant data without email
+              userProfiles.push({
+                id: participantObj.authUid,
+                uid: participantObj.customUid,
+                ign: participantObj.ign,
+                email: "N/A",
+                _notFound: true,
+              });
+            }
           } 
           // Handle legacy format: participant is a string (authUid)
           else if (typeof participant === 'string') {
@@ -147,80 +165,120 @@ const JoinedUsersList: React.FC<JoinedUsersListProps> = ({ participantUids }) =>
     processParticipants();
   }, [participantUids]);
 
-  if (loading) return <div className="py-4 text-gaming-muted">Loading joined users...</div>;
-  if (error) return <div className="py-4 text-red-500">{error}</div>;
-  if (!users.length) return <div className="py-4 text-gaming-muted">No users have joined yet.</div>;
+  if (loading) return (
+    <div className="py-8 flex flex-col items-center text-gaming-muted">
+      <LoaderIcon className="animate-spin mb-2 h-8 w-8 text-gaming-primary" />
+      Loading joined users...
+    </div>
+  );
+  if (error) return <div className="py-8 text-rose-500 text-center">{error}</div>;
+  if (!users.length) return (
+    <div className="py-12 flex flex-col items-center text-gaming-muted">
+      <User className="mb-2 h-10 w-10 opacity-50" />
+      <span>No users have joined yet.</span>
+    </div>
+  );
 
   return (
     <div className="mt-8 w-full">
-      <h3 className="text-lg font-semibold mb-3">Joined Users</h3>
-      {/* Mobile: vertical cards */}
-      <div className="space-y-4 block sm:hidden">
-        {users.map((user, idx) => (
-          <div
-            key={user.id}
-            className="bg-gaming-card border border-gaming-border rounded-lg p-4 shadow-sm flex flex-col gap-2"
-          >
-            <div className="font-bold text-gaming-primary mb-2">{idx + 1}.</div>
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center">
-                <span className="font-semibold text-gaming-muted">UID:</span>
-                <span className="ml-2 font-mono text-sm">{user.uid}</span>
-                <CopyButton value={user.uid} />
-              </div>
-              <div className="flex items-center">
-                <span className="font-semibold text-gaming-muted">IGN:</span>
-                <span className="ml-2 text-sm">{user.ign}</span>
-                <CopyButton value={user.ign} />
-              </div>
-              <div className="flex items-center">
-                <span className="font-semibold text-gaming-muted">Email:</span>
-                <span className="ml-2 text-sm">{user.email}</span>
-                <CopyButton value={user.email} />
-              </div>
-              {user._notFound && (
-                <div className="text-xs text-red-400 mt-1">User profile not found</div>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-      {/* Desktop: horizontal table */}
-      <div className="hidden sm:block w-full">
-        <div className="overflow-x-auto">
-          <table className="min-w-full bg-gaming-card border border-gaming-border rounded-lg text-left shadow-md">
-            <thead>
-              <tr className="bg-gaming-primary/10 text-gaming-primary uppercase text-xs tracking-wider">
-                <th className="px-4 py-2 font-semibold w-12">#</th>
-                <th className="px-4 py-2 font-semibold">UID</th>
-                <th className="px-4 py-2 font-semibold">IGN</th>
-                <th className="px-4 py-2 font-semibold">Email</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((user, idx) => (
-                <tr key={user.id} className={idx % 2 === 0 ? "bg-gaming-bg/80" : "bg-gaming-card/80"}>
-                  <td className="px-4 py-2 font-mono text-gaming-muted text-sm">{idx + 1}</td>
-                  <td className="px-4 py-2 font-mono text-sm whitespace-pre-wrap break-all">
-                    {user.uid}
-                    <CopyButton value={user.uid} />
-                  </td>
-                  <td className="px-4 py-2 text-sm whitespace-pre-wrap break-all">
-                    {user.ign}
-                    <CopyButton value={user.ign} />
-                  </td>
-                  <td className="px-4 py-2 text-sm whitespace-pre-wrap break-all">
-                    {user.email}
-                    <CopyButton value={user.email} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <h3 className="text-xl font-bold mb-4 text-gaming-text flex items-center gap-2">
+        <User className="h-6 w-6 text-gaming-primary"/>
+        Joined Users 
+        <span className="text-sm font-medium text-gaming-muted">({users.length})</span>
+      </h3>
+      
+      {/* Unified Card Layout for all screen sizes */}
+      <div className="overflow-hidden">
+        {/* Table Header */}
+        <div className="hidden md:grid grid-cols-[40px_1fr_1fr_1fr] gap-4 px-4 py-2 text-sm font-semibold text-gaming-muted uppercase tracking-wider items-center">
+          <div className="text-center">#</div>
+          <div>UID</div>
+          <div>IGN</div>
+          <div>Email</div>
         </div>
+
+        {/* User List */}
+        <AnimatePresence>
+          <motion.div className="space-y-3">
+            {users.map((user, idx) => (
+              <motion.div
+                key={user.id}
+                layout
+                initial={{ opacity: 0, y: 20, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -20, scale: 0.98 }}
+                transition={{ duration: 0.3, delay: idx * 0.05 }}
+                whileHover={{ scale: 1.02, zIndex: 10, transition: { duration: 0.2 } }}
+                className="bg-gradient-to-r from-gaming-card/80 to-gaming-card/60 border border-gaming-border/30 rounded-xl shadow-lg backdrop-blur-sm relative"
+              >
+                {/* Mobile Layout */}
+                <div className="p-4 md:hidden">
+                  <div className="flex justify-between items-center"> {/* Changed items-start to items-center here */}
+                    <div className="flex items-center gap-3 flex-grow min-w-0"> {/* Added flex-grow min-w-0 */}
+                      <span className="text-lg font-bold text-gaming-primary">{idx + 1}.</span>
+                      <span className="font-semibold text-gaming-text truncate flex-grow pr-2">{user.ign}</span> {/* Added pr-2 and flex-grow, removed min-w-0 */}
+                      <CopyButton value={user.ign} className="ml-auto" />
+                    </div>
+                    {user._notFound && (
+                      <div className="text-xs text-rose-400 px-2 py-1 bg-rose-500/10 rounded-full flex-shrink-0">Profile Missing</div>
+                    )}
+                  </div>
+                  <div className="mt-3 space-y-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Hash className="h-4 w-4 text-gaming-muted"/>
+                      <span className="font-mono flex-grow truncate pr-2">{user.uid}</span> {/* Added pr-2, removed min-w-0 */}
+                      <CopyButton value={user.uid} className="ml-auto"/>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <AtSign className="h-4 w-4 text-gaming-muted"/>
+                      <span className="truncate flex-grow pr-2">{user.email}</span> {/* Added pr-2, removed max-w-[200px] and min-w-0 */}
+                      <CopyButton value={user.email} className="ml-auto"/>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Desktop Layout */}
+                <div className="hidden md:grid grid-cols-[40px_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] gap-4 items-center p-4">
+                  <div className="font-mono text-gaming-muted text-center">{idx + 1}</div>
+                  <div className="font-mono text-sm flex items-center">
+                    <span className="truncate flex-grow pr-2">{user.uid}</span>
+                    <CopyButton value={user.uid} className="flex-shrink-0" />
+                  </div>
+                  <div className="text-sm flex items-center">
+                    <span className="truncate flex-grow pr-2">{user.ign}</span>
+                    <CopyButton value={user.ign} className="flex-shrink-0" />
+                  </div>
+                  <div className="text-sm flex items-center">
+                    <span className="truncate flex-grow pr-2 max-w-[220px]">{user.email}</span>
+                    <CopyButton value={user.email} className="flex-shrink-0" />
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );
 };
+
+function LoaderIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg 
+      {...props}
+      xmlns="http://www.w3.org/2000/svg" 
+      width="24" 
+      height="24" 
+      viewBox="0 0 24 24" 
+      fill="none" 
+      stroke="currentColor" 
+      strokeWidth="2" 
+      strokeLinecap="round" 
+      strokeLinejoin="round"
+    >
+      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+    </svg>
+  );
+}
 
 export default JoinedUsersList; 

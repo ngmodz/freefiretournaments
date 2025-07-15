@@ -46,8 +46,8 @@ const RoomDetailsTab: React.FC<RoomDetailsProps> = ({
               </div>
               <div className="flex items-center justify-between">
                 <div className="font-mono text-2xl font-bold text-white tracking-wider">{tournament.room_id || "N/A"}</div>
-                <button onClick={() => onCopy(tournament.room_id || "")} className="ml-2 px-2 py-1 rounded bg-orange-400/20 hover:bg-orange-400/40 text-orange-300 hover:text-white transition flex items-center text-xs font-medium focus:outline-none">
-                  <Copy size={14} className="mr-1" /> Copy
+                <button onClick={() => onCopy(tournament.room_id || "")} className="ml-2 px-3 py-1.5 rounded-lg bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 hover:text-white transition-all duration-200 flex items-center text-xs font-medium focus:outline-none shadow-sm hover:shadow-md">
+                  <Copy size={14} className="mr-1.5" /> Copy
                 </button>
               </div>
             </div>
@@ -58,8 +58,8 @@ const RoomDetailsTab: React.FC<RoomDetailsProps> = ({
               </div>
               <div className="flex items-center justify-between">
                 <div className="font-mono text-2xl font-bold text-white tracking-wider">{tournament.room_password || "N/A"}</div>
-                <button onClick={() => onCopy(tournament.room_password || "")} className="ml-2 px-2 py-1 rounded bg-purple-400/20 hover:bg-purple-400/40 text-purple-300 hover:text-white transition flex items-center text-xs font-medium focus:outline-none">
-                  <Copy size={14} className="mr-1" /> Copy
+                <button onClick={() => onCopy(tournament.room_password || "")} className="ml-2 px-3 py-1.5 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 hover:text-white transition-all duration-200 flex items-center text-xs font-medium focus:outline-none shadow-sm hover:shadow-md">
+                  <Copy size={14} className="mr-1.5" /> Copy
                 </button>
               </div>
             </div>
@@ -70,9 +70,9 @@ const RoomDetailsTab: React.FC<RoomDetailsProps> = ({
                 onClick={onSetRoomDetails} 
                 size="sm" 
                 variant="outline"
-                className="border-gaming-accent text-gaming-accent hover:bg-gaming-accent/10"
+                className="border-gaming-primary/40 hover:border-gaming-primary text-white hover:bg-gaming-primary/20 rounded-lg shadow-sm transition-all duration-200 hover:shadow-md px-4 py-2"
               >
-                <Edit3 size={16} className="mr-1.5" />
+                <Edit3 size={16} className="mr-1.5 text-gaming-primary" />
                 {tournament.room_id ? 'Update' : 'Set'} Room Details
               </Button>
             </div>

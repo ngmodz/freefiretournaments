@@ -73,10 +73,10 @@ const StartTournamentButton: React.FC<StartTournamentButtonProps> = ({
         onClick={handleStartTournament}
         disabled={!startInfo.canStart || isStarting}
         className={`
-          flex items-center gap-2 px-4 py-2 font-semibold rounded-lg transition-all duration-200
+          flex items-center gap-2 px-6 py-3 font-semibold rounded-full transition-all duration-200
           ${startInfo.canStart 
-            ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl' 
-            : 'bg-gray-600 text-gray-300 cursor-not-allowed'
+            ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-md hover:shadow-lg' 
+            : 'bg-gray-700/80 text-gray-300 cursor-not-allowed'
           }
         `}
       >
