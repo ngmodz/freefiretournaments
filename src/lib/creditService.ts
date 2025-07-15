@@ -171,6 +171,7 @@ export class CreditService {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
+              action: 'withdrawal-notification',
               type: 'request', // Specify the notification type
               userId,
               userEmail,

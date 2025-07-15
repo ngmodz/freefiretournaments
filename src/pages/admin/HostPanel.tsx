@@ -151,8 +151,9 @@ const HostPanel: React.FC = () => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
+            action: 'general-email',
             type: 'hostApproval',
-            email: application.userEmail,
+            to: application.userEmail,
             name: application.userName || 'User',
           }),
         })

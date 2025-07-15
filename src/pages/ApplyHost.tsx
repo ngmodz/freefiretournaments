@@ -83,8 +83,9 @@ const ApplyHost = () => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
+            action: 'general-email',
             type: 'applicationConfirmation',
-            email: currentUser.email,
+            to: currentUser.email,
             name: formData.fullName || userProfile?.displayName || 'User',
           }),
         });

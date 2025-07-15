@@ -150,6 +150,7 @@ export const AdminService = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          action: 'withdrawal-notification',
           type: 'processed', // Specify the notification type
           userId: request.userId,
           userEmail: request.userEmail,

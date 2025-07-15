@@ -26,6 +26,7 @@ interface AuthContextType {
 }
 
 interface UserProfile {
+  displayName: string;
   id: string;
   name?: string;
   ign?: string;

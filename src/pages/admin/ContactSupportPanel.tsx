@@ -34,6 +34,7 @@ const ContactSupportPanel: React.FC = () => {
         const token = await user.getIdToken();
 
         const response = await fetch('/api/contact', {
+          method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -48,7 +49,8 @@ const ContactSupportPanel: React.FC = () => {
         // Convert Firestore timestamps
         const formattedSubmissions = result.data.map(sub => ({
           ...sub,
-          createdAt: new Date(sub.createdAt._seconds * 1000)
+          createdAt: new Date(sub.createdAt),
+          updatedAt: new Date(sub.updatedAt)
         }));
 
         setSubmissions(formattedSubmissions);
@@ -115,7 +117,7 @@ const ContactSupportPanel: React.FC = () => {
                 </td>
                 <td>{submission.subject}</td>
                 <td>{submission.message.substring(0, 50)}...</td>
-                <td>{new Date(submission.createdAt).toLocaleString()}</td>
+                <td>{submission.createdAt.toLocaleString()}</td>
                 <td>
                   <span className={styles.statusBadge}>{submission.status}</span>
                 </td>
@@ -146,7 +148,7 @@ const ContactSupportPanel: React.FC = () => {
                 </div>
                 <div className={withdrawStyles.detailRow}>
                   <span className={withdrawStyles.detailLabel}>Date:</span>
-                  <span>{new Date(selectedSubmission.createdAt).toLocaleString()}</span>
+                  <span>{selectedSubmission.createdAt.toLocaleString()}</span>
                 </div>
                 <div className={withdrawStyles.detailRow}>
                   <span className={withdrawStyles.detailLabel}>Subject:</span>

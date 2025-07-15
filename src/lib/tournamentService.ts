@@ -677,7 +677,11 @@ export const startTournament = async (tournamentId: string) => {
       fetch('/api/start-tournament-notification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tournamentId }),
+        body: JSON.stringify({ 
+          action: 'tournament-notification',
+          tournamentId,
+          tournamentName: tournament.name 
+        }),
       })
       .then(res => {
         if (!res.ok) {

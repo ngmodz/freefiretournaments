@@ -26,35 +26,12 @@ const generateCashFreeHeaders = (config) => {
   };
 };
 
-export default async function handler(req, res) {
-  console.log('🔥 FUNCTION STARTED!');
+// Create payment order handler
+const handleCreateOrder = async (req, res) => {
+  console.log('🔥 Creating payment order');
   console.log('🔥 METHOD:', req.method);
-  console.log('🔥 URL:', req.url);
   console.log('🔥 HEADERS:', JSON.stringify(req.headers, null, 2));
   
-  // Log the incoming request method and headers for debugging
-  console.log(`[${new Date().toISOString()}] Received request:`, {
-    method: req.method,
-    url: req.url,
-    headers: req.headers,
-  });
-
-  // Set CORS headers
-  res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
-
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
-
-  if (req.method !== 'POST') {
-    console.error(`[${new Date().toISOString()}] Method Not Allowed: Received ${req.method}, expected POST.`);
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
   try {
     const config = getCashFreeConfig();
     
@@ -76,7 +53,8 @@ export default async function handler(req, res) {
       packageId,
       packageName,
       packageType,
-      creditsAmount
+      creditsAmount,
+      orderType = 'standard' // New parameter to differentiate order types
     } = req.body;
 
     // Validate required fields
@@ -93,14 +71,21 @@ export default async function handler(req, res) {
 
     // Get application URLs with proper fallback for production
     const appUrl = (process.env.VITE_APP_URL || process.env.APP_URL || 'https://freefiretournaments.vercel.app').trim();
-    // Use the same URL for webhook as the return URL to ensure consistency
-    const webhookUrl = appUrl;
+    const webhookUrl = appUrl; // Use the same URL for webhook as the return URL to ensure consistency
 
     console.log('Using application URLs:', { appUrl, webhookUrl });
     
     // Log the exact webhook URL being sent to Cashfree
     const exactWebhookUrl = `${webhookUrl}/api/payment-webhook`;
     console.log('🔗 EXACT WEBHOOK URL being sent to Cashfree:', exactWebhookUrl);
+
+    // Prepare return URL based on order type
+    let returnUrl;
+    if (orderType === 'enhanced') {
+      returnUrl = `${appUrl}/payment-status?orderId=${orderId}&packageType=${packageType || 'tournament'}&amount=${amount}`;
+    } else {
+      returnUrl = `${appUrl}/payment-status?orderId=${orderId}`;
+    }
 
     // Prepare CashFree order data
     const orderData = {
@@ -114,8 +99,8 @@ export default async function handler(req, res) {
         customer_phone: userPhone || '9999999999'
       },
       order_meta: {
-        return_url: `${appUrl}/payment-status?orderId=${orderId}&packageType=${packageType || 'tournament'}&amount=${amount}`,
-        notify_url: `${webhookUrl}/api/payment-webhook`
+        return_url: returnUrl,
+        notify_url: exactWebhookUrl
       },
       order_note: `Credit purchase: ${packageName || 'Credits'}`,
       order_tags: {
@@ -123,7 +108,8 @@ export default async function handler(req, res) {
         packageName: packageName || '',
         packageType: packageType || 'tournament',
         userId: userId,
-        creditsAmount: creditsAmount ? creditsAmount.toString() : ''
+        creditsAmount: creditsAmount ? creditsAmount.toString() : '',
+        orderType: orderType
       }
     };
 
@@ -132,8 +118,8 @@ export default async function handler(req, res) {
       baseUrl: config.baseUrl,
       appId: config.appId ? config.appId.substring(0, 4) + '...' : 'missing',
       orderId: orderId,
-      returnUrl: `${appUrl}/payment-status?orderId=${orderId}&packageType=${packageType || 'tournament'}&amount=${amount}`,
-      notifyUrl: `${webhookUrl}/api/payment-webhook`
+      returnUrl: returnUrl,
+      notifyUrl: exactWebhookUrl
     });
     
     console.log('📋 Full order data:', JSON.stringify(orderData, null, 2));
@@ -184,5 +170,56 @@ export default async function handler(req, res) {
       error: error.message || 'Internal server error',
       success: false
     });
+  }
+};
+
+// Handler for legacy create-order functionality (simple version)
+const handleCreateOrderLegacy = async (req, res) => {
+  // Add orderType: 'standard' to maintain backward compatibility
+  req.body.orderType = 'standard';
+  return await handleCreateOrder(req, res);
+};
+
+// Handler for enhanced create-payment-order functionality
+const handleCreatePaymentOrder = async (req, res) => {
+  // Add orderType: 'enhanced' for enhanced functionality
+  req.body.orderType = 'enhanced';
+  return await handleCreateOrder(req, res);
+};
+
+// Main handler function
+export default async function handler(req, res) {
+  // Set CORS headers
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  try {
+    const { action } = req.body;
+
+    switch (action) {
+      case 'create-order':
+      case 'legacy':
+        return await handleCreateOrderLegacy(req, res);
+      case 'create-payment-order':
+      case 'enhanced':
+        return await handleCreatePaymentOrder(req, res);
+      default:
+        // Default behavior - enhanced order creation
+        return await handleCreatePaymentOrder(req, res);
+    }
+  } catch (error) {
+    console.error('Error in payment service:', error);
+    res.status(500).json({ error: `Payment service error: ${error.message}` });
   }
 }

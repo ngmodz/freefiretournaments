@@ -63,6 +63,7 @@ const ContactSupportForm = ({ onClose }: ContactSupportFormProps) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          action: 'contact',
           ...data,
           uid: currentUser?.uid,
         }),

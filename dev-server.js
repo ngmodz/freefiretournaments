@@ -25,7 +25,21 @@ app.use((req, res, next) => {
 // API Routes with direct imports
 app.post('/api/create-payment-order', async (req, res) => {
   try {
-    const { default: handler } = await import('./api/create-payment-order.js');
+    // Route to new unified payment service
+    req.body.action = 'create-payment-order';
+    const { default: handler } = await import('./api/payment-service.js');
+    await handler(req, res);
+  } catch (error) {
+    console.error('API Error:', error);
+    res.status(500).json({ error: error.message, success: false });
+  }
+});
+
+app.post('/api/create-order', async (req, res) => {
+  try {
+    // Route to new unified payment service
+    req.body.action = 'create-order';
+    const { default: handler } = await import('./api/payment-service.js');
     await handler(req, res);
   } catch (error) {
     console.error('API Error:', error);
@@ -63,7 +77,7 @@ app.post('/api/verify-payment', async (req, res) => {
   }
 });
 
-app.post('/api/health-check', async (req, res) => {
+app.all('/api/health-check', async (req, res) => {
   try {
     // Bust the cache to always get the latest version in dev
     const { default: handler } = await import(`./api/health-check.js?v=${Date.now()}`);
@@ -76,7 +90,9 @@ app.post('/api/health-check', async (req, res) => {
 
 app.post('/api/withdrawal-notification', async (req, res) => {
   try {
-    const { default: handler } = await import(`./api/withdrawal-notification.js?v=${Date.now()}`);
+    // Route to new unified email service
+    req.body.action = 'withdrawal-notification';
+    const { default: handler } = await import(`./api/email-service.js?v=${Date.now()}`);
     await handler(req, res);
   } catch (error) {
     console.error('API Error:', error);
@@ -107,7 +123,11 @@ app.get('/api/tournament-notifications', async (req, res) => {
 
 app.all('/api/contact', async (req, res) => {
   try {
-    const { default: handler } = await import(`./api/contact.js?v=${Date.now()}`);
+    // Route to new unified email service
+    if (req.method === 'POST') {
+      req.body.action = 'contact';
+    }
+    const { default: handler } = await import(`./api/email-service.js?v=${Date.now()}`);
     await handler(req, res);
   } catch (error) {
     console.error('API Error:', error);
@@ -117,7 +137,9 @@ app.all('/api/contact', async (req, res) => {
 
 app.post('/api/send-email', async (req, res) => {
   try {
-    const { default: handler } = await import(`./api/send-email.js?v=${Date.now()}`);
+    // Route to new unified email service
+    req.body.action = 'general-email';
+    const { default: handler } = await import(`./api/email-service.js?v=${Date.now()}`);
     await handler(req, res);
   } catch (error) {
     console.error('API Error:', error);
@@ -127,7 +149,9 @@ app.post('/api/send-email', async (req, res) => {
 
 app.post('/api/start-tournament-notification', async (req, res) => {
   try {
-    const { default: handler } = await import(`./api/start-tournament-notification.js?v=${Date.now()}`);
+    // Route to new unified email service
+    req.body.action = 'tournament-notification';
+    const { default: handler } = await import(`./api/email-service.js?v=${Date.now()}`);
     await handler(req, res);
   } catch (error) {
     console.error('API Error:', error);
