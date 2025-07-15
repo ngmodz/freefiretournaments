@@ -325,280 +325,212 @@ const Settings = () => {
     }
   };
 
-  const settingsOptions = [
-    {
+  const settingsItems = [
+    { 
       id: "profile",
       icon: <Edit size={20} className="text-gaming-primary" />,
-      title: "Edit Profile",
-      description: "Update your personal information",
-      onClick: () => handleOpenSheet("profile"),
+      title: "Edit Profile", 
+      description: "Update your personal information" 
     },
-    {
+    { 
       id: "tournaments",
       icon: <Trophy size={20} className="text-gaming-accent" />,
-      title: "My Tournaments",
+      title: "My Tournaments", 
       description: "Tournaments you've joined or hosted",
-      onClick: () => navigate("/tournaments"),
+      action: () => navigate("/hosted-tournaments")
     },
-    {
+    { 
       id: "password",
       icon: <Lock size={20} className="text-[#ec4899]" />,
-      title: "Change Password",
-      description: "Update your password",
-      onClick: () => handleOpenSheet("password"),
+      title: "Change Password", 
+      description: "Update your login password" 
     },
-   {
-     id: "apply-host",
-     icon: <Crown size={20} className="text-yellow-400" />,
-     title: "Apply as Host",
-     description: "Become a verified tournament host",
-     onClick: () => navigate("/apply-host"),
-   },
-    {
-      id: "contact",
+    { 
+      id: "apply-host",
+      icon: <Crown size={20} className="text-yellow-400" />,
+      title: "Apply as Host", 
+      description: "Become a verified tournament host",
+      action: () => navigate('/apply-host')
+    },
+    { 
+      id: "support",
       icon: <MessageSquare size={20} className="text-[#8b5cf6]" />,
-      title: "Contact Support",
-      description: "Help & support",
-      onClick: () => handleOpenSheet("contact"),
+      title: "Contact Support", 
+      description: "Help & support" 
     },
+    { 
+      id: "delete",
+      icon: <Trash2 size={20} className="text-red-500" />,
+      title: "Delete Account", 
+      description: "Permanently delete your account", 
+      // isDestructive: true // Removed as SettingsItem doesn't use it
+    }
   ];
 
   return (
     <ProfileEditSheetContext.Provider value={{ openProfileEdit }}>
-      <div className="container-padding py-4 min-h-screen">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="space-y-6 max-w-3xl mx-auto"
-      >
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-white">Settings</h1>
-          <Link to="/home" className="flex items-center gap-1 text-sm text-gaming-primary hover:text-gaming-primary/80 transition-colors">
-            <ArrowLeft size={16} />
-            <span className="hidden sm:inline">Back to Home</span>
-          </Link>
-        </div>
-        
-        {/* Profile Card */}
-        <Card 
-          className="p-4 bg-gaming-card border-gaming-border shadow-glow hover:bg-gaming-card/80 transition-colors cursor-pointer" 
-          onClick={() => navigate('/profile')}
+      <div className="min-h-screen bg-gaming-bg text-gaming-text pb-20">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+          className="container mx-auto px-4 py-8 max-w-4xl"
         >
-          <div className="flex items-center gap-4">
-            <AvatarDisplay 
-              userProfile={userProfile}
-              currentUser={currentUser}
-              size="lg" 
-            />
-            <div className="flex-1">
-              <div className="flex items-center">
-                <h2 className="text-xl font-bold text-white">{user.name}</h2>
-              </div>
-              <p className="text-sm text-gaming-muted text-[#FFD700] font-bold">{user.ign || "Not set"}</p>
-              <p className="text-xs text-gaming-muted mt-1">UID: {user.uid || "Not available"}</p>
+          {/* Header */}
+          <div className="flex items-center justify-between mb-8">
+            <Button
+              variant="ghost"
+              onClick={() => navigate(-1)}
+              className="text-gaming-muted hover:text-white"
+            >
+              <ArrowLeft className="h-5 w-5 mr-2" />
+              Back to Home
+            </Button>
+            <div className="flex items-center gap-3">
+              <SettingsIcon className="h-6 w-6 text-gaming-primary" />
+              <h1 className="text-3xl font-bold text-white">Settings</h1>
             </div>
           </div>
-        </Card>
-
-        {/* Settings Options List */}
-        <Card className="divide-y divide-gaming-border bg-gaming-card border-gaming-border shadow-glow">
-          {settingsOptions.map((option) => (
-            <SettingsItem
-              key={option.id}
-              icon={option.icon}
-              title={option.title}
-              description={option.description}
-              onClick={option.onClick}
-            />
-          ))}
           
-          {/* Delete Account Button */}
-          <button 
-            className="w-full flex items-center gap-4 p-4 text-left hover:bg-gaming-bg/50 transition-all hover:-translate-y-1 hover:shadow-lg duration-200"
-            onClick={() => setShowDeleteConfirm(true)}
-          >
-            <div className="h-10 w-10 rounded-full flex items-center justify-center bg-red-500/20 text-red-500">
-              <Trash2 size={20} />
-            </div>
-            <div>
-              <h3 className="font-medium text-white">Delete Account</h3>
-              <p className="text-sm text-gaming-muted">Permanently delete your account</p>
-            </div>
-          </button>
-          
-          <button 
-            className="w-full flex items-center gap-4 p-4 text-left hover:bg-gaming-bg/50 transition-all hover:-translate-y-1 hover:shadow-lg duration-200"
-            onClick={handleLogout}
-          >
-            <div className="h-10 w-10 rounded-full flex items-center justify-center bg-red-500/20 text-red-500">
-              <LogOut size={20} />
-            </div>
-            <div>
-              <h3 className="font-medium text-white">Logout</h3>
-              <p className="text-sm text-gaming-muted">Sign out of your account</p>
-            </div>
-          </button>
-        </Card>
-      </motion.div>
-
-      {/* Delete Account Confirmation Dialog */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-gaming-card border border-gaming-border rounded-lg p-6 max-w-md w-full">
-            <h2 className="text-xl font-bold text-white mb-4">Delete Account</h2>
-            <p className="text-sm text-gaming-muted mb-6">
-              This action cannot be undone. All your data will be permanently deleted.
-              Type <span className="font-bold text-red-500">Delete</span> to confirm.
-            </p>
-            
-            <div className="mb-4">
-              <input
-                type="text"
-                value={deleteText}
-                onChange={(e) => setDeleteText(e.target.value)}
-                placeholder="Type 'Delete' to confirm"
-                className="w-full px-3 py-2 bg-gaming-bg border border-gaming-border rounded-md text-white"
-              />
-            </div>
-            
-            {currentUser?.providerData.some(provider => provider.providerId === 'password') && (
-              <div className="mb-6">
-                <Label htmlFor="password" className="text-sm text-gaming-muted block mb-2">
-                  Enter your password to confirm:
-                </Label>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Left side: Profile Card */}
+            <div className="md:col-span-1">
+              <Card 
+                className="bg-gaming-card border-gaming-border text-center p-6 relative overflow-hidden cursor-pointer hover:bg-gaming-card/80 transition-colors"
+                onClick={() => navigate('/profile')}
+              >
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gaming-primary/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+                <div className="absolute bottom-0 left-0 w-24 h-24 bg-gaming-accent/10 rounded-full -ml-12 -mb-12 blur-xl"></div>
+                
                 <div className="relative">
-                  <input
-                    type="password"
-                    id="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Your account password"
-                    className={`w-full px-3 py-2 bg-gaming-bg border ${reAuthError ? "border-red-500" : "border-gaming-border"} rounded-md text-white`}
+                  <AvatarDisplay
+                    userProfile={userProfile}
+                    currentUser={currentUser}
+                    className="w-24 h-24 mx-auto mb-4"
+                  />
+                  <h2 className="text-xl font-bold text-white">{user.name}</h2>
+                  <p className="text-sm text-gaming-muted">UID: {user.uid}</p>
+                  
+                  {user.isHost && (
+                    <div className="mt-2 inline-flex items-center gap-1.5 bg-gaming-primary/20 text-gaming-primary px-2 py-1 rounded-full text-xs font-semibold">
+                      <Crown size={12} />
+                      Verified Host
+                    </div>
+                  )}
+                </div>
+              </Card>
+            </div>
+            
+            {/* Right side: Settings List */}
+            <div className="md:col-span-2">
+              <Card className="bg-gaming-card border-gaming-border p-6 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-40 h-40 bg-gaming-primary/10 rounded-full -mr-20 -mt-20 blur-3xl"></div>
+                <div className="absolute bottom-0 left-0 w-32 h-32 bg-gaming-accent/10 rounded-full -ml-16 -mb-16 blur-2xl"></div>
+                
+                <div className="relative space-y-2">
+                  {settingsItems.map((item, index) => (
+                    <React.Fragment key={item.id}>
+                      <SettingsItem
+                        icon={item.icon}
+                        title={item.title}
+                        description={item.description}
+                        // isDestructive={item.isDestructive} // Removed as SettingsItem doesn't use it
+                        onClick={item.action ? item.action : () => handleOpenSheet(item.id)}
+                      />
+                      {index < settingsItems.length - 1 && <Separator className="bg-gaming-border/50" />}
+                    </React.Fragment>
+                  ))}
+                  <Separator className="bg-gaming-border/50" />
+                  <SettingsItem
+                    icon={<LogOut size={20} className="text-red-500" />}
+                    title="Logout"
+                    description="Sign out of your account"
+                    onClick={handleLogout}
                   />
                 </div>
-                {reAuthError && (
-                  <p className="text-red-500 text-xs mt-1">{reAuthError}</p>
-                )}
-              </div>
-            )}
-            
-            {currentUser?.providerData.some(provider => provider.providerId === 'google.com') && (
+              </Card>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Sheets for different settings */}
+        <Sheet open={openSheet === 'profile'} onOpenChange={(isOpen) => !isOpen && handleCloseSheet()}>
+          <SheetContent 
+            side={isMobile ? "bottom" : "right"} 
+            className="bg-gaming-bg border-gaming-border max-h-[90vh] overflow-y-auto p-4 rounded-t-xl bottom-sheet-ios-fix"
+            style={{
+              maxHeight: isMobile ? 'calc(90vh - env(safe-area-inset-bottom))' : '90vh',
+              paddingBottom: isMobile ? 'calc(1rem + env(safe-area-inset-bottom))' : '1rem',
+            }}
+          >
+            <div className="h-full flex flex-col">
+              {isMobile && (
+                <div className="w-12 h-1 bg-gray-600 rounded-full mx-auto mb-4"></div>
+              )}
               <div className="mb-6">
-                <p className="text-sm text-gaming-muted mb-2">
-                  You're signed in with Google. You'll need to authenticate with Google to delete your account.
-                </p>
-                {reAuthError && (
-                  <p className="text-red-500 text-xs mb-2">{reAuthError}</p>
-                )}
+                <h2 className="text-xl font-bold text-white">Edit Profile</h2>
+                <p className="text-sm text-gaming-muted">Update your personal information</p>
               </div>
-            )}
-            
-            <div className="flex justify-end gap-2">
-              <button
-                className="px-4 py-2 bg-gaming-bg text-white rounded-md hover:bg-gaming-bg/80"
-                onClick={() => {
-                  setShowDeleteConfirm(false);
-                  setDeleteText("");
-                  setPassword("");
-                  setReAuthError("");
-                }}
-                disabled={isDeleting || isReauthenticating}
-              >
-                Cancel
-              </button>
-              <button
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                onClick={handleDeleteAccount}
-                disabled={deleteText !== "Delete" || 
-                  (currentUser?.providerData.some(provider => provider.providerId === 'password') && !password) || 
-                  isDeleting || 
-                  isReauthenticating}
-              >
-                {isDeleting || isReauthenticating ? "Processing..." : "Delete Account"}
-              </button>
+              
+              <div className="flex-1 overflow-auto pb-10">
+                <ProfileEditForm onClose={handleCloseSheet} />
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </SheetContent>
+        </Sheet>
 
-      {/* Sheet for Profile */}
-      <Sheet open={openSheet === "profile"} onOpenChange={handleCloseSheet}>
-        <SheetContent 
-          side={isMobile ? "bottom" : "right"} 
-          className="bg-gaming-bg border-gaming-border max-h-[90vh] overflow-y-auto p-4 rounded-t-xl bottom-sheet-ios-fix"
-          style={{
-            maxHeight: isMobile ? 'calc(90vh - env(safe-area-inset-bottom))' : '90vh',
-            paddingBottom: isMobile ? 'calc(1rem + env(safe-area-inset-bottom))' : '1rem',
-          }}
-        >
-          <div className="h-full flex flex-col">
-            {isMobile && (
-              <div className="w-12 h-1 bg-gray-600 rounded-full mx-auto mb-4"></div>
-            )}
-            <div className="mb-6">
-              <h2 className="text-xl font-bold text-white">Edit Profile</h2>
-              <p className="text-sm text-gaming-muted">Update your personal information</p>
+        {/* Sheet for Password */}
+        <Sheet open={openSheet === "password"} onOpenChange={handleCloseSheet}>
+          <SheetContent 
+            side={isMobile ? "bottom" : "right"} 
+            className="bg-gaming-bg border-gaming-border max-h-[90vh] overflow-y-auto p-4 rounded-t-xl bottom-sheet-ios-fix"
+            style={{
+              maxHeight: isMobile ? 'calc(90vh - env(safe-area-inset-bottom))' : '90vh',
+              paddingBottom: isMobile ? 'calc(1rem + env(safe-area-inset-bottom))' : '1rem',
+            }}
+          >
+            <div className="h-full flex flex-col">
+              {isMobile && (
+                <div className="w-12 h-1 bg-gray-600 rounded-full mx-auto mb-4"></div>
+              )}
+              <div className="mb-6">
+                <h2 className="text-xl font-bold text-white">Change Password</h2>
+                <p className="text-sm text-gaming-muted">Update your account password</p>
+              </div>
+              
+              <div className="flex-1 overflow-auto">
+                <ChangePasswordForm onClose={handleCloseSheet} />
+              </div>
             </div>
-            
-            <div className="flex-1 overflow-auto pb-10">
-              <ProfileEditForm onClose={handleCloseSheet} />
-            </div>
-          </div>
-        </SheetContent>
-      </Sheet>
+          </SheetContent>
+        </Sheet>
 
-      {/* Sheet for Password */}
-      <Sheet open={openSheet === "password"} onOpenChange={handleCloseSheet}>
-        <SheetContent 
-          side={isMobile ? "bottom" : "right"} 
-          className="bg-gaming-bg border-gaming-border max-h-[90vh] overflow-y-auto p-4 rounded-t-xl bottom-sheet-ios-fix"
-          style={{
-            maxHeight: isMobile ? 'calc(90vh - env(safe-area-inset-bottom))' : '90vh',
-            paddingBottom: isMobile ? 'calc(1rem + env(safe-area-inset-bottom))' : '1rem',
-          }}
-        >
-          <div className="h-full flex flex-col">
-            {isMobile && (
-              <div className="w-12 h-1 bg-gray-600 rounded-full mx-auto mb-4"></div>
-            )}
-            <div className="mb-6">
-              <h2 className="text-xl font-bold text-white">Change Password</h2>
-              <p className="text-sm text-gaming-muted">Update your account password</p>
+        {/* Sheet for Contact Support */}
+        <Sheet open={openSheet === "contact"} onOpenChange={handleCloseSheet}>
+          <SheetContent 
+            side={isMobile ? "bottom" : "right"} 
+            className="bg-gaming-bg border-gaming-border max-h-[90vh] overflow-y-auto p-4 rounded-t-xl bottom-sheet-ios-fix"
+            style={{
+              maxHeight: isMobile ? 'calc(90vh - env(safe-area-inset-bottom))' : '90vh',
+              paddingBottom: isMobile ? 'calc(1rem + env(safe-area-inset-bottom))' : '1rem',
+            }}
+          >
+            <div className="h-full flex flex-col">
+              {isMobile && (
+                <div className="w-12 h-1 bg-gray-600 rounded-full mx-auto mb-4"></div>
+              )}
+              <div className="mb-6">
+                <h2 className="text-xl font-bold text-white">Contact Support</h2>
+                <p className="text-sm text-gaming-muted">Questions, feedback, or bug reports</p>
+              </div>
+              
+              <div className="flex-1 overflow-auto">
+                <ContactSupportForm onClose={handleCloseSheet} />
+              </div>
             </div>
-            
-            <div className="flex-1 overflow-auto">
-              <ChangePasswordForm onClose={handleCloseSheet} />
-            </div>
-          </div>
-        </SheetContent>
-      </Sheet>
-
-      {/* Sheet for Contact Support */}
-      <Sheet open={openSheet === "contact"} onOpenChange={handleCloseSheet}>
-        <SheetContent 
-          side={isMobile ? "bottom" : "right"} 
-          className="bg-gaming-bg border-gaming-border max-h-[90vh] overflow-y-auto p-4 rounded-t-xl bottom-sheet-ios-fix"
-          style={{
-            maxHeight: isMobile ? 'calc(90vh - env(safe-area-inset-bottom))' : '90vh',
-            paddingBottom: isMobile ? 'calc(1rem + env(safe-area-inset-bottom))' : '1rem',
-          }}
-        >
-          <div className="h-full flex flex-col">
-            {isMobile && (
-              <div className="w-12 h-1 bg-gray-600 rounded-full mx-auto mb-4"></div>
-            )}
-            <div className="mb-6">
-              <h2 className="text-xl font-bold text-white">Contact Support</h2>
-              <p className="text-sm text-gaming-muted">Questions, feedback, or bug reports</p>
-            </div>
-            
-            <div className="flex-1 overflow-auto">
-              <ContactSupportForm onClose={handleCloseSheet} />
-            </div>
-          </div>
-        </SheetContent>
-      </Sheet>
-    </div>
+          </SheetContent>
+        </Sheet>
+      </div>
     </ProfileEditSheetContext.Provider>
   );
 };

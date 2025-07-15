@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCreditBalance } from "@/hooks/useCreditBalance";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 
 interface CreditDisplayProps {
   showBuyLink?: boolean;
@@ -57,26 +58,45 @@ const CreditDisplay = ({
   if (variant === 'vertical') {
     return (
       <div className={cn("space-y-2", className)}>
-        <div className="flex items-center justify-between bg-gaming-bg/50 rounded-lg p-2">
-          <div className="flex items-center gap-2">
-            <Coins size={16} className="text-gaming-accent" />
-            <span className="text-sm text-gaming-text">Tournament</span>
-          </div>
-          <span className="text-sm font-bold text-gaming-accent">
-            {isLoading ? "..." : tournamentCredits}
-          </span>
-        </div>
-        {isHost && (
-          <div className="flex items-center justify-between bg-gaming-bg/50 rounded-lg p-2">
+        {/* Tournament Credits Row with its own gradient */}
+        <div className="relative overflow-hidden rounded-lg">
+          <div className="absolute top-0 right-0 w-16 h-16 bg-gaming-accent/10 rounded-full -mr-6 -mt-6 blur-lg pointer-events-none select-none"></div>
+          <motion.div 
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.2, delay: 0.1 }}
+            className="flex items-center justify-between bg-gaming-bg/50 rounded-lg p-2 relative z-10"
+          >
             <div className="flex items-center gap-2">
-              <CreditCard size={16} className="text-gaming-primary" />
-              <span className="text-sm text-gaming-text">Host</span>
+              <Coins size={16} className="text-gaming-accent" />
+              <span className="text-sm text-gaming-text">Tournament</span>
             </div>
-            <span className="text-sm font-bold text-gaming-primary">
-              {isLoading ? "..." : hostCredits}
+            <span className="text-sm font-bold text-gaming-accent">
+              {isLoading ? "..." : tournamentCredits}
             </span>
+          </motion.div>
+        </div>
+        {/* Host Credits Row with its own gradient */}
+        {isHost && (
+          <div className="relative overflow-hidden rounded-lg">
+            <div className="absolute top-0 left-0 w-16 h-16 bg-gaming-primary/10 rounded-full -ml-6 -mt-6 blur-lg pointer-events-none select-none"></div>
+            <motion.div 
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.2, delay: 0.15 }}
+              className="flex items-center justify-between bg-gaming-bg/50 rounded-lg p-2 relative z-10"
+            >
+              <div className="flex items-center gap-2">
+                <CreditCard size={16} className="text-gaming-primary" />
+                <span className="text-sm text-gaming-text">Host</span>
+              </div>
+              <span className="text-sm font-bold text-gaming-primary">
+                {isLoading ? "..." : hostCredits}
+              </span>
+            </motion.div>
           </div>
         )}
+        {/* Buy Credits Button (no gradient) */}
         {showBuyLink && (
           <Link
             to="/credits"

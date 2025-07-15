@@ -41,8 +41,8 @@ const SidebarItem = ({ icon, label, to, isActive = false, isCollapsed, delay = 0
       className={cn(
         "flex items-center px-3 py-3 rounded-md transition-all duration-300 ease-in-out",
         isActive ? "bg-gaming-primary/20 text-gaming-primary" : "text-gaming-muted hover:text-gaming-text hover:bg-gaming-card/80",
-        "my-1",
-        "hover:-translate-y-1 hover:scale-[1.02]"
+        "my-1"
+        // "hover:-translate-y-1 hover:scale-[1.02]" // Removed for performance
       )}
     >
       <motion.div 
@@ -53,14 +53,13 @@ const SidebarItem = ({ icon, label, to, isActive = false, isCollapsed, delay = 0
       <AnimatePresence>
         {!isCollapsed && (
           <motion.span
-            initial={{ opacity: 0, width: 0, x: -10 }}
+            initial={{ opacity: 0, x: -20 }}
             animate={{ 
               opacity: 1, 
-              width: "auto", 
               x: 0,
-              transition: { delay: delay * 0.05, duration: 0.3 } 
+              transition: { delay: delay * 0.05, duration: 0.2, ease: "easeOut" } 
             }}
-            exit={{ opacity: 0, width: 0, x: -10 }}
+            exit={{ opacity: 0, x: -20, transition: { duration: 0.15, ease: "easeIn" } }}
             className="ml-3 text-sm font-medium overflow-hidden whitespace-nowrap"
           >
             {label}
@@ -78,16 +77,10 @@ interface DesktopSidebarProps {
 
 const DesktopSidebar = ({ currentPath, onHoverChange }: DesktopSidebarProps) => {
   // Always default to collapsed
-  const [isCollapsed, setIsCollapsed] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
   const { user } = useUserProfile();
   const navigate = useNavigate();
   const [showHostApplyDialog, setShowHostApplyDialog] = useState(false);
-
-  useEffect(() => {
-    // Keep sidebar collapsed by default
-    setIsCollapsed(true);
-  }, []);
 
   const handleCreateTournamentClick = () => {
     if (user?.isHost) {
@@ -122,9 +115,9 @@ const DesktopSidebar = ({ currentPath, onHoverChange }: DesktopSidebarProps) => 
         width: isHovered ? "16rem" : "4rem", // Increased from 14rem to 16rem for more space
       }}
       transition={{
-        type: "spring",
-        stiffness: 500,
-        damping: 40
+        type: "tween",
+        ease: "easeOut",
+        duration: 0.25
       }}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
@@ -154,20 +147,6 @@ const DesktopSidebar = ({ currentPath, onHoverChange }: DesktopSidebarProps) => 
           </AnimatePresence>
         </div>
 
-        {/* Credit Display Section - Using CreditDisplay component */}
-        <AnimatePresence>
-          {isHovered && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="px-3 py-4 border-b border-gaming-border/50"
-            >
-              <CreditDisplay variant="vertical" />
-            </motion.div>
-          )}
-        </AnimatePresence>
-
         {/* Navigation */}
         <div className="flex-1 px-2">
           {navItems.map((item, index) => (
@@ -187,44 +166,51 @@ const DesktopSidebar = ({ currentPath, onHoverChange }: DesktopSidebarProps) => 
           ))}
         </div>
 
-        {/* User Avatar */}
-        {/*
-        <div className={cn(
-          "p-3 flex items-center justify-center",
-          isHovered ? "justify-start" : "justify-center"
-        )}>
-          <UserAvatar />
-        </div>
-        */}
-        
-        {/* Create Tournament Button */}
-        <div className="px-3 mb-4 mt-auto">
-          <div
-            onClick={handleCreateTournamentClick}
-            className={cn(
-              "flex items-center justify-center px-3 py-2.5 rounded-md transition-all duration-300 ease-in-out bg-gaming-accent text-white shadow-glow-accent",
-              !isHovered && "justify-center",
-              "hover:-translate-y-1 hover:scale-[1.02] cursor-pointer"
+        {/* Bottom Section */}
+        <div className="mt-auto">
+          {/* Credit Display Section - Using CreditDisplay component */}
+          <AnimatePresence>
+            {isHovered && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="px-3 py-4 border-b border-gaming-border/50"
+              >
+                <CreditDisplay variant="vertical" />
+              </motion.div>
             )}
-          >
-            <motion.div
-              className="flex items-center justify-center"
-            >
-              <Plus size={20} />
-            </motion.div>
-            <AnimatePresence>
-              {isHovered && (
-                <motion.span
-                  initial={{ opacity: 0, width: 0, x: -10 }}
-                  animate={{ opacity: 1, width: "auto", x: 0 }}
-                  exit={{ opacity: 0, width: 0, x: -10 }}
-                  transition={{ duration: 0.3 }}
-                  className="ml-2 text-sm font-medium overflow-hidden whitespace-nowrap"
-                >
-                  Create Tournament
-                </motion.span>
+          </AnimatePresence>
+          
+          {/* Create Tournament Button */}
+          <div className="px-3 mb-4">
+            <div
+              onClick={handleCreateTournamentClick}
+              className={cn(
+                "flex items-center justify-center px-3 py-2.5 rounded-md transition-all duration-300 ease-in-out bg-gaming-accent text-white shadow-glow-accent",
+                !isHovered && "justify-center",
+                "hover:bg-gaming-accent/90 cursor-pointer" // Simplified hover
               )}
-            </AnimatePresence>
+            >
+              <motion.div
+                className="flex items-center justify-center"
+              >
+                <Plus size={20} />
+              </motion.div>
+              <AnimatePresence>
+                {isHovered && (
+                  <motion.span
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -10 }}
+                    transition={{ duration: 0.2, ease: "easeOut" }}
+                    className="ml-2 text-sm font-medium overflow-hidden whitespace-nowrap"
+                  >
+                    Create Tournament
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
       </div>

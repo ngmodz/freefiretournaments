@@ -218,12 +218,6 @@ const Tournaments = () => {
         {/* Joined Tournaments Tab */}
         <TabsContent value="joined-tournaments">
           <div className="mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-white">
-                Joined Tournaments {displayedJoinedTournaments.length > 0 && `(${displayedJoinedTournaments.length})`}
-              </h2>
-            </div>
-            
             {isLoadingJoinedTournaments ? (
               <div className="text-center py-10">
                 <p className="text-[#A0A0A0]">Loading your joined tournaments...</p>

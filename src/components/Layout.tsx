@@ -53,9 +53,9 @@ const Layout = () => {
           marginLeft: !isMobile ? (isHovered ? "16rem" : "4rem") : "0", // Updated from 14rem to 16rem
         }}
         transition={{
-          type: "spring",
-          stiffness: 300,
-          damping: 30
+          type: "tween",
+          ease: "easeOut",
+          duration: 0.25
         }}
       >
         {/* Adjusted bottom padding for terms page and settings page */}

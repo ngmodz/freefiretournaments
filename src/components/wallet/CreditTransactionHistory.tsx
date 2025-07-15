@@ -494,8 +494,11 @@ const CreditTransactionHistory = ({ userId, refreshTrigger = 0 }: CreditTransact
   // Loading state
   if (isLoading && firstLoad) {
     return (
-      <Card className="bg-gaming-card border-gaming-border">
-        <div className="p-4">
+      <Card className="bg-gaming-card border-gaming-border relative overflow-hidden">
+        {/* Gradient/blur background */}
+        <div className="absolute top-0 right-0 w-32 h-32 bg-gaming-primary/10 rounded-full -mr-16 -mt-16 blur-2xl pointer-events-none select-none"></div>
+        <div className="absolute bottom-0 left-0 w-24 h-24 bg-gaming-accent/10 rounded-full -ml-12 -mb-12 blur-xl pointer-events-none select-none"></div>
+        <div className="p-4 relative z-10">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gaming-text">Transaction History</h3>
             <Button size="sm" variant="ghost" disabled>
@@ -528,8 +531,11 @@ const CreditTransactionHistory = ({ userId, refreshTrigger = 0 }: CreditTransact
     const isIndexError = error.includes("being prepared");
     
     return (
-      <Card className="bg-gaming-card border-gaming-border">
-        <div className="p-4">
+      <Card className="bg-gaming-card border-gaming-border relative overflow-hidden">
+        {/* Gradient/blur background */}
+        <div className="absolute top-0 right-0 w-32 h-32 bg-gaming-primary/10 rounded-full -mr-16 -mt-16 blur-2xl pointer-events-none select-none"></div>
+        <div className="absolute bottom-0 left-0 w-24 h-24 bg-gaming-accent/10 rounded-full -ml-12 -mb-12 blur-xl pointer-events-none select-none"></div>
+        <div className="p-4 relative z-10">
           <div className="text-center py-8">
             {isIndexError ? (
               <>
@@ -557,8 +563,11 @@ const CreditTransactionHistory = ({ userId, refreshTrigger = 0 }: CreditTransact
   // Empty state
   if (transactions.length === 0) {
     return (
-      <Card className="bg-gaming-card border-gaming-border">
-        <div className="p-4">
+      <Card className="bg-gaming-card border-gaming-border relative overflow-hidden">
+        {/* Gradient/blur background */}
+        <div className="absolute top-0 right-0 w-32 h-32 bg-gaming-primary/10 rounded-full -mr-16 -mt-16 blur-2xl pointer-events-none select-none"></div>
+        <div className="absolute bottom-0 left-0 w-24 h-24 bg-gaming-accent/10 rounded-full -ml-12 -mb-12 blur-xl pointer-events-none select-none"></div>
+        <div className="p-4 relative z-10">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gaming-text">Transaction History</h3>
             <Button 
@@ -582,8 +591,11 @@ const CreditTransactionHistory = ({ userId, refreshTrigger = 0 }: CreditTransact
   }
 
   return (
-    <Card className="bg-gaming-card border-gaming-border">
-      <div className="p-4">
+    <Card className="bg-gaming-card border-gaming-border relative overflow-hidden">
+      {/* Gradient/blur background */}
+      <div className="absolute top-0 right-0 w-32 h-32 bg-gaming-primary/10 rounded-full -mr-16 -mt-16 blur-2xl pointer-events-none select-none"></div>
+      <div className="absolute bottom-0 left-0 w-24 h-24 bg-gaming-accent/10 rounded-full -ml-12 -mb-12 blur-xl pointer-events-none select-none"></div>
+      <div className="p-4 relative z-10">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gaming-text">Transaction History</h3>
           <Button 
