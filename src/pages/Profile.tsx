@@ -182,18 +182,13 @@ const Profile = () => {
       style={{
         overscrollBehavior: 'none',
         WebkitOverflowScrolling: 'touch',
-        maxHeight: '100vh'
       }}
     >
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
-        className={`space-y-6 max-w-4xl mx-auto py-4 ${isMobile ? 'pb-40' : 'pb-8'} overflow-auto`}
-        style={{
-          maxHeight: 'calc(100vh - 2rem)',
-          overscrollBehavior: 'contain'
-        }}
+        className={`space-y-6 max-w-4xl mx-auto py-4 ${isMobile ? 'pb-40' : 'pb-8'}`}
       >
         {/* Header with back button */}
         <motion.div
