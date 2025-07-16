@@ -254,6 +254,197 @@ exports.setTournamentTTLAtScheduledTime = onSchedule("every 5 minutes", async (c
 });
 
 
+// =================================================================================================
+// AUTOMATED TOURNAMENT MODERATOR
+// This function runs every minute to enforce rules on unstarted tournaments.
+// =================================================================================================
+
+/**
+ * Helper to create a credit transaction record in Firestore.
+ * This is used for logging all credit changes for audit purposes.
+ */
+const createCreditTransaction = (txData) => {
+  const transactionData = {
+    ...txData,
+    createdAt: new Date(),
+  };
+  // Note: This returns a promise
+  return db.collection("creditTransactions").add(transactionData);
+};
+
+/**
+ * Penalizes a host by deducting credits and logging the transaction.
+ * Runs within a Firestore transaction to ensure atomicity.
+ */
+const penalizeHost = (hostId, tournament) => {
+  const penaltyAmount = 10;
+  const userRef = db.collection("users").doc(hostId);
+
+  return db.runTransaction(async (transaction) => {
+    const userDoc = await transaction.get(userRef);
+    if (!userDoc.exists) {
+      logger.error(`[Moderator] Host user ${hostId} not found for penalty.`);
+      throw new Error(`Host user ${hostId} not found`);
+    }
+
+    const wallet = userDoc.data().wallet || {};
+    const currentCredits = wallet.hostCredits || 0;
+    const newCredits = currentCredits - penaltyAmount;
+
+    // Update the user's wallet
+    transaction.update(userRef, { "wallet.hostCredits": newCredits });
+
+    // Return the promise to create the transaction log
+    return createCreditTransaction({
+      userId: hostId,
+      type: "host_penalty",
+      amount: -penaltyAmount,
+      balanceBefore: currentCredits,
+      balanceAfter: newCredits,
+      walletType: "hostCredits",
+      description: `Penalty for not starting tournament: ${tournament.name}`,
+      transactionDetails: {
+        tournamentId: tournament.id,
+        tournamentName: tournament.name,
+      },
+    });
+  });
+};
+
+/**
+ * Refunds the entry fee to a single participant.
+ * Runs within a Firestore transaction to ensure atomicity.
+ */
+const refundEntryFee = (participant, tournament) => {
+  // The participant object now contains authUid, ign, and customUid
+  const { authUid } = participant;
+  if (!authUid) {
+    logger.warn(`[Moderator] Participant object is missing authUid, cannot refund.`, { participant });
+    return Promise.resolve(); // Resolve promise to not break Promise.all
+  }
+
+  const entryFee = tournament.entry_fee || 0;
+  if (entryFee <= 0) {
+    return Promise.resolve(); // No fee to refund
+  }
+
+  const userRef = db.collection("users").doc(authUid);
+  return db.runTransaction(async (transaction) => {
+    const userDoc = await transaction.get(userRef);
+    if (!userDoc.exists) {
+      logger.error(`[Moderator] Participant user ${authUid} not found for refund.`);
+      throw new Error(`Participant user ${authUid} not found`);
+    }
+
+    const wallet = userDoc.data().wallet || {};
+    const currentCredits = wallet.tournamentCredits || 0;
+    const newCredits = currentCredits + entryFee;
+
+    transaction.update(userRef, { "wallet.tournamentCredits": newCredits });
+
+    return createCreditTransaction({
+      userId: authUid,
+      type: "tournament_refund",
+      amount: entryFee,
+      balanceBefore: currentCredits,
+      balanceAfter: newCredits,
+      walletType: "tournamentCredits",
+      description: `Refund for cancelled tournament: ${tournament.name}`,
+      transactionDetails: {
+        tournamentId: tournament.id,
+        tournamentName: tournament.name,
+      },
+    });
+  });
+};
+
+/**
+ * Fetches the email address for a given user ID.
+ */
+const getUserEmail = async (userId) => {
+  try {
+    const userDoc = await db.collection("users").doc(userId).get();
+    if (userDoc.exists) {
+      return userDoc.data().email || null;
+    }
+    return null;
+  } catch (error) {
+    logger.error(`[Moderator] Failed to get email for user ${userId}:`, error);
+    return null;
+  }
+};
+
+/**
+ * Sends a penalty notification email to the host.
+ */
+const sendHostPenaltyEmail = (hostEmail, tournamentName) => {
+  const mailOptions = {
+    from: `"Lovable" <${emailConfig.user}>`,
+    to: hostEmail,
+    subject: `Penalty Applied for Tournament: "${tournamentName}"`,
+    html: `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <h3 style="color: #d9534f;">Penalty Notice</h3>
+        <p>Hello,</p>
+        <p>This is to inform you that a penalty of <b>10 credits</b> has been applied to your account.</p>
+        <p><b>Reason:</b> Your tournament, "<b>${tournamentName}</b>," was not started within 10 minutes of its scheduled time.</p>
+        <p>Please ensure that you start your tournaments on time to avoid further penalties or automatic cancellation.</p>
+        <p>The tournament will be automatically cancelled if it is not started within 20 minutes of the scheduled time.</p>
+        <br/>
+        <p>Regards,<br/>The Lovable Team</p>
+      </div>
+    `,
+  };
+  return emailTransporter.sendMail(mailOptions);
+};
+
+/**
+ * Sends a cancellation notification email to the host.
+ */
+const sendCancellationEmailToHost = (hostEmail, tournamentName) => {
+  const mailOptions = {
+    from: `"Lovable" <${emailConfig.user}>`,
+    to: hostEmail,
+    subject: `Tournament Cancelled: "${tournamentName}"`,
+    html: `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <h3 style="color: #d9534f;">Tournament Automatically Cancelled</h3>
+        <p>Hello,</p>
+        <p>Your tournament, "<b>${tournamentName}</b>," has been automatically cancelled because it was not started within 20 minutes of its scheduled time.</p>
+        <p>All entry fees have been refunded to the participants.</p>
+        <p>Please make sure to start future tournaments promptly to ensure a good experience for all users.</p>
+        <br/>
+        <p>Regards,<br/>The Lovable Team</p>
+      </div>
+    `,
+  };
+  return emailTransporter.sendMail(mailOptions);
+};
+
+/**
+ * Sends a cancellation notification email to a participant.
+ */
+const sendCancellationEmailToParticipant = (participantEmail, tournamentName, entryFee) => {
+  const mailOptions = {
+    from: `"Lovable" <${emailConfig.user}>`,
+    to: participantEmail,
+    subject: `Tournament Cancelled & Refunded: "${tournamentName}"`,
+    html: `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <h3 style="color: #5bc0de;">Tournament Cancelled</h3>
+        <p>Hello,</p>
+        <p>The tournament you joined, "<b>${tournamentName}</b>," has been cancelled because the host did not start it on time.</p>
+        <p>We have processed a full refund of your entry fee. <b>${entryFee} credits</b> have been returned to your tournament wallet.</p>
+        <p>We apologize for any inconvenience this may have caused.</p>
+        <br/>
+        <p>Regards,<br/>The Lovable Team</p>
+      </div>
+    `,
+  };
+  return emailTransporter.sendMail(mailOptions);
+};
+
+
 // Cloud Function to automatically delete expired tournaments from Firestore
 exports.cleanupExpiredTournaments = onSchedule("every 15 minutes", async (context) => {
   try {

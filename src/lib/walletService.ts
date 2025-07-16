@@ -44,7 +44,7 @@ export interface Transaction {
 export interface CreditTransaction {
   id?: string;
   userId: string;
-  type: 'host_credit_purchase' | 'tournament_credit_purchase' | 'tournament_join' | 'tournament_win' | 'referral_bonus' | 'host_credit_use';
+  type: 'host_credit_purchase' | 'tournament_credit_purchase' | 'tournament_join' | 'tournament_win' | 'referral_bonus' | 'host_credit_use' | 'host_penalty' | 'tournament_refund';
   amount: number;
   value?: number;
   balanceBefore: number;
