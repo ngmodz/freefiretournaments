@@ -7,6 +7,9 @@ import {
   sendCancellationEmailToParticipant 
 } from './notification-service.js';
 
+const LOCK_ID = 'automated_moderator_lock';
+const LOCK_TIMEOUT_MINUTES = 5;
+
 export default async function handler(req, res) {
   // Optional: Add a secret to prevent unauthorized calls
   const { secret } = req.query;
@@ -15,13 +18,41 @@ export default async function handler(req, res) {
     return res.status(401).json({ success: false, error: 'Unauthorized' });
   }
 
-  console.log("Running Automated Tournament Moderator via API...");
-  const now = new Date();
-  
-  // We check for tournaments that were scheduled to start more than 10 minutes ago.
-  const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
+  const lockRef = db.collection('locks').doc(LOCK_ID);
 
   try {
+    // --- Acquire Lock ---
+    await db.runTransaction(async (transaction) => {
+      const lockDoc = await transaction.get(lockRef);
+      const now = new Date();
+      const fiveMinutesAgo = new Date(now.getTime() - LOCK_TIMEOUT_MINUTES * 60 * 1000);
+
+      if (lockDoc.exists && lockDoc.data().timestamp.toDate() > fiveMinutesAgo) {
+        // Lock is held by another process that started recently.
+        throw new Error('Moderator process is already running.');
+      }
+      
+      // Acquire the lock by setting a new timestamp.
+      transaction.set(lockRef, { timestamp: now });
+    });
+  } catch (error) {
+    if (error.message === 'Moderator process is already running.') {
+      console.log('[Moderator API] Process is already running. Skipping execution.');
+      return res.status(200).json({ success: true, message: 'Process already running. Skipped.' });
+    }
+    // Another error occurred during lock acquisition.
+    console.error('[Moderator API] A critical error occurred acquiring the lock:', error);
+    return res.status(500).json({ success: false, error: 'Failed to acquire process lock.' });
+  }
+
+
+  try {
+    console.log("Running Automated Tournament Moderator via API...");
+    const now = new Date();
+    
+    // We check for tournaments that were scheduled to start more than 10 minutes ago.
+    const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
+
     const overdueTournamentsQuery = db.collection('tournaments')
       .where('status', '==', 'active')
       .where('start_date', '<=', tenMinutesAgo);
@@ -104,5 +135,9 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error("[Moderator API] A critical error occurred:", error);
     return res.status(500).json({ success: false, error: 'An internal server error occurred.' });
+  } finally {
+    // --- Release Lock ---
+    console.log('[Moderator API] Releasing process lock.');
+    await lockRef.delete();
   }
 } 

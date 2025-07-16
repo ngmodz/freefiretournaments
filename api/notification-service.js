@@ -55,7 +55,7 @@ export const sendHostPenaltyEmail = async (hostEmail, tournamentName) => {
     subject: `Penalty Applied for Tournament: "${tournamentName}"`,
     html: `
       <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-        <h3 style="color: #d9534f;">Penalty Notice</h3>
+        <h3 style="color: #000000;">Penalty Notice</h3>
         <p>Hello,</p>
         <p>This is to inform you that a penalty of <b>10 credits</b> has been applied to your account.</p>
         <p><b>Reason:</b> Your tournament, "<b>${tournamentName}</b>," was not started within 10 minutes of its scheduled time.</p>
@@ -81,7 +81,7 @@ export const sendCancellationEmailToHost = async (hostEmail, tournamentName) => 
     subject: `Tournament Cancelled: "${tournamentName}"`,
     html: `
       <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-        <h3 style="color: #d9534f;">Tournament Automatically Cancelled</h3>
+        <h3 style="color: #000000;">Tournament Automatically Cancelled</h3>
         <p>Hello,</p>
         <p>Your tournament, "<b>${tournamentName}</b>," has been automatically cancelled because it was not started within 20 minutes of its scheduled time.</p>
         <p>All entry fees have been refunded to the participants.</p>
@@ -107,7 +107,7 @@ export const sendCancellationEmailToParticipant = async (participantEmail, tourn
     subject: `Tournament Cancelled & Refunded: "${tournamentName}"`,
     html: `
       <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-        <h3 style="color: #5bc0de;">Tournament Cancelled</h3>
+        <h3 style="color: #000000;">Tournament Cancelled</h3>
         <p>Hello,</p>
         <p>The tournament you joined, "<b>${tournamentName}</b>," has been cancelled because the host did not start it on time.</p>
         <p>We have processed a full refund of your entry fee. <b>${entryFee} credits</b> have been returned to your tournament wallet.</p>
