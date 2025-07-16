@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TournamentList from "@/components/home/TournamentList";
@@ -219,8 +220,9 @@ const Tournaments = () => {
         <TabsContent value="joined-tournaments">
           <div className="mb-6">
             {isLoadingJoinedTournaments ? (
-              <div className="text-center py-10">
-                <p className="text-[#A0A0A0]">Loading your joined tournaments...</p>
+              <div className="flex flex-col items-center justify-center py-10">
+                <LoadingSpinner size="md" />
+                <p className="text-[#A0A0A0] mt-4">Loading your joined tournaments...</p>
               </div>
             ) : displayedJoinedTournaments.length > 0 ? (
               <TournamentList tournaments={displayedJoinedTournaments} />
@@ -247,8 +249,9 @@ const Tournaments = () => {
         <TabsContent value="hosted-tournaments">
           <div className="mb-6">
             {isLoadingHostedTournaments ? (
-              <div className="text-center py-10">
-                <p className="text-[#A0A0A0]">Loading your tournaments...</p>
+              <div className="flex flex-col items-center justify-center py-10">
+                <LoadingSpinner size="md" />
+                <p className="text-[#A0A0A0] mt-4">Loading your tournaments...</p>
               </div>
             ) : displayedHostedTournaments.length > 0 ? (
               <>

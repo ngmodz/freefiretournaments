@@ -130,8 +130,8 @@ const TournamentCard = ({ tournament }: TournamentCardProps) => {
         <div className="p-3 flex-grow relative overflow-hidden premium-card-border backdrop-blur-sm">
           {/* Enhanced gradient effects */}
           <div className="absolute inset-0 bg-gradient-to-br from-gaming-primary/5 via-transparent to-gaming-accent/5"></div>
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gaming-primary/10 rounded-full -mr-16 -mt-16 blur-xl animate-pulse-slow"></div>
-          <div className="absolute bottom-0 left-0 w-24 h-24 bg-gaming-accent/10 rounded-full -ml-12 -mb-12 blur-xl animate-pulse-slower"></div>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-gaming-primary/10 rounded-full -mr-16 -mt-16 blur-xl"></div>
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-gaming-accent/10 rounded-full -ml-12 -mb-12 blur-xl"></div>
           <div className="absolute top-1/2 left-1/4 w-16 h-16 bg-gaming-primary/5 rounded-full blur-xl animate-float"></div>
           <div className="absolute bottom-1/3 right-1/4 w-12 h-12 bg-gaming-accent/5 rounded-full blur-xl animate-float-delayed"></div>
           

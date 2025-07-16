@@ -55,7 +55,7 @@ const TournamentStatusBadge: React.FC<TournamentStatusBadgeProps> = ({
           borderColor: "border-red-600 border-2",
           shouldBlink: false,
           shadow: "shadow-md shadow-red-500/20",
-          icon: <XCircle size={16} className="mr-1.5 text-white animate-pulse" />,
+          icon: <XCircle size={16} className="mr-1.5 text-white" />,
         };
       default:
         return {
@@ -84,7 +84,7 @@ const TournamentStatusBadge: React.FC<TournamentStatusBadgeProps> = ({
       } : {}}
     >
       {config.shouldBlink && (
-        <div className="w-2 h-2 bg-white/80 rounded-full mr-1.5 animate-pulse shadow shadow-red-500/40" />
+        <div className="w-2 h-2 bg-white/80 rounded-full mr-1.5 shadow shadow-red-500/40" />
       )}
       {config.icon}
       {config.text}

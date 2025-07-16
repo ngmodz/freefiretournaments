@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
-import { Loader2, ArrowDownCircle, ArrowUpCircle, DollarSign, Trophy, RefreshCw, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
+import { ArrowDownCircle, ArrowUpCircle, DollarSign, Trophy, RefreshCw, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { 
@@ -566,7 +567,7 @@ const TransactionHistory = ({ userId, refreshTrigger = 0 }: TransactionHistoryPr
           className="flex justify-center p-6"
         >
           <div className="flex flex-col items-center gap-3">
-            <Loader2 className="h-8 w-8 animate-spin text-[#9b87f5]" />
+            <LoadingSpinner size="md" />
             <p className="text-gaming-muted text-sm">Loading transactions...</p>
           </div>
         </motion.div>
@@ -668,7 +669,7 @@ const TransactionHistory = ({ userId, refreshTrigger = 0 }: TransactionHistoryPr
           >
             {loadingMore && currentPage > 1 ? (
               <>
-                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                <LoadingSpinner size="xs" className="mr-1" />
                 Loading
               </>
             ) : (
@@ -688,7 +689,7 @@ const TransactionHistory = ({ userId, refreshTrigger = 0 }: TransactionHistoryPr
           >
             {loadingMore && !(currentPage > 1) ? (
               <>
-                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                <LoadingSpinner size="xs" className="mr-1" />
                 Loading
               </>
             ) : (
@@ -782,7 +783,7 @@ const TransactionHistory = ({ userId, refreshTrigger = 0 }: TransactionHistoryPr
                     >
                       {clearingHistory ? (
                         <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          <LoadingSpinner size="xs" className="mr-2" />
                           Clearing...
                         </>
                       ) : (

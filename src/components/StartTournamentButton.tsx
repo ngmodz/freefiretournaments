@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTournament } from '@/contexts/TournamentContext';
 import { useTournamentStart } from '@/hooks/useTournamentStart';
 import { formatTimeUntilStart } from '@/lib/tournamentStartUtils';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 interface StartTournamentButtonProps {
   tournament: Tournament;
@@ -82,7 +83,7 @@ const StartTournamentButton: React.FC<StartTournamentButtonProps> = ({
       >
         {isStarting ? (
           <>
-            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            <LoadingSpinner size="xs" />
             Starting...
           </>
         ) : startInfo.canStart ? (

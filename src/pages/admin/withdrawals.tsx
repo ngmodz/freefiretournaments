@@ -4,7 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { AdminService } from "@/lib/adminService";
 import { WithdrawalRequest, StatusFilter } from "@/lib/types";
 import { toast } from "sonner";
-import { Loader2, QrCode, Crown, MessageSquare } from "lucide-react";
+import { QrCode, Crown, MessageSquare } from "lucide-react";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import styles from "./withdrawals.module.css";
 import { getUserProfile } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
@@ -198,7 +199,7 @@ export default function AdminPage() {
     return (
       <div className={styles.container} style={{ fontFamily: 'Inter, sans-serif' }}>
         <div className={styles.card} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
-          <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#8c8c8c' }} />
+          <LoadingSpinner size="md" />
         </div>
       </div>
     );
@@ -302,8 +303,9 @@ export default function AdminPage() {
               {filteredRequests.length > 0 ? (
                 filteredRequests.map((req, rowIdx) => {
                   // Use backend-calculated originalAmount and commission if available
-                  const grossAmount = req.originalAmount !== undefined ? req.originalAmount : (req.commission !== undefined ? req.amount + req.commission : req.amount / (1 - COMMISSION_RATE));
-                  const commission = req.commission !== undefined ? req.commission : (grossAmount - req.amount);
+                  const reqWithCommission = req as any; // Type assertion to access additional properties
+                  const grossAmount = reqWithCommission.originalAmount !== undefined ? reqWithCommission.originalAmount : (reqWithCommission.commission !== undefined ? req.amount + reqWithCommission.commission : req.amount / (1 - COMMISSION_RATE));
+                  const commission = reqWithCommission.commission !== undefined ? reqWithCommission.commission : (grossAmount - req.amount);
                   // For each cell, pass the global match index and refs
                   let matchIdxUser = getCellMatchIndex(rowIdx, 'userName');
                   let matchIdxEmail = getCellMatchIndex(rowIdx, 'userEmail');

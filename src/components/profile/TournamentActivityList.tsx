@@ -76,8 +76,8 @@ const TournamentActivityList = ({ tournaments, type }: TournamentActivityListPro
                 <div className="p-4 relative overflow-hidden premium-card-border backdrop-blur-sm">
                   {/* Enhanced gradient effects */}
                   <div className="absolute inset-0 bg-gradient-to-br from-gaming-primary/5 via-transparent to-gaming-accent/5"></div>
-                  <div className="absolute top-0 right-0 w-28 h-28 bg-gaming-primary/10 rounded-full -mr-14 -mt-14 blur-xl animate-pulse-slow"></div>
-                  <div className="absolute bottom-0 left-0 w-20 h-20 bg-gaming-accent/10 rounded-full -ml-10 -mb-10 blur-xl animate-pulse-slower"></div>
+                  <div className="absolute top-0 right-0 w-28 h-28 bg-gaming-primary/10 rounded-full -mr-14 -mt-14 blur-xl"></div>
+                  <div className="absolute bottom-0 left-0 w-20 h-20 bg-gaming-accent/10 rounded-full -ml-10 -mb-10 blur-xl"></div>
                   <div className="absolute top-1/2 left-1/4 w-12 h-12 bg-gaming-primary/5 rounded-full blur-xl animate-float"></div>
                   <div className="absolute bottom-1/3 right-1/4 w-10 h-10 bg-gaming-accent/5 rounded-full blur-xl animate-float-delayed"></div>
                   

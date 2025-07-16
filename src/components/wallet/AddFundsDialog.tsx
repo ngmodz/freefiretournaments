@@ -13,7 +13,8 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, CreditCard, Wallet, ShoppingCart, Coins, ArrowRight } from "lucide-react";
+import { CreditCard, Wallet, ShoppingCart, Coins, ArrowRight } from "lucide-react";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { useAuth } from "@/contexts/AuthContext";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Wallet as WalletType } from "@/lib/walletService";
@@ -274,7 +275,7 @@ const AddFundsDialog = ({ open, onOpenChange }: AddFundsDialogProps) => {
                   >
                     {isLoading ? (
                       <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        <LoadingSpinner size="xs" className="mr-2" />
                         Processing...
                       </>
                     ) : (
@@ -303,8 +304,9 @@ const AddFundsDialog = ({ open, onOpenChange }: AddFundsDialogProps) => {
       </Dialog>
 
       <TransactionSuccessDialog
-        open={showSuccessDialog}
-        onOpenChange={setShowSuccessDialog}
+        isOpen={showSuccessDialog}
+        onClose={() => setShowSuccessDialog(false)}
+        transactionType="deposit"
         transactionId={transactionId}
         amount={confirmedAmount}
       />

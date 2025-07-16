@@ -4,7 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { AdminService } from "@/lib/adminService";
 import { WithdrawalRequest, StatusFilter, HostApplication } from "@/lib/types";
 import { toast } from "sonner";
-import { Loader2, QrCode, Crown, Users, DollarSign, MessageSquare } from "lucide-react";
+import { QrCode, Crown, Users, DollarSign, MessageSquare } from "lucide-react";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import styles from "./withdrawals.module.css";
 import { getUserProfile, updateUserProfile } from '@/lib/firebase';
 import { doc, getDoc, collection, getDocs, query, orderBy, Timestamp } from 'firebase/firestore';
@@ -292,7 +293,7 @@ export default function AdminPage() {
   if (isLoading) {
     return (
       <div className={styles.loadingContainer}>
-        <Loader2 className="animate-spin h-8 w-8" />
+        <LoadingSpinner size="md" />
         <p>Loading admin panel...</p>
       </div>
     );
@@ -524,7 +525,7 @@ function HostApplicationsView({
           disabled={isRefreshing}
           className={styles.refreshButton}
         >
-          {isRefreshing ? <Loader2 className="animate-spin" size={16} /> : "Refresh"}
+          {isRefreshing ? <LoadingSpinner size="xs" /> : "Refresh"}
         </button>
       </div>
 

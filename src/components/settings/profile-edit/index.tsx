@@ -8,6 +8,7 @@ import AdditionalInfoSection from "./AdditionalInfoSection";
 import FormActions from "./FormActions";
 import { Button } from "@/components/ui/button";
 import { Bug } from "lucide-react";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 const ProfileEditForm: React.FC<ProfileEditFormProps> = ({ onClose }) => {
   const [bypassValidation, setBypassValidation] = useState(false);
@@ -27,8 +28,8 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({ onClose }) => {
   if (userLoading && !formData.ign) {
     return (
       <div className="flex flex-col items-center justify-center py-8">
-        <div className="animate-pulse bg-gray-700 h-6 w-32 rounded mb-4"></div>
-        <div className="animate-pulse bg-gray-700 h-6 w-48 rounded"></div>
+        <LoadingSpinner size="lg" />
+        <p className="text-gray-400 mt-4">Loading profile data...</p>
       </div>
     );
   }

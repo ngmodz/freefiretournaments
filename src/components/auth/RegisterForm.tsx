@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Eye, EyeOff, Loader2, Mail, Lock, User, Trophy, Check } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User, Trophy, Check } from "lucide-react";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -358,7 +359,7 @@ const RegisterForm = ({ setActiveTab }: RegisterFormProps) => {
       >
         {isSubmitting ? (
           <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            <LoadingSpinner size="xs" className="mr-2" />
             Creating Account...
           </>
         ) : (

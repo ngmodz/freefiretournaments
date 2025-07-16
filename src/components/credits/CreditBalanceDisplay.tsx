@@ -2,6 +2,7 @@ import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Coins, CreditCard } from "lucide-react";
 import { motion } from "framer-motion";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 interface CreditBalanceDisplayProps {
   tournamentCredits: number;
@@ -35,7 +36,7 @@ const CreditBalanceDisplay: React.FC<CreditBalanceDisplayProps> = ({
                 <p className="text-sm text-gaming-muted">Tournament Credits</p>
                 <p className="text-xl sm:text-2xl font-bold">
                   {isLoading ? (
-                    <span className="inline-block w-12 h-6 bg-gaming-muted/20 animate-pulse rounded"></span>
+                    <LoadingSpinner size="xs" />
                   ) : (
                     tournamentCredits
                   )}
@@ -65,7 +66,7 @@ const CreditBalanceDisplay: React.FC<CreditBalanceDisplayProps> = ({
                   <p className="text-sm text-gaming-muted">Host Credits</p>
                   <p className="text-xl sm:text-2xl font-bold">
                     {isLoading ? (
-                      <span className="inline-block w-12 h-6 bg-gaming-muted/20 animate-pulse rounded"></span>
+                      <LoadingSpinner size="xs" />
                     ) : (
                       hostCredits
                     )}

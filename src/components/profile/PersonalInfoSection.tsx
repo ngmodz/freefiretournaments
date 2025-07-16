@@ -15,9 +15,10 @@ import { SettingsIcon } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from '@/contexts/AuthContext';
 import AvatarDisplay from "@/components/ui/AvatarDisplay";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 const PersonalInfoSection = () => {
-  const { user, loading, updateProfile, error, isTestMode } = useUserProfile();
+  const { user, loading, updateProfile, error } = useUserProfile();
   const { currentUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [ignValue, setIgnValue] = useState("");
@@ -58,8 +59,8 @@ const PersonalInfoSection = () => {
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center justify-center py-8">
-            <div className="animate-pulse bg-gray-700 h-6 w-32 rounded mb-4"></div>
-            <div className="animate-pulse bg-gray-700 h-6 w-48 rounded"></div>
+            <LoadingSpinner size="lg" />
+            <p className="text-gray-400 mt-4">Loading profile information...</p>
           </div>
         </CardContent>
       </Card>
@@ -91,11 +92,6 @@ const PersonalInfoSection = () => {
             />
             
             <div className="flex flex-wrap justify-center gap-2">
-              {isTestMode && (
-                <div className="px-2 py-0.5 bg-yellow-500/20 text-yellow-500 text-xs rounded-full">
-                  Test Mode
-                </div>
-              )}
             </div>
           </div>
 

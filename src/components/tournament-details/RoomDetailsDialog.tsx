@@ -1,5 +1,5 @@
 import React from "react";
-import { Loader2 } from "lucide-react";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -122,7 +122,7 @@ const RoomDetailsDialog: React.FC<RoomDetailsDialogProps> = ({
                   disabled={isSaving}
                   className="transition-all duration-300 w-full text-sm sm:text-base h-9 sm:h-10 bg-[#22C55E] text-white hover:opacity-90 hover:shadow-[0_0_15px_rgba(34,197,94,0.3)]"
                 >
-                  {isSaving ? <Loader2 className="mr-2 h-3 w-3 sm:h-4 sm:w-4 animate-spin" /> : null}
+                  {isSaving ? <LoadingSpinner size="xs" className="mr-2" /> : null}
                   Save Details
                 </Button>
               </motion.div>

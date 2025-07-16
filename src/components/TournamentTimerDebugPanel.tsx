@@ -4,6 +4,7 @@ import { TournamentCleanupService } from "@/lib/tournamentCleanupService";
 import { setTTLForScheduledTournaments, forceTTLForTournament, Tournament } from "@/lib/tournamentService";
 import { AlertCircle, RefreshCw, Clock, Trash2, Zap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 interface TournamentTimerDebugPanelProps {
   tournament?: Tournament;
@@ -176,7 +177,7 @@ const TournamentTimerDebugPanel: React.FC<TournamentTimerDebugPanelProps> = ({ t
             size="sm"
           >
             {isCheckingExpired ? (
-              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+              <LoadingSpinner size="xs" />
             ) : (
               <AlertCircle className="w-4 h-4 mr-2" />
             )}
@@ -190,7 +191,7 @@ const TournamentTimerDebugPanel: React.FC<TournamentTimerDebugPanelProps> = ({ t
             size="sm"
           >
             {isCleaningUp ? (
-              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+              <LoadingSpinner size="xs" />
             ) : (
               <Trash2 className="w-4 h-4 mr-2" />
             )}
@@ -204,7 +205,7 @@ const TournamentTimerDebugPanel: React.FC<TournamentTimerDebugPanelProps> = ({ t
             size="sm"
           >
             {isSettingTTL ? (
-              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+              <LoadingSpinner size="xs" />
             ) : (
               <Clock className="w-4 h-4 mr-2" />
             )}
@@ -219,7 +220,7 @@ const TournamentTimerDebugPanel: React.FC<TournamentTimerDebugPanelProps> = ({ t
               size="sm"
             >
               {isForcingTTL ? (
-                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                <LoadingSpinner size="xs" />
               ) : (
                 <Zap className="w-4 h-4 mr-2" />
               )}

@@ -2,6 +2,7 @@ import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { AdminService } from "@/lib/adminService";
 import { useEffect, useState } from "react";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -40,7 +41,7 @@ export function ProtectedRoute({ children, adminRoute = false }: ProtectedRouteP
   if (isLoading || adminCheckLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-20 w-20 sm:h-32 sm:w-32 border-b-2 border-gaming-primary shadow-glow"></div>
+        <LoadingSpinner size="xl" />
       </div>
     );
   }

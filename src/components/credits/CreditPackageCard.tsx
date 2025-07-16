@@ -1,7 +1,8 @@
 import React from "react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Loader2 } from "lucide-react";
+import { CheckCircle } from "lucide-react";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { PaymentService } from "@/lib/paymentService";
@@ -151,7 +152,7 @@ const CreditPackageCard: React.FC<CreditPackageProps> = ({
           >
             {isProcessing ? (
               <div className="flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <LoadingSpinner size="xs" />
                 Processing...
               </div>
             ) : (

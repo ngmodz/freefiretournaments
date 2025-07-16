@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { signUpWithEmail, db } from "@/lib/firebase";
@@ -224,7 +224,7 @@ const RegisterForm = ({ setActiveTab }: RegisterFormProps) => {
       >
         {isSubmitting ? (
           <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            <LoadingSpinner size="xs" className="mr-2" />
             Creating Account...
           </>
         ) : (

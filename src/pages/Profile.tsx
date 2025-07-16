@@ -16,9 +16,9 @@ import {
   Award,
   Users,
   Clock,
-  Star,
-  Loader2
+  Star
 } from "lucide-react";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -160,9 +160,9 @@ const Profile = () => {
     return (
       <div className="container-padding py-4 min-h-screen">
         <div className="flex flex-col items-center justify-center py-20">
-          <div className="animate-pulse space-y-4">
-            <div className="bg-gray-700 h-8 w-32 rounded"></div>
-            <div className="bg-gray-700 h-6 w-48 rounded"></div>
+          <div className="flex flex-col items-center gap-4">
+            <LoadingSpinner size="lg" />
+            <p className="text-gaming-muted">Loading profile...</p>
           </div>
         </div>
       </div>
@@ -418,7 +418,7 @@ const Profile = () => {
                 <TabsContent value="joined" className="mt-4">
                   {isLoadingJoinedTournaments ? (
                     <div className="flex justify-center py-8">
-                      <Loader2 className="h-8 w-8 animate-spin text-gaming-primary" />
+                      <LoadingSpinner size="md" />
                     </div>
                   ) : formattedJoinedTournaments.length === 0 ? (
                     <div className="text-center py-8 text-gaming-muted space-y-4">
@@ -439,7 +439,7 @@ const Profile = () => {
                 <TabsContent value="hosted" className="mt-4">
                   {isLoadingHostedTournaments ? (
                     <div className="flex justify-center py-8">
-                      <Loader2 className="h-8 w-8 animate-spin text-gaming-accent" />
+                      <LoadingSpinner size="md" />
                     </div>
                   ) : formattedHostedTournaments.length === 0 ? (
                     <div className="text-center py-8 text-gaming-muted space-y-4">

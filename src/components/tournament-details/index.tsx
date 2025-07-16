@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Loader2, AlertCircle, Trophy, Share2, KeyRound, Ban } from "lucide-react";
+import { ArrowLeft, AlertCircle, Trophy, Share2, KeyRound, Ban } from "lucide-react";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { useToast } from "@/hooks/use-toast";
 import { updateTournamentRoomDetails, joinTournament, Participant, startTournament, endTournament, cancelTournament } from "@/lib/tournamentService";
 import { Tournament as TournamentType } from "@/lib/tournamentService";
@@ -366,7 +367,7 @@ const TournamentDetailsContent: React.FC<TournamentDetailsContentProps> = ({
     if (loading) {
       return (
         <div className="flex items-center justify-center h-96">
-          <Loader2 className="h-8 w-8 sm:h-12 sm:w-12 animate-spin text-gaming-primary shadow-glow" />
+          <LoadingSpinner size="lg" />
           <p className="ml-4 text-lg">Loading tournament details...</p>
         </div>
       );

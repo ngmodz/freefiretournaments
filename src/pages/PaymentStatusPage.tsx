@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
-import { Loader2, CheckCircle, XCircle, ArrowLeft } from 'lucide-react';
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import { CheckCircle, XCircle, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { PaymentService } from '@/lib/paymentService';
 import { useCreditBalance } from '@/hooks/useCreditBalance';
@@ -264,7 +265,7 @@ const PaymentStatusPage: React.FC = () => {
         return (
           <div className="flex flex-col items-center justify-center text-center">
             <div className="bg-yellow-100 p-4 rounded-full mb-4">
-              <Loader2 className="w-12 h-12 text-yellow-500 animate-spin" />
+              <LoadingSpinner size="lg" />
             </div>
             <h2 className="text-2xl font-bold text-yellow-600 mb-2">Payment Processing</h2>
             <p className="text-gray-600 mb-6">
@@ -293,7 +294,7 @@ const PaymentStatusPage: React.FC = () => {
       <div className="w-full max-w-lg bg-white rounded-lg shadow-md p-8">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-8">
-            <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
+            <LoadingSpinner size="lg" className="mb-4" />
             <p className="text-gray-600">Verifying payment status...</p>
           </div>
         ) : (

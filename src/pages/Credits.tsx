@@ -111,7 +111,7 @@ const Credits = () => {
       id: 'basic_host_pack',
       name: 'Basic Host Pack',
       credits: 3,
-      price: 1, // Temporarily changed from 29 to 1 for testing
+      price: 29,
       features: ['Create 3 tournaments', 'Basic host tools', 'Standard support', 'Tournament management'],
       icon: <CreditCard size={24} />,
       gradient: 'from-gaming-primary/20 to-blue-600/20',

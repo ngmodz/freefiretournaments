@@ -337,7 +337,7 @@ const Settings = () => {
       icon: <Trophy size={20} className="text-gaming-accent" />,
       title: "My Tournaments", 
       description: "Tournaments you've joined or hosted",
-      action: () => navigate("/hosted-tournaments")
+      action: () => navigate("/tournaments")
     },
     { 
       id: "password",
@@ -506,7 +506,7 @@ const Settings = () => {
         </Sheet>
 
         {/* Sheet for Contact Support */}
-        <Sheet open={openSheet === "contact"} onOpenChange={handleCloseSheet}>
+        <Sheet open={openSheet === "support"} onOpenChange={handleCloseSheet}>
           <SheetContent 
             side={isMobile ? "bottom" : "right"} 
             className="bg-gaming-bg border-gaming-border max-h-[90vh] overflow-y-auto p-4 rounded-t-xl bottom-sheet-ios-fix"

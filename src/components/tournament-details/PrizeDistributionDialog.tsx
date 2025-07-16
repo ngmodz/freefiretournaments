@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Trophy, User, Check, AlertCircle, Loader2, Search } from "lucide-react";
+import { Trophy, User, Check, AlertCircle, Search } from "lucide-react";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { useToast } from "@/hooks/use-toast";
 import { PrizeDistributionService } from "@/lib/prizeDistributionService";
 import { doc, getDoc } from "firebase/firestore";
@@ -358,7 +359,7 @@ const PrizeDistributionDialog: React.FC<PrizeDistributionDialogProps> = ({
                     }}
                   />
                   {isSearching.first && (
-                    <Loader2 className="h-4 w-4 animate-spin absolute right-3 top-3" />
+                    <LoadingSpinner size="xs" className="absolute right-3 top-3" />
                   )}
                 </div>
                 <Button
@@ -414,7 +415,7 @@ const PrizeDistributionDialog: React.FC<PrizeDistributionDialogProps> = ({
                     }}
                   />
                   {isSearching.second && (
-                    <Loader2 className="h-4 w-4 animate-spin absolute right-3 top-3" />
+                    <LoadingSpinner size="xs" className="absolute right-3 top-3" />
                   )}
                 </div>
                 <Button
@@ -469,7 +470,7 @@ const PrizeDistributionDialog: React.FC<PrizeDistributionDialogProps> = ({
                     }}
                   />
                   {isSearching.third && (
-                    <Loader2 className="h-4 w-4 animate-spin absolute right-3 top-3" />
+                    <LoadingSpinner size="xs" className="absolute right-3 top-3" />
                   )}
                 </div>
                 <Button
@@ -514,7 +515,7 @@ const PrizeDistributionDialog: React.FC<PrizeDistributionDialogProps> = ({
           >
             {isDistributing ? (
               <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <LoadingSpinner size="xs" className="mr-2" />
                 Distributing...
               </>
             ) : (

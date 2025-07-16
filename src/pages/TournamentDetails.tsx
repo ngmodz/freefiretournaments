@@ -5,7 +5,7 @@ import { db, auth } from "@/lib/firebase";
 import { Tournament } from "@/lib/tournamentService";
 import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
 import TournamentDetailsContent from "@/components/tournament-details";
-import { Loader2 } from "lucide-react";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -86,7 +86,7 @@ const TournamentDetails = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <Loader2 className="h-8 w-8 sm:h-12 sm:w-12 animate-spin text-gaming-primary shadow-glow" />
+        <LoadingSpinner size="lg" />
         <p className="ml-4 text-lg">Loading tournament details...</p>
       </div>
     );
@@ -119,9 +119,11 @@ const TournamentDetails = () => {
       tournament={tournament}
       isHost={isHost}
       loading={loading}
-      currentUser={currentUser}
+      currentUser={currentUser && userProfile ? {
+        uid: currentUser.uid,
+        ign: userProfile.ign || ''
+      } : null}
       userProfile={userProfile as any}
-      onRefresh={() => { /* No longer needed, but prop can remain for now */ }}
     />
   );
 };

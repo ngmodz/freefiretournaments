@@ -4,7 +4,8 @@ import NotchHeader from "@/components/NotchHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { Loader2, CreditCard, Wallet as WalletIcon, ShoppingCart, Coins, TrendingUp, ArrowRightLeft } from "lucide-react";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import { CreditCard, Wallet as WalletIcon, ShoppingCart, Coins, TrendingUp, ArrowRightLeft } from "lucide-react";
 import { 
   subscribeToWallet, 
   Wallet as WalletType, 
@@ -97,8 +98,8 @@ const Wallet = () => {
     return (
       <div className="min-h-screen bg-gaming-bg flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 sm:h-12 sm:w-12 animate-spin text-gaming-primary shadow-glow" />
-          <p className="text-gaming-primary animate-pulse">Loading wallet data...</p>
+          <LoadingSpinner size="lg" />
+          <p className="text-gaming-primary">Loading wallet data...</p>
         </div>
       </div>
     );
@@ -169,7 +170,7 @@ const Wallet = () => {
                 
                 {isCreditsLoading ? (
                   <div className="flex justify-center py-8">
-                    <Loader2 className="h-8 w-8 animate-spin text-gaming-primary" />
+                    <LoadingSpinner size="md" />
                   </div>
                 ) : (
                   <div className="space-y-6">

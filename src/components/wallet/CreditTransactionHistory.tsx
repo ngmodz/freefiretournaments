@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { 
-  Loader2, 
   ArrowDownCircle, 
   ArrowUpCircle, 
   Coins, 
@@ -11,6 +10,7 @@ import {
   ChevronRight, 
   CreditCard
 } from "lucide-react";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { 
@@ -605,7 +605,7 @@ const CreditTransactionHistory = ({ userId, refreshTrigger = 0 }: CreditTransact
             className="text-gaming-muted hover:text-gaming-text"
             disabled={isLoading}
           >
-            <RefreshCw className={`h-4 w-4 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
+            {isLoading ? <LoadingSpinner size="xs" /> : <RefreshCw className="h-4 w-4 mr-1" />}
             Refresh
           </Button>
         </div>
@@ -668,7 +668,7 @@ const CreditTransactionHistory = ({ userId, refreshTrigger = 0 }: CreditTransact
             >
               {loadingMore ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  <LoadingSpinner size="xs" className="mr-1" />
                   Loading
                 </>
               ) : (

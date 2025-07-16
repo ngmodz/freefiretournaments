@@ -1,5 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 interface FormActionsProps {
   loading: boolean;
@@ -30,7 +31,7 @@ const FormActions: React.FC<FormActionsProps> = ({
       >
         {loading || userLoading ? (
           <div className="flex items-center justify-center gap-2">
-            <span className="animate-spin h-4 w-4 border-2 border-white rounded-full border-t-transparent"></span>
+            <LoadingSpinner size="xs" />
             <span>Saving...</span>
           </div>
         ) : (

@@ -1,6 +1,7 @@
 import React from "react";
 import { Button, ButtonProps } from "@/components/ui/button";
-import { ShoppingCart, Loader2 } from "lucide-react";
+import { ShoppingCart } from "lucide-react";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/components/ui/use-toast";
@@ -107,7 +108,7 @@ const BuyCreditsButton: React.FC<BuyCreditsButtonProps> = ({
     >
       {isProcessing ? (
         <>
-          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          <LoadingSpinner size="xs" className="mr-2" />
           Processing...
         </>
       ) : (

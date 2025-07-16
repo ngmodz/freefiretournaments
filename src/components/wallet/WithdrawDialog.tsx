@@ -13,7 +13,8 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, ArrowUpCircle, WalletCards } from "lucide-react";
+import { ArrowUpCircle, WalletCards } from "lucide-react";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { useAuth } from "@/contexts/AuthContext";
 import { Wallet as WalletType, updateWalletBalance, addTransaction } from "@/lib/walletService";
 import { motion, AnimatePresence } from "framer-motion";
@@ -281,7 +282,7 @@ const WithdrawDialog = ({
                     >
                       {isLoading ? (
                         <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          <LoadingSpinner size="xs" className="mr-2" />
                           Processing...
                         </>
                       ) : (
