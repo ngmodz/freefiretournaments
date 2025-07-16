@@ -66,12 +66,21 @@ export interface Tournament {
   description: string;
   mode: "Solo" | "Duo" | "Squad";
   max_players: number;
+  min_participants: number;
   start_date: string;
   map: string;
   room_type: "Classic" | "Clash Squad" | "Lone Wolf";
   custom_settings: {
-    auto_aim: boolean;
-    [key: string]: any;
+    gun_attributes?: boolean;
+    character_skill?: boolean;
+    auto_revival?: boolean;
+    airdrop?: boolean;
+    vehicles?: boolean;
+    high_tier_loot_zone?: boolean;
+    unlimited_ammo?: boolean;
+    headshot?: boolean;
+    war_chest?: boolean;
+    loadout?: boolean;
   };
   entry_fee: number;
   prize_distribution: {
@@ -151,7 +160,7 @@ export const createTournament = async (tournamentData: Omit<TournamentFormData, 
 
     // Validate required fields
     const requiredFields = [
-      'name', 'description', 'mode', 'max_players', 'start_date',
+      'name', 'description', 'mode', 'max_players', 'min_participants', 'start_date',
       'map', 'room_type', 'entry_fee', 'prize_distribution', 'rules'
     ];
 
@@ -169,6 +178,14 @@ export const createTournament = async (tournamentData: Omit<TournamentFormData, 
     const prizeTotalPercentage = Object.values(tournamentData.prize_distribution).reduce((sum, value) => sum + value, 0);
     if (prizeTotalPercentage > 100) {
       throw new Error(`Prize distribution total cannot exceed 100%. Current total: ${prizeTotalPercentage}%`);
+    }
+
+    // Validate minimum participants
+    if (tournamentData.min_participants <= 0) {
+      throw new Error('Minimum participants must be greater than 0');
+    }
+    if (tournamentData.min_participants > tournamentData.max_players) {
+      throw new Error('Minimum participants cannot exceed maximum players');
     }
 
     // Don't set TTL during creation - only when tournament is started by host
@@ -664,6 +681,11 @@ export const startTournament = async (tournamentId: string) => {
       throw new Error(`Tournament cannot be started. Current status: ${tournament.status}`);
     }
 
+    // Check if tournament has minimum participants
+    if (tournament.min_participants && tournament.filled_spots < tournament.min_participants) {
+      throw new Error(`Tournament cannot be started. Need at least ${tournament.min_participants} participants, but only ${tournament.filled_spots} have joined.`);
+    }
+
     // Check if TTL is already set (automatically by cloud function)
     let ttlTimestamp = tournament.ttl;
 
@@ -739,13 +761,16 @@ export const cancelTournament = async (tournamentId: string) => {
 
     const token = await currentUser.getIdToken();
 
-    const response = await fetch('/api/cancel-tournament', {
+    const response = await fetch('/api/tournament-management', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify({ tournamentId }),
+      body: JSON.stringify({ 
+        action: 'cancel-tournament',
+        tournamentId 
+      }),
     });
 
     let result;
@@ -793,6 +818,14 @@ export const canStartTournament = (tournament: Tournament, currentUserId?: strin
     return {
       canStart: false,
       reason: `Tournament can only be started 20 minutes before scheduled time. You can start it in ${minutesUntilStart} minutes.`
+    };
+  }
+
+  // Check if tournament has minimum participants
+  if (tournament.min_participants && tournament.filled_spots < tournament.min_participants) {
+    return {
+      canStart: false,
+      reason: `Tournament needs at least ${tournament.min_participants} participants to start. Currently have ${tournament.filled_spots}.`
     };
   }
 

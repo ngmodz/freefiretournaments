@@ -21,9 +21,16 @@ const formSchema = z.object({
   map: z.string().min(1, "Map is required"),
   room_type: z.enum(["Classic", "Clash Squad", "Lone Wolf"]),
   custom_settings: z.object({
-    auto_aim: z.boolean(),
-    fall_damage: z.boolean().optional(),
-    friendly_fire: z.boolean().optional(),
+    gun_attributes: z.boolean().optional(),
+    character_skill: z.boolean().optional(),
+    auto_revival: z.boolean().optional(),
+    airdrop: z.boolean().optional(),
+    vehicles: z.boolean().optional(),
+    high_tier_loot_zone: z.boolean().optional(),
+    unlimited_ammo: z.boolean().optional(),
+    headshot: z.boolean().optional(),
+    war_chest: z.boolean().optional(),
+    loadout: z.boolean().optional(),
   }),
 });
 
@@ -41,23 +48,22 @@ const GameSettingsForm = ({ formData, updateFormData, nextStep, prevStep }: Game
       map: formData.map,
       room_type: formData.room_type,
       custom_settings: {
-        auto_aim: formData.custom_settings.auto_aim,
-        fall_damage: formData.custom_settings.fall_damage || false,
-        friendly_fire: formData.custom_settings.friendly_fire || false,
+        gun_attributes: formData.custom_settings.gun_attributes || false,
+        character_skill: formData.custom_settings.character_skill || false,
+        auto_revival: formData.custom_settings.auto_revival || false,
+        airdrop: formData.custom_settings.airdrop || false,
+        vehicles: formData.custom_settings.vehicles || false,
+        high_tier_loot_zone: formData.custom_settings.high_tier_loot_zone || false,
+        unlimited_ammo: formData.custom_settings.unlimited_ammo || false,
+        headshot: formData.custom_settings.headshot || false,
+        war_chest: formData.custom_settings.war_chest || false,
+        loadout: formData.custom_settings.loadout || false,
       },
     },
   });
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
-    // Ensure auto_aim is explicitly included to match TournamentFormData type
-    const formattedValues = {
-      ...values,
-      custom_settings: {
-        ...values.custom_settings,
-        auto_aim: values.custom_settings.auto_aim,
-      }
-    };
-    updateFormData(formattedValues);
+    updateFormData(values);
     nextStep();
   };
 
@@ -132,13 +138,13 @@ const GameSettingsForm = ({ formData, updateFormData, nextStep, prevStep }: Game
               <div className="space-y-4">
                 <FormField
                   control={form.control}
-                  name="custom_settings.auto_aim"
+                  name="custom_settings.gun_attributes"
                   render={({ field }) => (
                     <FormItem className="flex items-center justify-between p-4 rounded-lg bg-gaming-bg/50 border border-gaming-border hover:border-gaming-primary/40 transition-all duration-300 hover:bg-gaming-bg/70 toggle-card">
                       <div className="flex-1">
-                        <FormLabel className="text-base font-medium text-white cursor-pointer">Auto-Aim</FormLabel>
+                        <FormLabel className="text-base font-medium text-white cursor-pointer">Gun Attributes</FormLabel>
                         <FormDescription className="text-sm text-gray-400 mt-1">
-                          Allow auto-aim assistance in tournament matches
+                          Enable special gun attributes
                         </FormDescription>
                       </div>
                       <FormControl>
@@ -153,16 +159,15 @@ const GameSettingsForm = ({ formData, updateFormData, nextStep, prevStep }: Game
                     </FormItem>
                   )}
                 />
-                
                 <FormField
                   control={form.control}
-                  name="custom_settings.fall_damage"
+                  name="custom_settings.character_skill"
                   render={({ field }) => (
                     <FormItem className="flex items-center justify-between p-4 rounded-lg bg-gaming-bg/50 border border-gaming-border hover:border-gaming-primary/40 transition-all duration-300 hover:bg-gaming-bg/70 toggle-card">
                       <div className="flex-1">
-                        <FormLabel className="text-base font-medium text-white cursor-pointer">Fall Damage</FormLabel>
+                        <FormLabel className="text-base font-medium text-white cursor-pointer">Character Skill</FormLabel>
                         <FormDescription className="text-sm text-gray-400 mt-1">
-                          Enable damage from falling
+                          Allow use of character skills
                         </FormDescription>
                       </div>
                       <FormControl>
@@ -177,16 +182,176 @@ const GameSettingsForm = ({ formData, updateFormData, nextStep, prevStep }: Game
                     </FormItem>
                   )}
                 />
-                
                 <FormField
                   control={form.control}
-                  name="custom_settings.friendly_fire"
+                  name="custom_settings.auto_revival"
                   render={({ field }) => (
                     <FormItem className="flex items-center justify-between p-4 rounded-lg bg-gaming-bg/50 border border-gaming-border hover:border-gaming-primary/40 transition-all duration-300 hover:bg-gaming-bg/70 toggle-card">
                       <div className="flex-1">
-                        <FormLabel className="text-base font-medium text-white cursor-pointer">Friendly Fire</FormLabel>
+                        <FormLabel className="text-base font-medium text-white cursor-pointer">Auto Revival</FormLabel>
                         <FormDescription className="text-sm text-gray-400 mt-1">
-                          Allow damage to teammates
+                          Enable auto revival for players
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <div className="ml-4">
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            className="switch-glow"
+                          />
+                        </div>
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="custom_settings.airdrop"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between p-4 rounded-lg bg-gaming-bg/50 border border-gaming-border hover:border-gaming-primary/40 transition-all duration-300 hover:bg-gaming-bg/70 toggle-card">
+                      <div className="flex-1">
+                        <FormLabel className="text-base font-medium text-white cursor-pointer">Airdrop</FormLabel>
+                        <FormDescription className="text-sm text-gray-400 mt-1">
+                          Enable airdrops during the match
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <div className="ml-4">
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            className="switch-glow"
+                          />
+                        </div>
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="custom_settings.vehicles"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between p-4 rounded-lg bg-gaming-bg/50 border border-gaming-border hover:border-gaming-primary/40 transition-all duration-300 hover:bg-gaming-bg/70 toggle-card">
+                      <div className="flex-1">
+                        <FormLabel className="text-base font-medium text-white cursor-pointer">Vehicles</FormLabel>
+                        <FormDescription className="text-sm text-gray-400 mt-1">
+                          Allow use of vehicles
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <div className="ml-4">
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            className="switch-glow"
+                          />
+                        </div>
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="custom_settings.high_tier_loot_zone"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between p-4 rounded-lg bg-gaming-bg/50 border border-gaming-border hover:border-gaming-primary/40 transition-all duration-300 hover:bg-gaming-bg/70 toggle-card">
+                      <div className="flex-1">
+                        <FormLabel className="text-base font-medium text-white cursor-pointer">High Tier Loot Zone</FormLabel>
+                        <FormDescription className="text-sm text-gray-400 mt-1">
+                          Enable high tier loot zones
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <div className="ml-4">
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            className="switch-glow"
+                          />
+                        </div>
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="custom_settings.unlimited_ammo"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between p-4 rounded-lg bg-gaming-bg/50 border border-gaming-border hover:border-gaming-primary/40 transition-all duration-300 hover:bg-gaming-bg/70 toggle-card">
+                      <div className="flex-1">
+                        <FormLabel className="text-base font-medium text-white cursor-pointer">Unlimited Ammo</FormLabel>
+                        <FormDescription className="text-sm text-gray-400 mt-1">
+                          Enable unlimited ammo for all weapons
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <div className="ml-4">
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            className="switch-glow"
+                          />
+                        </div>
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="custom_settings.headshot"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between p-4 rounded-lg bg-gaming-bg/50 border border-gaming-border hover:border-gaming-primary/40 transition-all duration-300 hover:bg-gaming-bg/70 toggle-card">
+                      <div className="flex-1">
+                        <FormLabel className="text-base font-medium text-white cursor-pointer">Headshot</FormLabel>
+                        <FormDescription className="text-sm text-gray-400 mt-1">
+                          Enable headshot only mode
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <div className="ml-4">
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            className="switch-glow"
+                          />
+                        </div>
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="custom_settings.war_chest"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between p-4 rounded-lg bg-gaming-bg/50 border border-gaming-border hover:border-gaming-primary/40 transition-all duration-300 hover:bg-gaming-bg/70 toggle-card">
+                      <div className="flex-1">
+                        <FormLabel className="text-base font-medium text-white cursor-pointer">War Chest</FormLabel>
+                        <FormDescription className="text-sm text-gray-400 mt-1">
+                          Enable war chests on the map
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <div className="ml-4">
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            className="switch-glow"
+                          />
+                        </div>
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="custom_settings.loadout"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between p-4 rounded-lg bg-gaming-bg/50 border border-gaming-border hover:border-gaming-primary/40 transition-all duration-300 hover:bg-gaming-bg/70 toggle-card">
+                      <div className="flex-1">
+                        <FormLabel className="text-base font-medium text-white cursor-pointer">Loadout</FormLabel>
+                        <FormDescription className="text-sm text-gray-400 mt-1">
+                          Allow players to use their loadout
                         </FormDescription>
                       </div>
                       <FormControl>

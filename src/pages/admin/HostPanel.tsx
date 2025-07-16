@@ -111,7 +111,7 @@ const HostPanel: React.FC = () => {
       setLoading(false);
     }, (error) => {
       console.error('Error fetching applications:', error);
-      toast.error('Failed to load applications');
+      toast.error('Failed to load applications', { duration: 3000 });
       setLoading(false);
     });
 
@@ -162,14 +162,16 @@ const HostPanel: React.FC = () => {
             toast.success('Approval email sent successfully.');
           } else {
             toast.error('Failed to send approval email', {
-              description: 'The application status was updated, but the approval email could not be sent.'
+              description: 'The application status was updated, but the approval email could not be sent.',
+              duration: 5000,
             });
           }
         })
         .catch(emailError => {
           console.error('Error sending approval email:', emailError);
           toast.error('Failed to send approval email', {
-            description: 'The application status was updated, but the approval email could not be sent.'
+            description: 'The application status was updated, but the approval email could not be sent.',
+            duration: 5000,
           });
         });
       }
@@ -181,7 +183,7 @@ const HostPanel: React.FC = () => {
       setReviewNotes('');
     } catch (error) {
       console.error('Error updating application status:', error);
-      toast.error('Failed to update status', { description: 'An error occurred while updating the application status. Please check the console for details.' });
+      toast.error('Failed to update status', { description: 'An error occurred while updating the application status. Please check the console for details.', duration: 3000 });
     } finally {
       setUpdating(false);
     }

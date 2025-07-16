@@ -13,13 +13,17 @@ const InfoTab: React.FC<InfoTabProps> = ({ tournament }) => {
         <h2 className="text-xl font-semibold mb-3">Tournament Details</h2>
         <p className="text-gaming-muted mb-6">{tournament.description}</p>
         
-        <h3 className="font-semibold mb-2">Tournament Format</h3>
+        <h3 className="font-semibold mb-2">Tournament Settings</h3>
         <ul className="list-disc list-inside text-gaming-muted space-y-1 pl-2 mb-6">
           <li>Mode: {tournament.mode}</li>
           <li>Map: {tournament.map}</li>
           <li>Room Type: {tournament.room_type}</li>
           <li>Max Players: {tournament.max_players}</li>
-          <li>Auto Aim: {tournament.custom_settings?.auto_aim ? "On" : "Off"}</li>
+          {Object.entries(tournament.custom_settings || {}).map(([key, value]) => (
+            <li key={key}>
+              {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}: {value ? "On" : "Off"}
+            </li>
+          ))}
         </ul>
         
         <h3 className="font-semibold mb-2">Schedule</h3>

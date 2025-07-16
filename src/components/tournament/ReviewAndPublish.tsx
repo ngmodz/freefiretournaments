@@ -168,7 +168,7 @@ const ReviewAndPublish = ({ formData, prevStep }: ReviewAndPublishProps) => {
     try {
       // Sign out and redirect to auth page to refresh authentication
       await signOut(auth);
-      toast.error("Authentication session expired. Please log in again.");
+      toast.error("Authentication session expired. Please log in again.", { duration: 3000 });
       navigate("/auth");
       return false;
     } catch (error) {
@@ -216,40 +216,39 @@ const ReviewAndPublish = ({ formData, prevStep }: ReviewAndPublishProps) => {
       try {
         // Create the tournament in Firestore
         const result = await createTournament(formData);
+        
         // Deduct host credit if from dialog
         if (fromDialog && currentUser) {
           const useHostCreditResult = await useHostCredit(currentUser.uid, result.id, formData.name);
           if (!useHostCreditResult.success) {
-            toast.error('Failed to deduct Host Credit. Please contact support.', { id: toastId });
+            toast.error('Failed to deduct Host Credit. Please contact support.', { id: toastId, duration: 3000 });
+            // Even if host credit fails, the tournament is created, so proceed with success.
           }
         }
+        
         setSuccess(true);
+        
         toast.success('Tournament created successfully!', {
           id: toastId,
-          position: 'top-center',
-          className: 'mobile-toast-success',
-          duration: 3000,
-          description: 'Redirecting to tournament page...'
+          description: 'Redirecting to the tournament page...'
         });
+        
         await refreshHostedTournaments();
+        
         setTimeout(() => {
           navigate(`/tournament/${result.id}`);
         }, 2000);
+        
       } catch (innerError) {
         const errorMessage = innerError instanceof Error ? innerError.message : 'Failed to create tournament. Please try again.';
-        toast.error(errorMessage, {
-          id: toastId,
-          position: 'top-center',
-          className: 'mobile-toast-error',
-          duration: 4000
-        });
+        toast.error(errorMessage, { id: toastId, duration: 3000 });
         throw innerError;
       }
     } catch (error) {
       console.error('Error creating tournament:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to create tournament. Please try again.';
       if (errorMessage.includes('permission') || errorMessage.includes('Permission')) {
-        toast.error('Permission issue detected. Refreshing your authentication...');
+        toast.error('Permission issue detected. Refreshing your authentication...', { duration: 3000 });
         await refreshAuthentication();
       } else {
         setError(errorMessage);
@@ -365,22 +364,12 @@ const ReviewAndPublish = ({ formData, prevStep }: ReviewAndPublishProps) => {
                 </div>
                 <Separator className="my-2" />
                 <h5 className="font-medium">Custom Settings:</h5>
-                <div className="flex justify-between">
-                  <span className="text-gaming-muted">Auto-Aim:</span>
-                  <span>{formData.custom_settings.auto_aim ? "Enabled" : "Disabled"}</span>
-                </div>
-                {formData.custom_settings.fall_damage !== undefined && (
-                  <div className="flex justify-between">
-                    <span className="text-gaming-muted">Fall Damage:</span>
-                    <span>{formData.custom_settings.fall_damage ? "Enabled" : "Disabled"}</span>
+                {Object.entries(formData.custom_settings || {}).map(([key, value]) => (
+                  <div className="flex justify-between" key={key}>
+                    <span className="text-gaming-muted">{key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:</span>
+                    <span>{value ? "Enabled" : "Disabled"}</span>
                   </div>
-                )}
-                {formData.custom_settings.friendly_fire !== undefined && (
-                  <div className="flex justify-between">
-                    <span className="text-gaming-muted">Friendly Fire:</span>
-                    <span>{formData.custom_settings.friendly_fire ? "Enabled" : "Disabled"}</span>
-                  </div>
-                )}
+                ))}
               </div>
             </div>
             

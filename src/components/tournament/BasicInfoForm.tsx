@@ -21,12 +21,14 @@ const BasicInfoForm = ({ formData, updateFormData, nextStep }: BasicInfoFormProp
   const [description, setDescription] = useState(formData.description);
   const [mode, setMode] = useState<GameMode>(formData.mode as GameMode);
   const [maxPlayers, setMaxPlayers] = useState(formData.max_players);
+  const [minParticipants, setMinParticipants] = useState(formData.min_participants);
   const [startDate, setStartDate] = useState(formData.start_date);
   
   // Error states
   const [errors, setErrors] = useState({
     name: "",
     maxPlayers: "",
+    minParticipants: "",
     startDate: ""
   });
 
@@ -41,6 +43,7 @@ const BasicInfoForm = ({ formData, updateFormData, nextStep }: BasicInfoFormProp
     const newErrors = {
       name: "",
       maxPlayers: "",
+      minParticipants: "",
       startDate: ""
     };
 
@@ -58,6 +61,13 @@ const BasicInfoForm = ({ formData, updateFormData, nextStep }: BasicInfoFormProp
       newErrors.maxPlayers = "Max players cannot exceed 100";
     }
 
+    // Validate minimum participants
+    if (!minParticipants || minParticipants <= 0) {
+      newErrors.minParticipants = "Minimum participants is required and must be greater than 0";
+    } else if (minParticipants > maxPlayers) {
+      newErrors.minParticipants = "Minimum participants cannot exceed max players";
+    }
+
     // Validate start date
     if (!startDate) {
       newErrors.startDate = "Start date and time is required";
@@ -70,7 +80,7 @@ const BasicInfoForm = ({ formData, updateFormData, nextStep }: BasicInfoFormProp
     }
 
     setErrors(newErrors);
-    return !newErrors.name && !newErrors.maxPlayers && !newErrors.startDate;
+    return !newErrors.name && !newErrors.maxPlayers && !newErrors.minParticipants && !newErrors.startDate;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -82,6 +92,7 @@ const BasicInfoForm = ({ formData, updateFormData, nextStep }: BasicInfoFormProp
         description,
         mode,
         max_players: maxPlayers,
+        min_participants: minParticipants,
         start_date: startDate,
       });
       nextStep();
@@ -130,7 +141,7 @@ const BasicInfoForm = ({ formData, updateFormData, nextStep }: BasicInfoFormProp
           <p className="text-xs text-gray-400">Give players a compelling reason to join your tournament</p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="space-y-2">
             <label className="block text-sm font-medium">Game Mode</label>
             <Select 
@@ -170,6 +181,33 @@ const BasicInfoForm = ({ formData, updateFormData, nextStep }: BasicInfoFormProp
             />
             {errors.maxPlayers && (
               <p className="text-xs text-red-500">{errors.maxPlayers}</p>
+            )}
+          </div>
+          
+          <div className="space-y-2">
+            <label className="block text-sm font-medium">
+              Min Participants <span className="text-red-500">*</span>
+            </label>
+            <Input 
+              type="number" 
+              value={minParticipants}
+              onChange={(e) => {
+                setMinParticipants(Number(e.target.value));
+                if (errors.minParticipants) {
+                  setErrors(prev => ({ ...prev, minParticipants: "" }));
+                }
+              }}
+              className={`bg-gaming-card border-2 text-white ${
+                errors.minParticipants ? "border-red-500" : "border-gray-600"
+              }`}
+              min="1"
+              max={maxPlayers}
+              required
+            />
+            {errors.minParticipants ? (
+              <p className="text-xs text-red-500">{errors.minParticipants}</p>
+            ) : (
+              <p className="text-xs text-gray-400">Minimum players needed to start</p>
             )}
           </div>
           

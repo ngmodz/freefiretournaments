@@ -93,6 +93,16 @@ const TournamentSidebar: React.FC<TournamentDetailsSidebarProps> = ({
                 {tournament.filled_spots}/{tournament.max_players}
               </div>
             </div>
+            {tournament.min_participants && (
+              <div className="text-xs text-gaming-muted mb-1">
+                Minimum required: {tournament.min_participants}
+                {tournament.filled_spots < tournament.min_participants && (
+                  <span className="text-red-400 ml-1">
+                    (Need {tournament.min_participants - tournament.filled_spots} more)
+                  </span>
+                )}
+              </div>
+            )}
             <div className="w-full bg-gaming-border h-2 rounded-full overflow-hidden">
               <div 
                 className="h-full bg-gaming-primary"

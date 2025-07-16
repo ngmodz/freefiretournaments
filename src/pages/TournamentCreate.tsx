@@ -20,15 +20,23 @@ export type TournamentFormData = {
   description: string;
   mode: "Solo" | "Duo" | "Squad";
   max_players: number;
+  min_participants: number;
   start_date: string; // ISO string
 
   // Step 2: Game Settings
   map: string;
   room_type: "Classic" | "Clash Squad" | "Lone Wolf";
   custom_settings: {
-    auto_aim: boolean;
-    fall_damage?: boolean;
-    friendly_fire?: boolean;
+    gun_attributes?: boolean;
+    character_skill?: boolean;
+    auto_revival?: boolean;
+    airdrop?: boolean;
+    vehicles?: boolean;
+    high_tier_loot_zone?: boolean;
+    unlimited_ammo?: boolean;
+    headshot?: boolean;
+    war_chest?: boolean;
+    loadout?: boolean;
   };
 
   // Step 3: Entry & Prizes
@@ -49,11 +57,21 @@ const TournamentCreate = () => {
     description: "",
     mode: "Solo",
     max_players: 12,
+    min_participants: 2,
     start_date: "",
     map: "Bermuda",
     room_type: "Classic",
     custom_settings: {
-      auto_aim: false,
+      gun_attributes: false,
+      character_skill: false,
+      auto_revival: false,
+      airdrop: false,
+      vehicles: false,
+      high_tier_loot_zone: false,
+      unlimited_ammo: false,
+      headshot: false,
+      war_chest: false,
+      loadout: false,
     },
     entry_fee: 50,
     prize_distribution: {

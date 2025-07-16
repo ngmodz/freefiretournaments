@@ -76,7 +76,7 @@ export default function AdminPage() {
       setError(null);
     } catch (error) {
       setError("Failed to load withdrawal requests. Please try refreshing.");
-      toast.error("Failed to load data", { description: "Could not fetch withdrawal requests." });
+      toast.error("Failed to load data", { description: "Could not fetch withdrawal requests.", duration: 3000 });
     } finally {
       setIsRefreshing(false);
     }
@@ -94,11 +94,11 @@ export default function AdminPage() {
           setIsAdmin(true);
           await fetchWithdrawalRequests();
         } else {
-          toast.error("Access Denied", { description: "You do not have permission to view this page." });
+          toast.error("Access Denied", { description: "You do not have permission to view this page.", duration: 3000 });
           navigate("/home");
         }
       } catch (error) {
-        toast.error("An error occurred. Please try again.");
+        toast.error("An error occurred. Please try again.", { duration: 3000 });
         navigate("/home");
       } finally {
         setIsLoading(false);
@@ -111,7 +111,7 @@ export default function AdminPage() {
     try {
       await AdminService.updateWithdrawalStatus(requestId, newStatus);
       setRequests((prev) => prev.map((r) => (r.id === requestId ? { ...r, status: newStatus } : r)));
-      toast.success(`Request marked as ${newStatus}`);
+      toast.success(`Request marked as ${newStatus}.`);
       if (newStatus === "done") {
         const request = requests.find((r) => r.id === requestId);
         if (request && request.userEmail && request.userId) {
@@ -144,7 +144,7 @@ export default function AdminPage() {
         }
       }
     } catch (error) {
-      toast.error("Failed to update status. Please try again.");
+      toast.error("Failed to update status. Please try again.", { duration: 3000 });
     }
   };
 

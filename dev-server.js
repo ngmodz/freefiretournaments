@@ -100,10 +100,23 @@ app.post('/api/withdrawal-notification', async (req, res) => {
   }
 });
 
-// Tournament management endpoints
+// Tournament management endpoints - Combined into single endpoint
+app.post('/api/tournament-management', async (req, res) => {
+  try {
+    const { default: handler } = await import('./api/tournament-management.js');
+    await handler(req, res);
+  } catch (error) {
+    console.error('API Error:', error);
+    res.status(500).json({ error: error.message, success: false });
+  }
+});
+
+// Legacy endpoints for backward compatibility - route to combined endpoint
 app.get('/api/check-tournament', async (req, res) => {
   try {
-    const { default: handler } = await import('./api/check-tournament.js');
+    req.body = { action: 'check-notifications', ...req.body };
+    req.method = 'POST'; // Convert GET to POST for combined endpoint
+    const { default: handler } = await import('./api/tournament-management.js');
     await handler(req, res);
   } catch (error) {
     console.error('API Error:', error);
@@ -113,7 +126,19 @@ app.get('/api/check-tournament', async (req, res) => {
 
 app.post('/api/cancel-tournament', async (req, res) => {
   try {
-    const { default: handler } = await import('./api/cancel-tournament.js');
+    req.body.action = 'cancel-tournament';
+    const { default: handler } = await import('./api/tournament-management.js');
+    await handler(req, res);
+  } catch (error) {
+    console.error('API Error:', error);
+    res.status(500).json({ error: error.message, success: false });
+  }
+});
+
+app.post('/api/check-minimum-participants', async (req, res) => {
+  try {
+    req.body.action = 'check-minimum-participants';
+    const { default: handler } = await import('./api/tournament-management.js');
     await handler(req, res);
   } catch (error) {
     console.error('API Error:', error);
@@ -123,7 +148,9 @@ app.post('/api/cancel-tournament', async (req, res) => {
 
 app.get('/api/tournament-notifications', async (req, res) => {
   try {
-    const { default: handler } = await import('./api/tournament-notifications.js');
+    req.body = { action: 'check-notifications', ...req.body };
+    req.method = 'POST'; // Convert GET to POST for combined endpoint
+    const { default: handler } = await import('./api/tournament-management.js');
     await handler(req, res);
   } catch (error) {
     console.error('API Error:', error);

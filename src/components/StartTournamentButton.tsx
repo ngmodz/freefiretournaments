@@ -52,6 +52,7 @@ const StartTournamentButton: React.FC<StartTournamentButtonProps> = ({
         title: "Failed to Start Tournament",
         description: error instanceof Error ? error.message : "An unexpected error occurred",
         variant: "destructive",
+        duration: 3000,
       });
     } finally {
       setIsStarting(false);

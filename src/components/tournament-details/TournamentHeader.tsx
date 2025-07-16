@@ -246,6 +246,11 @@ const TournamentHeader: React.FC<TournamentHeaderProps> = ({
               <Users size={16} className="mr-2 text-[#C0C0C0]" />
               <span className="text-[#E0E0E0]">{tournament.mode} | Max: {tournament.max_players}</span>
             </div>
+            {tournament.min_participants && (
+              <div className="text-xs text-[#A0A0A0] mt-1">
+                Min required: {tournament.min_participants} players
+              </div>
+            )}
           </div>
         </div>
         

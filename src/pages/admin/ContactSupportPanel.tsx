@@ -56,7 +56,7 @@ const ContactSupportPanel: React.FC = () => {
         setSubmissions(formattedSubmissions);
       } catch (error) {
         console.error('Error fetching submissions:', error);
-        toast.error('Failed to load contact support submissions.');
+        toast.error('Failed to load contact support submissions.', { duration: 3000 });
       } finally {
         setLoading(false);
       }

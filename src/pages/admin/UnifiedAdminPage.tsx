@@ -103,12 +103,12 @@ export default function AdminPage() {
             fetchHostApplications()
           ]);
         } else {
-          toast.error("Access Denied", { description: "You do not have permission to view this page." });
+          toast.error("Access Denied", { description: "You do not have permission to view this page.", duration: 3000 });
           navigate("/home");
         }
       } catch (error) {
         console.error('Error checking admin status:', error);
-        toast.error("An error occurred. Please try again.");
+        toast.error("An error occurred. Please try again.", { duration: 3000 });
         navigate("/home");
       } finally {
         setIsLoading(false);
@@ -125,7 +125,7 @@ export default function AdminPage() {
       setWithdrawalRequests(data);
     } catch (error) {
       console.error('Error fetching withdrawal requests:', error);
-      toast.error("Failed to load withdrawal requests");
+      toast.error("Failed to load withdrawal requests", { duration: 3000 });
     }
   };
 
@@ -176,7 +176,7 @@ export default function AdminPage() {
     } catch (error) {
       console.error('Error fetching host applications:', error);
       setError("Failed to load host applications. Please try refreshing.");
-      toast.error("Failed to load data", { description: "Could not fetch host applications." });
+      toast.error("Failed to load data", { description: "Could not fetch host applications.", duration: 3000 });
     } finally {
       setIsRefreshing(false);
     }
@@ -226,6 +226,7 @@ export default function AdminPage() {
           console.error('Error sending approval email:', emailError);
           toast.error('Failed to send approval email', {
             description: 'The application status was updated, but the approval email could not be sent.',
+            duration: 5000, // Longer duration for this specific error
           });
         }
       } else if (newStatus === 'rejected') {
@@ -256,7 +257,7 @@ export default function AdminPage() {
       toast.success(`Application ${newStatus}`, { description: `The host application has been ${newStatus}.` });
     } catch (error) {
       console.error('Error updating application status:', error);
-      toast.error("Failed to update status", { description: "Please try again." });
+      toast.error("Failed to update status", { description: "Please try again.", duration: 3000 });
     }
   };
 
@@ -286,7 +287,7 @@ export default function AdminPage() {
       toast.success("Request marked as done!");
     } catch (error) {
       console.error('Error marking withdrawal as done:', error);
-      toast.error("Failed to update request");
+      toast.error("Failed to update request", { duration: 3000 });
     }
   };
 
