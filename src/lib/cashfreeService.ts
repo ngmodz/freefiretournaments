@@ -2,12 +2,12 @@ import { load } from '@cashfreepayments/cashfree-js';
 
 // CashFree Configuration
 export const cashfreeConfig = {
-  appId: import.meta.env.VITE_CASHFREE_APP_ID,
-  environment: import.meta.env.VITE_CASHFREE_ENVIRONMENT || 'SANDBOX',
-  apiVersion: import.meta.env.VITE_CASHFREE_API_VERSION || '2025-01-01',
-  baseUrl: import.meta.env.VITE_CASHFREE_ENVIRONMENT === 'PRODUCTION' 
-    ? import.meta.env.VITE_CASHFREE_PRODUCTION_URL 
-    : import.meta.env.VITE_CASHFREE_SANDBOX_URL,
+  appId: import.meta.env.VITE_CASHFREE_APP_ID?.trim(),
+  environment: (import.meta.env.VITE_CASHFREE_ENVIRONMENT || 'SANDBOX').trim(),
+  apiVersion: (import.meta.env.VITE_CASHFREE_API_VERSION || '2025-01-01').trim(),
+  baseUrl: (import.meta.env.VITE_CASHFREE_ENVIRONMENT || 'SANDBOX').trim() === 'PRODUCTION' 
+    ? import.meta.env.VITE_CASHFREE_PRODUCTION_URL?.trim()
+    : import.meta.env.VITE_CASHFREE_SANDBOX_URL?.trim(),
   returnUrl: import.meta.env.VITE_RETURN_URL || 'http://localhost:5173/payment-status'
 };
 
