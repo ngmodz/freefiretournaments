@@ -44,6 +44,14 @@ export interface CashFreeOrderResponse {
   };
 }
 
+export interface CashFreeAPIResponse {
+  success: boolean;
+  order_id: string;
+  payment_session_id: string;
+  order_status: string;
+  payment_link?: string;
+}
+
 export interface PaymentCallbackData {
   orderStatus: 'PAID' | 'ACTIVE' | 'EXPIRED' | 'CANCELLED' | 'TERMINATED' | 'FAILED';
   orderId: string;
@@ -143,7 +151,7 @@ export class CashFreeService {
     packageName?: string;
     packageType: 'tournament' | 'host';
     creditsAmount?: number;
-  }): Promise<CashFreeOrderResponse> {
+  }): Promise<CashFreeAPIResponse> {
     try {
       console.log('📝 Creating payment order:', orderData);
 

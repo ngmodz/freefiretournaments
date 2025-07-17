@@ -215,16 +215,16 @@ export class PaymentService {
       }
 
       // Check if payment session ID exists
-      if (!orderResponse.paymentSessionId) {
+      if (!orderResponse.payment_session_id) {
         console.error('Payment session ID missing in order response:', orderResponse);
         throw new Error('Payment session ID not received from the API. Please check server logs.');
       }
       
-      console.log('Initiating checkout with session ID:', orderResponse.paymentSessionId);
+      console.log('Initiating checkout with session ID:', orderResponse.payment_session_id);
 
       // Initialize popup checkout
       await CashFreeService.openCheckout(
-        orderResponse.paymentSessionId,
+        orderResponse.payment_session_id,
         (data) => {
           console.log('Payment successful:', data);
           // CRITICAL: Don't redirect to success immediately - let webhook handle credit addition
