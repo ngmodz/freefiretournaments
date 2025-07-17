@@ -6,6 +6,7 @@
     { "source": "/api/email-service", "destination": "/api/email-service.js" },
     { "source": "/api/tournament-management", "destination": "/api/tournament-management.js" },
     { "source": "/api/automated-moderator", "destination": "/api/automated-moderator.js" },
+    { "source": "/api/process-notifications", "destination": "/api/process-notifications.js" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

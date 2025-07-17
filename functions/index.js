@@ -288,20 +288,22 @@ const penalizeHost = (hostId, tournament) => {
     }
 
     const wallet = userDoc.data().wallet || {};
-    const currentCredits = wallet.hostCredits || 0;
-    const newCredits = currentCredits - penaltyAmount;
+    // FIX: Use tournamentCredits instead of hostCredits for penalty
+    // If tournament credits are less than 10, allow negative balance
+    const currentTournamentCredits = wallet.tournamentCredits || 0;
+    const newTournamentCredits = currentTournamentCredits - penaltyAmount;
 
     // Update the user's wallet
-    transaction.update(userRef, { "wallet.hostCredits": newCredits });
+    transaction.update(userRef, { "wallet.tournamentCredits": newTournamentCredits });
 
     // Return the promise to create the transaction log
     return createCreditTransaction({
       userId: hostId,
       type: "host_penalty",
       amount: -penaltyAmount,
-      balanceBefore: currentCredits,
-      balanceAfter: newCredits,
-      walletType: "hostCredits",
+      balanceBefore: currentTournamentCredits,
+      balanceAfter: newTournamentCredits,
+      walletType: "tournamentCredits",
       description: `Penalty for not starting tournament: ${tournament.name}`,
       transactionDetails: {
         tournamentId: tournament.id,

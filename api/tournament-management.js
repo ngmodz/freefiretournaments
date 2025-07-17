@@ -527,6 +527,12 @@ async function processTournament(tournamentDoc) {
     return { success: false, emailSent: false, tournamentId, error: 'Already processed' };
   }
 
+  // FIX: Check if notification was already sent to prevent duplicate emails
+  if (tournament.notificationSent) {
+    console.log(`[${tournamentId}] Notification already sent, skipping.`);
+    return { success: false, emailSent: false, tournamentId, error: 'Notification already sent' };
+  }
+
   if (!global.processedTournaments) {
     global.processedTournaments = [];
   }
@@ -604,9 +610,10 @@ async function processTournament(tournamentDoc) {
     const info = await sendEmail(mailOptions);
     console.log(`[${tournamentId}] Successfully sent email notification to ${hostEmail}`);
     
-    // Update the tournament document to mark notification as sent
+    // FIX: Update the tournament document to mark notification as sent with timestamp
     await tournamentDoc.ref.update({
-      notificationSent: true
+      notificationSent: true,
+      notificationSentAt: new Date()
     });
     
     console.log(`[${tournamentId}] Marked tournament as notified`);
@@ -619,13 +626,14 @@ async function processTournament(tournamentDoc) {
 
 // ==================== MAIN HANDLER ====================
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
+  // FIX: Allow both GET and POST methods for cron job compatibility
+  if (req.method !== 'POST' && req.method !== 'GET') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
   try {
-    // Route based on action parameter
-    const { action } = req.body;
+    // Route based on action parameter (support both query and body)
+    const action = req.method === 'GET' ? req.query.action : req.body.action;
 
     switch (action) {
       case 'cancel-tournament':
@@ -634,6 +642,7 @@ export default async function handler(req, res) {
       case 'check-minimum-participants':
         return await checkMinimumParticipants(req, res);
       
+      case 'checkNotifications':
       case 'check-notifications':
         return await checkTournamentNotifications(req, res);
       

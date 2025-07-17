@@ -55,9 +55,9 @@ export const sendHostPenaltyEmail = async (hostEmail, tournamentName) => {
     subject: `Penalty Applied for Tournament: "${tournamentName}"`,
     html: `
       <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-        <h3 style="color: #000000;">Penalty Notice</h3>
+            <h3 style="color: #dc3545; background-color: #f8d7da; padding: 15px; border-radius: 8px; border-left: 5px solid #dc3545; margin-bottom: 20px; text-align: center; font-weight: bold;">⚠️ PENALTY NOTICE ⚠️</h3>
         <p>Hello,</p>
-        <p>This is to inform you that a penalty of <b>10 credits</b> has been applied to your account.</p>
+        <p>This is to inform you that a penalty of <b style="color: #dc3545;">10 credits</b> has been applied to your account.</p>
         <p><b>Reason:</b> Your tournament, "<b>${tournamentName}</b>," was not started within 10 minutes of its scheduled time.</p>
         <p>Please ensure that you start your tournaments on time to avoid further penalties or automatic cancellation.</p>
         <p>The tournament will be automatically cancelled if it is not started within 20 minutes of the scheduled time.</p>
@@ -81,7 +81,7 @@ export const sendCancellationEmailToHost = async (hostEmail, tournamentName) => 
     subject: `Tournament Cancelled: "${tournamentName}"`,
     html: `
       <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-        <h3 style="color: #000000;">Tournament Automatically Cancelled</h3>
+            <h3 style="color: #dc3545; background-color: #f8d7da; padding: 15px; border-radius: 8px; border-left: 5px solid #dc3545; margin-bottom: 20px; text-align: center; font-weight: bold;">🚫 TOURNAMENT CANCELLED 🚫</h3>
         <p>Hello,</p>
         <p>Your tournament, "<b>${tournamentName}</b>," has been automatically cancelled because it was not started within 20 minutes of its scheduled time.</p>
         <p>All entry fees have been refunded to the participants.</p>
@@ -107,10 +107,10 @@ export const sendCancellationEmailToParticipant = async (participantEmail, tourn
     subject: `Tournament Cancelled & Refunded: "${tournamentName}"`,
     html: `
       <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-        <h3 style="color: #000000;">Tournament Cancelled</h3>
+            <h3 style="color: #dc3545; background-color: #f8d7da; padding: 15px; border-radius: 8px; border-left: 5px solid #dc3545; margin-bottom: 20px; text-align: center; font-weight: bold;">🚫 TOURNAMENT CANCELLED 🚫</h3>
         <p>Hello,</p>
         <p>The tournament you joined, "<b>${tournamentName}</b>," has been cancelled because the host did not start it on time.</p>
-        <p>We have processed a full refund of your entry fee. <b>${entryFee} credits</b> have been returned to your tournament wallet.</p>
+        <p>We have processed a full refund of your entry fee. <b style="color: #28a745;">${entryFee} credits</b> have been returned to your tournament wallet.</p>
         <p>We apologize for any inconvenience this may have caused.</p>
         <br/>
         <p>Regards,<br/>The FreeFire Tournaments Team</p>
