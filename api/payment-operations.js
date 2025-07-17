@@ -79,7 +79,7 @@ const handleCreateOrder = async (req, res) => {
       order_meta: {
         return_url: `${returnUrl}/payment/success?order_id={order_id}`,
         notify_url: `${returnUrl}/api/payment-webhook`,
-        payment_methods: 'cc,dc,nb,upi,wallet'
+        payment_methods: 'cc,dc,nb,upi'
       },
       order_note: `${packageType} package: ${packageDetails}`
     };
