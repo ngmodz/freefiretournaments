@@ -21,7 +21,7 @@ interface ProfileUpdate {
 // Define a type that matches the keys in ProfileFormData
 type ProfileUpdateKey = keyof ProfileFormData;
 
-export const useProfileForm = (onClose: () => void, bypassValidation: boolean = false) => {
+export const useProfileForm = (onClose: () => void) => {
   const { toast } = useToast();
   const { user, loading: userLoading, updateProfile, error: userError } = useUserProfile();
   const { currentUser, refreshUserProfile } = useAuth();
@@ -95,31 +95,22 @@ export const useProfileForm = (onClose: () => void, bypassValidation: boolean = 
     }
   }, [currentUser, toast]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    
-    // Clear error when field is edited
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: "" }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name as keyof FormErrors]) {
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
   };
 
-  const handleSelectChange = (value: string, name: string) => {
-    setFormData(prev => ({ ...prev, [name]: value }));
-    
-    // Clear error when field is edited
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: "" }));
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name as keyof FormErrors]) {
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
   };
 
   const validateForm = async (): Promise<boolean> => {
-    if (bypassValidation) {
-      console.warn("Bypassing form validation.");
-      return true;
-    }
-    
     setValidating(true);
     
     try {
@@ -247,24 +238,15 @@ export const useProfileForm = (onClose: () => void, bypassValidation: boolean = 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const formValid = await validateForm();
-    if (!formValid) {
-      console.error("Form validation failed");
-      return;
-    }
-    
-    await submitProfileData();
-  };
-
-  // Direct submit function for debugging - skips validation
-  const directSubmit = async () => {
-    console.log("DIRECT SUBMIT - Bypassing validation");
-    await submitProfileData();
-    
-    // Refresh the user profile in AuthContext
-    if (currentUser) {
-      await refreshUserProfile();
+    const isValid = await validateForm();
+    if (isValid) {
+      await submitProfileData();
+    } else {
+      toast({
+        title: "Validation Failed",
+        description: "Please check the form for errors and try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -273,10 +255,8 @@ export const useProfileForm = (onClose: () => void, bypassValidation: boolean = 
     errors,
     loading,
     userLoading,
-    validating,
     handleInputChange,
     handleSelectChange,
     handleSubmit,
-    directSubmit
   };
 }; 
