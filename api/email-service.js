@@ -352,9 +352,8 @@ const handleGeneralEmail = async (req, res) => {
             <li>Create and manage tournaments</li>
             <li>Access the host dashboard</li>
             <li>Earn commissions from tournaments</li>
-            <li>Build your reputation as a trusted host</li>
           </ul>
-          <p>To get started, simply log into your account and navigate to the host panel.</p>
+          <p style="margin:0;">Login to your account and go to 'Create Tournament' to create a tournament.</p>
           <p>Welcome to the FreeFire Tournaments hosting community!</p>
           <br/>
           <p>Best regards,<br/>The Freefire Tournaments Team</p>
