@@ -287,8 +287,10 @@ const handleWithdrawalNotification = async (req, res) => {
 
 // General email handler
 const handleGeneralEmail = async (req, res) => {
+  let type = 'unknown'; // Default value for error handling
   try {
-    const { type, to, name, ...otherData } = req.body;
+    const { type: emailType, to, name, ...otherData } = req.body;
+    type = emailType; // Set the type for error handling
 
     if (!type || !to) {
       return res.status(400).json({ error: 'Email type and recipient are required' });
