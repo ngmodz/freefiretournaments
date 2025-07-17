@@ -131,7 +131,13 @@ const WithdrawDialog = ({
         setConfirmedAmount(finalAmount);
         setShowSuccessDialog(true);
       } else {
-        throw new Error(result.error || "Failed to process withdrawal");
+        if (result.error && result.error.includes('maximum of 2 withdrawal requests')) {
+          setError(result.error);
+        } else {
+          setError(result.error || "Failed to process withdrawal. Please try again.");
+        }
+        setIsLoading(false);
+        return;
       }
     } catch (err) {
       console.error("Withdrawal error:", err);
@@ -211,7 +217,7 @@ const WithdrawDialog = ({
                     className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 text-sm text-blue-200"
                   >
                     <p className="font-medium mb-1">Processing Time:</p>
-                    <p>Funds will be transferred to your UPI ID in 2-3 business days.</p>
+                    <p>Funds will be transferred to your UPI ID within 24 hours.</p>
                   </motion.div>
 
                   <motion.div 

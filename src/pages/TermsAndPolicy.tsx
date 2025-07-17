@@ -177,6 +177,7 @@ const TermsAndPolicy = () => {
                   <li>Participants must follow all tournament rules specified by the host.</li>
                   <li>Players must join tournament rooms at the designated time or risk forfeiture.</li>
                   <li>Entry fees are non-refundable unless the tournament is cancelled by the host or Freefire Tournaments.</li>
+                  <li>We are not responsible if you do not join the tournament on time, experience network issues, are kicked by the host, or if the host starts without you.</li>
                 </ul>
               </PolicySubsection>
               
@@ -231,8 +232,14 @@ const TermsAndPolicy = () => {
                 <ul className="list-disc pl-6 space-y-2">
                   <li>Entry fees are generally non-refundable once a tournament begins.</li>
                   <li>Refunds may be issued for cancelled tournaments or technical errors on our part.</li>
-                  <li>Refund processing may take 3-7 business days depending on the payment method.</li>
+                  <li>Refund processing may take up to 7 business days depending on the payment method. Withdrawals are processed within 24 hours.</li>
                   <li>Withdrawal fees are non-refundable.</li>
+                </ul>
+              </PolicySubsection>
+
+              <PolicySubsection title="3.4 Withdrawal Limits">
+                <ul className="list-disc pl-6 space-y-2">
+                  <li>You may make a maximum of 2 withdrawal requests within any 24-hour period. Additional requests will be blocked.</li>
                 </ul>
               </PolicySubsection>
             </PolicySection>

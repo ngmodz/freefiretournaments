@@ -85,6 +85,7 @@ export const sections = [
             <li>Participants must pay the entry fee via secure payment processing to join a tournament.</li>
             <li>Entry fees are non-refundable.</li>
             <li>Participants must join the custom room using the provided Room ID and password at the scheduled time. Failure to join may result in forfeiture without refund.</li>
+            <li>We are not responsible if you do not join the tournament on time, experience network issues, are kicked by the host, or if the host starts without you.</li>
           </ul>
         )
       },
@@ -128,7 +129,9 @@ export const sections = [
           <ul className="list-disc pl-6 space-y-2">
             <li>In-app wallet can be used for tournament entry fees and other platform features.</li>
             <li>Credits earned from tournaments can be withdrawn to your bank account or wallet.</li>
+            <li><b>Withdrawals are processed within 24 hours.</b></li>
             <li>Minimum withdrawal amount is ₹50.</li>
+            <li>You may make a maximum of 2 withdrawal requests within any 24-hour period. Additional requests will be blocked.</li>
           </ul>
         )
       }

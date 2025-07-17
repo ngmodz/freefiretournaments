@@ -43,6 +43,10 @@ const CreditFAQ: React.FC = () => {
       question: "How do I check my credit balance?",
       answer:
         "Your current credit balance is always displayed in the top section of the Credits page and in your profile dashboard."
+    },
+    {
+      question: "How long do withdrawals take?",
+      answer: "Withdrawals are processed within 24 hours."
     }
   ];
 

@@ -246,7 +246,7 @@ const handleWithdrawalNotification = async (req, res) => {
           <p>We have successfully received your withdrawal request of <b>₹${Math.floor(Number(originalAmount || amount))}</b> on ${formattedDate}.</p>
           <p><b style='color: #000;'>Platform Fee (4%):</b> -₹${commission !== undefined ? Math.floor(Number(commission)) : (originalAmount ? Math.floor(Number(originalAmount) - Number(amount)) : '0')}</p>
           <p>After deductions, you will receive <b style='color: #000;'>₹${Math.floor(Number(amount))}</b> in your account.</p>
-          <p>Our team will process your request within 24-48 hours.</p>
+          <p>Our team will process your request within 24 hours.</p>
           <p>Thank you for using our platform!</p>
           <br/>
           <p>Best regards,<br/>The Freefire Tournaments Team</p>

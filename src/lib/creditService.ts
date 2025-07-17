@@ -6,7 +6,12 @@ import {
   addDoc, 
   Timestamp, 
   runTransaction,
-  increment
+  increment,
+  query,
+  where,
+  getDocs,
+  orderBy,
+  Timestamp as FirestoreTimestamp
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
@@ -82,6 +87,24 @@ export class CreditService {
     const userRef = doc(db, 'users', userId);
 
     try {
+      // Check withdrawal requests in the last 24 hours
+      const withdrawalRequestsRef = collection(db, 'withdrawalRequests');
+      const now = FirestoreTimestamp.now();
+      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const q = query(
+        withdrawalRequestsRef,
+        where('userId', '==', userId),
+        where('requestedAt', '>=', FirestoreTimestamp.fromDate(twentyFourHoursAgo)),
+        orderBy('requestedAt', 'desc')
+      );
+      const snapshot = await getDocs(q);
+      if (snapshot.size >= 2) {
+        return {
+          success: false,
+          error: 'You can make a maximum of 2 withdrawal requests in 24 hours. Please try again later.'
+        };
+      }
+
       let transactionId: string | undefined;
       let userEmail: string | undefined;
       let userName: string | undefined;
@@ -123,7 +146,7 @@ export class CreditService {
           requestedAt: Timestamp.now(),
           processedAt: null,
           userEmail: userEmail || 'Unknown',
-          notes: `Withdrawal request pending. Platform fee: 4% ( ${commission.toFixed(2)}). Funds will be transferred in 2-3 business days.`,
+          notes: `Withdrawal request pending. Platform fee: 4% ( ${commission.toFixed(2)}). Funds will be transferred within 24 hours.`,
           originalAmount: amount,
           commission: commission
         };
