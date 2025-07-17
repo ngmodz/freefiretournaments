@@ -187,6 +187,7 @@ export class CreditService {
       // Send immediate notification email to user
       if (userEmail && transactionId) {
         try {
+          console.log('Sending withdrawal notification email to:', userEmail);
           // Use relative URL for frontend/browser compatibility
           const response = await fetch('/api/withdrawal-notification', {
             method: 'POST',
@@ -207,8 +208,12 @@ export class CreditService {
             }),
           });
 
+          const responseText = await response.text();
+          console.log('Email API response status:', response.status);
+          console.log('Email API response text:', responseText);
+
           if (!response.ok) {
-            console.warn('Failed to send withdrawal request notification email:', await response.text());
+            console.warn('Failed to send withdrawal request notification email:', responseText);
           } else {
             console.log('Withdrawal request notification email sent successfully');
           }
@@ -216,6 +221,8 @@ export class CreditService {
           console.warn('Error sending withdrawal request notification email:', emailError);
           // Don't fail the withdrawal request if email fails
         }
+      } else {
+        console.warn('Missing email or transaction ID for withdrawal notification:', { userEmail, transactionId });
       }
 
       return { success: true, transactionId };

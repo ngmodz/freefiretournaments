@@ -9,6 +9,7 @@ import { PaymentService } from "@/lib/paymentService";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "../ui/use-toast";
 import { useUserProfile } from "@/hooks/use-user-profile"; // Import useUserProfile
+import { useNavigate } from "react-router-dom";
 
 export interface CreditPackageProps {
   id: string;
@@ -48,6 +49,7 @@ const CreditPackageCard: React.FC<CreditPackageProps> = ({
 }) => {
   const { currentUser } = useAuth();
   const { user } = useUserProfile(); // Get user profile
+  const navigate = useNavigate();
 
   const handlePurchase = async () => {
     if (!currentUser) {
@@ -55,6 +57,24 @@ const CreditPackageCard: React.FC<CreditPackageProps> = ({
         title: "Login Required",
         description: "Please login to purchase credits",
         variant: "destructive"
+      });
+      return;
+    }
+
+    // Check for phone number
+    if (!user?.phone) {
+      toast({
+        title: "Phone Number Required",
+        description: "Please add a phone number to your profile before making a purchase.",
+        variant: "destructive",
+        action: (
+          <button
+            onClick={() => navigate("/settings")}
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+          >
+            Go to Settings
+          </button>
+        ),
       });
       return;
     }
@@ -67,7 +87,7 @@ const CreditPackageCard: React.FC<CreditPackageProps> = ({
         userId: currentUser.uid,
         userName: user?.fullName || currentUser.displayName || currentUser.email?.split('@')[0] || 'User',
         userEmail: currentUser.email || '',
-        userPhone: user?.phone || '9999999999', // Use user's phone from profile
+        userPhone: user?.phone, // Use user's phone from profile
         paymentType: 'credit_purchase',
         packageId: id,
         packageName: name,

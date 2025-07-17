@@ -11,6 +11,7 @@ export interface PaymentFormParams {
   userId: string;
   userName: string;
   userEmail: string;
+  userPhone?: string; // Add user phone number
   paymentType: 'wallet_topup' | 'credit_purchase';
   orderId?: string;
   packageId?: string;
@@ -195,7 +196,7 @@ export class PaymentService {
         userId: params.userId,
         userName: params.userName,
         userEmail: params.userEmail,
-        userPhone: '9999999999', // You might want to collect this from user
+        userPhone: params.userPhone || '9999999999', // Use provided phone or fallback
         packageId: params.packageId || '',
         packageName: params.packageName || '',
         packageType: params.packageType || 'tournament' as 'tournament' | 'host',

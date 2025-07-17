@@ -100,6 +100,28 @@ const AddFundsDialog = ({ open, onOpenChange }: AddFundsDialogProps) => {
       return;
     }
 
+    // Check for phone number
+    if (!user?.phone) {
+      toast({
+        title: "Phone Number Required",
+        description: "Please add a phone number to your profile before making a purchase.",
+        variant: "destructive",
+        action: (
+          <button
+            onClick={() => {
+              onOpenChange(false);
+              navigate("/settings");
+            }}
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+          >
+            Go to Settings
+          </button>
+        ),
+      });
+      setIsLoading(false);
+      return;
+    }
+
     try {
       setIsLoading(true);
       setError(null);
@@ -112,7 +134,7 @@ const AddFundsDialog = ({ open, onOpenChange }: AddFundsDialogProps) => {
       // Get user display name or email as a fallback
       const customerName = user?.fullName || currentUser.displayName || currentUser.email?.split('@')[0] || 'User';
       const customerEmail = currentUser.email || '';
-      const customerPhone = user?.phone || '9999999999'; // Use user's phone from profile
+      const customerPhone = user?.phone; // Use user's phone from profile
       
       // Prepare payment parameters
       const paymentParams = {
