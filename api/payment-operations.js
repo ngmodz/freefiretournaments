@@ -64,6 +64,8 @@ const handleCreateOrder = async (req, res) => {
     // Generate unique order ID
     const orderId = `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
+    const returnUrl = (process.env.VITE_APP_URL || 'http://localhost:3000').trim();
+
     const paymentData = {
       order_id: orderId,
       order_amount: parseFloat(amount),
@@ -75,8 +77,8 @@ const handleCreateOrder = async (req, res) => {
         customer_phone: userPhone || '9999999999',
       },
       order_meta: {
-        return_url: `${process.env.VITE_APP_URL || 'http://localhost:3000'}/payment/success?order_id={order_id}`,
-        notify_url: `${process.env.VITE_APP_URL || 'http://localhost:3000'}/api/payment-webhook`,
+        return_url: `${returnUrl}/payment/success?order_id={order_id}`,
+        notify_url: `${returnUrl}/api/payment-webhook`,
         payment_methods: 'cc,dc,nb,upi,wallet'
       },
       order_note: `${packageType} package: ${packageDetails}`
