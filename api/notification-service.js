@@ -138,4 +138,32 @@ export const getUserEmail = async (userId) => {
     console.error(`Failed to get email for user ${userId}:`, error);
     return null;
   }
+};
+
+/**
+ * Notifies a user that they have won a prize in a tournament.
+ * @param {string} winnerEmail - The email address of the winning user.
+ * @param {string} tournamentName - The name of the tournament.
+ * @param {number} prizeAmount - The amount of credits won.
+ */
+export const sendTournamentWinningsEmail = async (winnerEmail, tournamentName, prizeAmount) => {
+  const mailOptions = {
+    from: `"FreeFire Tournaments" <${process.env.EMAIL_USER}>`,
+    to: winnerEmail,
+    subject: `Congratulations! You Won a Prize in "${tournamentName}"`,
+    html: `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; text-align: center; border: 1px solid #ddd; padding: 20px; border-radius: 12px; max-width: 600px; margin: auto;">
+        <h2 style="color: #28a745; font-size: 28px; margin-bottom: 10px;">🏆 Congratulations! 🏆</h2>
+        <p style="font-size: 18px;">You've won a prize in the tournament:</p>
+        <p style="font-size: 22px; font-weight: bold; color: #007bff; margin: 10px 0;">${tournamentName}</p>
+        <p style="font-size: 18px;">We have credited your account with:</p>
+        <p style="font-size: 24px; font-weight: bold; color: #28a745; margin: 10px 0;">${prizeAmount} Credits</p>
+        <p style="font-size: 16px; margin-top: 20px;">You can use these credits to join more tournaments and win bigger prizes!</p>
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+        <p style="font-size: 14px; color: #666;">Thank you for playing with us. We hope to see you in the next tournament!</p>
+        <p style="font-size: 14px; color: #666; margin-top: 10px;">Best regards,<br/>The FreeFire Tournaments Team</p>
+      </div>
+    `,
+  };
+  return sendEmail(mailOptions);
 }; 

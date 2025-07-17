@@ -4,6 +4,7 @@ import nodemailer from 'nodemailer';
 import { getEmailConfig, getFirebaseConfig } from './firebase-config-helper.js';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { sendTournamentWinningsEmail } from './notification-service.js';
 
 // --- Firebase initialization for notification checking ---
 const firebaseConfig = getFirebaseConfig();
@@ -624,6 +625,68 @@ async function processTournament(tournamentDoc) {
   }
 }
 
+// ==================== PRIZE DISTRIBUTION FUNCTIONALITY ====================
+async function distributePrize(req, res) {
+  const hostUser = await getAuthenticatedUser(req);
+  if (!hostUser) {
+    return res.status(401).json({ success: false, error: 'Unauthorized' });
+  }
+
+  const { tournamentId, winnerId, prizeAmount } = req.body;
+
+  if (!tournamentId || !winnerId || !prizeAmount || prizeAmount <= 0) {
+    return res.status(400).json({ success: false, error: 'Missing required fields: tournamentId, winnerId, and prizeAmount.' });
+  }
+
+  const tournamentRef = db.collection('tournaments').doc(tournamentId);
+  const winnerRef = db.collection('users').doc(winnerId);
+
+  try {
+    const result = await db.runTransaction(async (transaction) => {
+      const tournamentDoc = await transaction.get(tournamentRef);
+      const winnerDoc = await transaction.get(winnerRef);
+
+      if (!tournamentDoc.exists) throw new Error('Tournament not found.');
+      if (!winnerDoc.exists) throw new Error('Winner not found.');
+
+      const tournament = tournamentDoc.data();
+      const winner = winnerDoc.data();
+
+      if (tournament.host_id !== hostUser.uid) {
+        throw new Error('Only the tournament host can distribute prizes.');
+      }
+
+      const winnerCurrentCredits = winner.wallet?.tournamentCredits || 0;
+      const winnerNewCredits = winnerCurrentCredits + prizeAmount;
+      transaction.update(winnerRef, { 'wallet.tournamentCredits': winnerNewCredits });
+
+      const transactionRef = db.collection('creditTransactions').doc();
+      transaction.set(transactionRef, {
+        userId: winnerId,
+        type: 'tournament_win',
+        amount: prizeAmount,
+        balanceBefore: winnerCurrentCredits,
+        balanceAfter: winnerNewCredits,
+        walletType: 'tournamentCredits',
+        description: `Prize for winning: ${tournament.name}`,
+        transactionDetails: { tournamentId, tournamentName: tournament.name },
+        createdAt: FieldValue.serverTimestamp(),
+      });
+
+      return { tournamentName: tournament.name, winnerEmail: winner.email };
+    });
+
+    if (result.winnerEmail) {
+      await sendTournamentWinningsEmail(result.winnerEmail, result.tournamentName, prizeAmount);
+    }
+
+    return res.status(200).json({ success: true, message: `Successfully distributed ${prizeAmount} credits to the winner.` });
+  } catch (error) {
+    console.error('Error in prize distribution:', error);
+    return res.status(500).json({ success: false, error: error.message || 'An internal server error occurred.' });
+  }
+}
+
 // ==================== MAIN HANDLER ====================
 export default async function handler(req, res) {
   // FIX: Allow both GET and POST methods for cron job compatibility
@@ -646,6 +709,9 @@ export default async function handler(req, res) {
       case 'check-notifications':
         return await checkTournamentNotifications(req, res);
       
+      case 'distribute-prize':
+        return await distributePrize(req, res);
+        
       default:
         // Default to notification check for backward compatibility
         return await checkTournamentNotifications(req, res);

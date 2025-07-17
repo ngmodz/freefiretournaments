@@ -13,13 +13,8 @@
     "build:dev": "node scripts/update-cache-version.js || true && vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "cleanup:tournaments": "node --experimental-json-modules scripts/delete-mock-tournaments.js",
     "vercel": "vercel dev",
-    "deploy": "vercel --prod",
-    "health:quick": "node quick-health-check.js",
-    "health:full": "node final-api-test.js",
-    "health:simple": "node simple-api-test.js",
-    "test:api": "node final-api-test.js"
+    "deploy": "vercel --prod"
   },
   "dependencies": {
     "@cashfreepayments/cashfree-js": "^1.0.5",

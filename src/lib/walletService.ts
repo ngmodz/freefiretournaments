@@ -704,3 +704,70 @@ export const useHostCredit = async (
     return { success: false, error };
   }
 }; 
+
+/**
+ * Use tournament credits to fund a free-entry tournament's prize pool
+ * @param userId Firebase Auth UID of the user
+ * @param tournamentId ID of the tournament being hosted
+ * @param tournamentName Name of the tournament being hosted
+ * @param prizePoolAmount Amount of credits to deduct for the prize pool
+ * @returns Promise with the result of the operation
+ */
+export const useTournamentCreditsForPrizePool = async (
+  userId: string,
+  tournamentId: string,
+  tournamentName: string,
+  prizePoolAmount: number
+) => {
+  try {
+    // Get the user's current host credit balance
+    const userRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userRef);
+    
+    if (!userDoc.exists()) {
+      return { success: false, error: 'User not found' };
+    }
+    
+    const userData = userDoc.data();
+    const currentCredits = userData.wallet?.tournamentCredits || 0;
+    
+    // Check if user has enough tournament credits for the prize pool
+    if (currentCredits < prizePoolAmount) {
+      return { 
+        success: false, 
+        error: `Insufficient tournament credits. You need ${prizePoolAmount} credits to fund this prize pool.` 
+      };
+    }
+    
+    const newCredits = currentCredits - prizePoolAmount;
+    
+    // Create a credit transaction
+    const transaction: CreditTransaction = {
+      userId,
+      type: 'tournament_join',
+      amount: -prizePoolAmount,
+      balanceBefore: currentCredits,
+      balanceAfter: newCredits,
+      walletType: 'tournamentCredits',
+      description: `Funded prize pool for free-entry tournament: ${tournamentName}`,
+      transactionDetails: {
+        tournamentId,
+        tournamentName
+      },
+      createdAt: new Date()
+    };
+    
+    // Add the transaction
+    await addCreditTransaction(transaction);
+    
+    // Update the user's tournament credits
+    await updateDoc(userRef, {
+      'wallet.tournamentCredits': newCredits
+    });
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error using tournament credits for prize pool:', error);
+    return { success: false, error };
+  }
+}; 
