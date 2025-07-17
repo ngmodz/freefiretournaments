@@ -381,7 +381,7 @@ const getUserEmail = async (userId) => {
  */
 const sendHostPenaltyEmail = (hostEmail, tournamentName) => {
   const mailOptions = {
-    from: `"Lovable" <${emailConfig.user}>`,
+    from: `"Freefire Tournaments" <${emailConfig.user}>`,
     to: hostEmail,
     subject: `Penalty Applied for Tournament: "${tournamentName}"`,
     html: `
@@ -393,7 +393,7 @@ const sendHostPenaltyEmail = (hostEmail, tournamentName) => {
         <p>Please ensure that you start your tournaments on time to avoid further penalties or automatic cancellation.</p>
         <p>The tournament will be automatically cancelled if it is not started within 20 minutes of the scheduled time.</p>
         <br/>
-        <p>Regards,<br/>The Lovable Team</p>
+        <p>Regards,<br/>The Freefire Tournaments Team</p>
       </div>
     `,
   };
@@ -405,7 +405,7 @@ const sendHostPenaltyEmail = (hostEmail, tournamentName) => {
  */
 const sendCancellationEmailToHost = (hostEmail, tournamentName) => {
   const mailOptions = {
-    from: `"Lovable" <${emailConfig.user}>`,
+    from: `"Freefire Tournaments" <${emailConfig.user}>`,
     to: hostEmail,
     subject: `Tournament Cancelled: "${tournamentName}"`,
     html: `
@@ -416,7 +416,7 @@ const sendCancellationEmailToHost = (hostEmail, tournamentName) => {
         <p>All entry fees have been refunded to the participants.</p>
         <p>Please make sure to start future tournaments promptly to ensure a good experience for all users.</p>
         <br/>
-        <p>Regards,<br/>The Lovable Team</p>
+        <p>Regards,<br/>The Freefire Tournaments Team</p>
       </div>
     `,
   };
@@ -428,7 +428,7 @@ const sendCancellationEmailToHost = (hostEmail, tournamentName) => {
  */
 const sendCancellationEmailToParticipant = (participantEmail, tournamentName, entryFee) => {
   const mailOptions = {
-    from: `"Lovable" <${emailConfig.user}>`,
+    from: `"Freefire Tournaments" <${emailConfig.user}>`,
     to: participantEmail,
     subject: `Tournament Cancelled & Refunded: "${tournamentName}"`,
     html: `
@@ -439,7 +439,7 @@ const sendCancellationEmailToParticipant = (participantEmail, tournamentName, en
         <p>We have processed a full refund of your entry fee. <b>${entryFee} credits</b> have been returned to your tournament wallet.</p>
         <p>We apologize for any inconvenience this may have caused.</p>
         <br/>
-        <p>Regards,<br/>The Lovable Team</p>
+        <p>Regards,<br/>The Freefire Tournaments Team</p>
       </div>
     `,
   };

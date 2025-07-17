@@ -10,17 +10,17 @@
   "version": "1.0.20250717040005",
   "icons": [
     {
-      "src": "/lovable-uploads/new-logo.png",
+      "src": "/images/logo.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/lovable-uploads/new-logo.png",
+      "src": "/images/logo.png",
       "sizes": "512x512",
       "type": "image/png"
     },
     {
-      "src": "/lovable-uploads/new-logo.png",
+      "src": "/images/logo.png",
       "sizes": "any",
       "type": "image/png",
       "purpose": "any maskable"
