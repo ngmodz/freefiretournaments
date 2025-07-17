@@ -9,6 +9,7 @@ import { toast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 import { signUpWithEmail, auth, db } from "@/lib/firebase";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { checkUIDExists } from "@/lib/user-utils";
 
 interface RegisterFormProps {
   setActiveTab: (tab: string) => void;
@@ -123,6 +124,14 @@ const RegisterForm = ({ setActiveTab }: RegisterFormProps) => {
     setIsSubmitting(true);
     
     try {
+      // Validate UID first
+      const uidError = await checkUIDExists(registerFFID);
+      if (uidError) {
+        setRegisterErrors(prev => ({ ...prev, ffid: uidError }));
+        setIsSubmitting(false);
+        return;
+      }
+      
       // Register with Firebase
       const result = await signUpWithEmail(registerEmail, registerPassword);
       

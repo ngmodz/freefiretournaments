@@ -185,8 +185,9 @@ const Credits = () => {
       const paymentParams = {
         amount: packageData.price,
         userId: currentUser.uid,
-        userName: currentUser.displayName || currentUser.email?.split('@')[0] || 'User',
+        userName: user?.fullName || currentUser.displayName || currentUser.email?.split('@')[0] || 'User',
         userEmail: currentUser.email || '',
+        userPhone: user?.phone || '9999999999', // Use user's phone from profile, fallback to placeholder
         paymentType: 'credit_purchase' as const,
         packageId: packageData.id,
         packageName: packageData.name,

@@ -103,9 +103,58 @@ export function formatDate(timestamp: Timestamp | undefined): string {
  * (This function is now modified to always allow UIDs as they no longer need to be unique)
  */
 export async function isUIDAvailable(uid: string, currentUserId?: string): Promise<boolean> {
-  console.log(`UID uniqueness check skipped for UID: ${uid} (User: ${currentUserId}) - UIDs can now be duplicated.`);
-  // Always return true as UIDs no longer need to be unique
-  return true;
+  const isTaken = await isUIDTaken(uid);
+  
+  if (!isTaken) {
+    return true; // UID is not taken, so it's available
+  }
+  
+  // If UID is taken, check if it belongs to the current user
+  if (currentUserId) {
+    const user = await findUserByUID(uid);
+    if (user && user.id === currentUserId) {
+      return true; // UID belongs to the current user, so it's "available" for them
+    }
+  }
+  
+  return false; // UID is taken by another user
+}
+
+/**
+ * Check if a UID is already taken by any user.
+ * @param uid The UID to check.
+ * @returns {Promise<boolean>} True if the UID is taken, false otherwise.
+ */
+export async function isUIDTaken(uid: string): Promise<boolean> {
+  if (!uid) {
+    return false;
+  }
+  const user = await findUserByUID(uid);
+  return !!user;
+}
+
+/**
+ * Checks if a UID exists and returns an error message if it does.
+ * @param uid The UID to check.
+ * @returns {Promise<string|null>} An error message string if the UID exists, otherwise null.
+ */
+export async function checkUIDExists(uid: string): Promise<string | null> {
+  if (!uid) {
+    return null;
+  }
+
+  try {
+    const isTaken = await isUIDTaken(uid);
+    if (isTaken) {
+      return "This Free Fire ID is already in use. Please use a different one.";
+    }
+  } catch (error) {
+    console.error("Error checking UID existence:", error);
+    // Return a generic error to the user
+    return "Could not verify UID. Please try again later.";
+  }
+
+  return null;
 }
 
 /**

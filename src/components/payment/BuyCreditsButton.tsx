@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/components/ui/use-toast";
 import { PaymentService } from "@/lib/paymentService";
+import { useUserProfile } from "@/hooks/use-user-profile"; // Import useUserProfile
 
 interface BuyCreditsButtonProps extends ButtonProps {
   label?: string;
@@ -34,6 +35,7 @@ const BuyCreditsButton: React.FC<BuyCreditsButtonProps> = ({
 }) => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
+  const { user } = useUserProfile(); // Get user profile
   const [isProcessing, setIsProcessing] = React.useState(false);
 
   const handleClick = async () => {
@@ -69,8 +71,9 @@ const BuyCreditsButton: React.FC<BuyCreditsButtonProps> = ({
       const paymentParams = {
         amount: amount,
         userId: currentUser.uid,
-        userName: currentUser.displayName || currentUser.email?.split('@')[0] || 'User',
+        userName: user?.fullName || currentUser.displayName || currentUser.email?.split('@')[0] || 'User',
         userEmail: currentUser.email || '',
+        userPhone: user?.phone || '9999999999', // Use user's phone from profile
         paymentType: 'credit_purchase' as const,
         packageId: packageId,
         packageName: packageName || packageId,

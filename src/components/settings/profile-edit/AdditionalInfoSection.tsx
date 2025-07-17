@@ -1,7 +1,8 @@
 import React from "react";
-import { MapPin, Calendar, FileText } from "lucide-react";
+import { MapPin, Calendar, FileText, AlertCircle } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { customInputStyles } from "./utils";
 import { FormErrors, ProfileFormData } from "./types";
 
@@ -25,76 +26,80 @@ const AdditionalInfoSection: React.FC<AdditionalInfoSectionProps> = ({
       <div className="space-y-5">
         {/* Gender Field - Important for avatar */}
         <div className="space-y-2">
-          <Label htmlFor="gender" className="text-sm text-gaming-muted block font-medium">
-            Gender <span className="text-gaming-primary text-xs">(for avatar)</span>
+          <Label 
+            htmlFor="gender" 
+            className="text-base text-white flex items-center gap-1.5"
+          >
+            Gender
+            <span className="text-red-500">*</span>
           </Label>
-          <div className="overflow-hidden rounded-md bg-transparent border border-gaming-border shadow-sm">
-            <select
-              id="gender"
-              name="gender"
-              value={formData.gender}
-              onChange={(e) => handleSelectChange(e.target.value, "gender")}
-              className="w-full bg-[#1a1a1a] border-0 py-3 px-3 text-white focus:outline-none focus:ring-0 appearance-none rounded-md pr-10 text-base"
-              style={{
-                backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236B7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-                backgroundPosition: 'right 0.75rem center',
-                backgroundRepeat: 'no-repeat',
-                backgroundSize: '1.25rem 1.25rem',
-                colorScheme: 'dark'
-              }}
-            >
-              <option value="" disabled>Select gender</option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-              <option value="other">Other</option>
-              <option value="prefer-not-to-say">Prefer not to say</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Bio Field */}
-        <div className="space-y-2">
-          <Label htmlFor="bio" className="text-sm text-gaming-muted block font-medium">
-            Bio
-          </Label>
-          <div className="overflow-hidden rounded-md bg-transparent border border-gaming-border shadow-sm">
-            <div className="flex bg-[#1a1a1a] w-full">
-              <div className="px-3 py-2 self-start">
-                <FileText className="h-5 w-5 text-gaming-primary" />
+          <div className="flex items-center">
+            <div className="relative flex-1">
+              <div className="overflow-hidden rounded-md bg-transparent border border-gaming-border shadow-sm">
+                <select
+                  id="gender"
+                  name="gender"
+                  value={formData.gender}
+                  onChange={(e) => handleSelectChange(e.target.value, "gender")}
+                  className="w-full bg-[#1a1a1a] border-0 py-3 px-3 text-white focus:outline-none focus:ring-0 appearance-none rounded-md pr-10 text-base"
+                  style={{
+                    backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236B7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                    backgroundPosition: 'right 0.75rem center',
+                    backgroundRepeat: 'no-repeat',
+                    backgroundSize: '1.25rem 1.25rem',
+                    colorScheme: 'dark'
+                  }}
+                  required
+                >
+                  <option value="" disabled>Select gender</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                  <option value="prefer-not-to-say">Prefer not to say</option>
+                </select>
               </div>
-              <Textarea
-                id="bio"
-                name="bio"
-                value={formData.bio}
-                onChange={handleInputChange}
-                className="bg-transparent border-0 text-white placeholder-gray-500 focus:outline-none focus:ring-0 resize-none min-h-[80px]"
-                placeholder="Tell us about yourself..."
-                rows={3}
-              />
+              {errors.gender && (
+                <div className="text-red-500 text-sm mt-2 space-y-1">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle size={14} className="mt-0.5 flex-shrink-0" />
+                    <span>{errors.gender}</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
 
         {/* Location Field */}
         <div className="space-y-2">
-          <Label htmlFor="location" className="text-sm text-gaming-muted block font-medium">
+          <Label 
+            htmlFor="location" 
+            className="text-base text-white flex items-center gap-1.5"
+          >
+            <MapPin size={16} className="text-gaming-primary/70" />
             Location
+            <span className="text-red-500">*</span>
           </Label>
-          <div className="overflow-hidden rounded-md bg-transparent border border-gaming-border shadow-sm">
-            <div className="flex items-center bg-[#1a1a1a] w-full">
-              <div className="px-3 py-2">
-                <MapPin className="h-5 w-5 text-gaming-primary" />
-              </div>
-              <input
+          <div className="flex items-center">
+            <div className="relative flex-1">
+              <Input
                 type="text"
                 id="location"
                 name="location"
                 value={formData.location}
                 onChange={handleInputChange}
-                className={customInputStyles}
+                className={`${customInputStyles} text-base`}
                 placeholder="Your location"
-                autoComplete="off"
+                required
               />
+              {errors.location && (
+                <div className="text-red-500 text-sm mt-2 space-y-1">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle size={14} className="mt-0.5 flex-shrink-0" />
+                    <span>{errors.location}</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

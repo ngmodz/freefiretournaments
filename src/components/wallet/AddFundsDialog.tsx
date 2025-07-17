@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { CreditCard, Wallet, ShoppingCart, Coins, ArrowRight } from "lucide-react";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserProfile } from "@/hooks/use-user-profile"; // Import useUserProfile
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Wallet as WalletType } from "@/lib/walletService";
 import { motion, AnimatePresence } from "framer-motion";
@@ -23,6 +24,7 @@ import React from "react";
 import TransactionSuccessDialog from "./TransactionSuccessDialog";
 import { useNavigate } from "react-router-dom";
 import { PaymentService } from "@/lib/paymentService";
+import { toast } from "@/hooks/use-toast";
 
 // Minimum amount that can be added
 const MIN_AMOUNT = 100;
@@ -51,6 +53,7 @@ const AddFundsDialog = ({ open, onOpenChange }: AddFundsDialogProps) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const { currentUser } = useAuth();
+  const { user } = useUserProfile(); // Get user profile
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [transactionId, setTransactionId] = useState<string | undefined>(undefined);
   const [confirmedAmount, setConfirmedAmount] = useState(0);
@@ -107,8 +110,9 @@ const AddFundsDialog = ({ open, onOpenChange }: AddFundsDialogProps) => {
       const paymentService = PaymentService.getInstance();
       
       // Get user display name or email as a fallback
-      const customerName = currentUser.displayName || currentUser.email?.split('@')[0] || 'User';
+      const customerName = user?.fullName || currentUser.displayName || currentUser.email?.split('@')[0] || 'User';
       const customerEmail = currentUser.email || '';
+      const customerPhone = user?.phone || '9999999999'; // Use user's phone from profile
       
       // Prepare payment parameters
       const paymentParams = {
@@ -116,6 +120,7 @@ const AddFundsDialog = ({ open, onOpenChange }: AddFundsDialogProps) => {
         userId: currentUser.uid,
         userName: customerName,
         userEmail: customerEmail,
+        userPhone: customerPhone, // Pass phone number
         paymentType: 'wallet_topup' as const
       };
       

@@ -150,14 +150,34 @@ export const createTournament = async (tournamentData: Omit<TournamentFormData, 
       throw new Error("You must be a verified host to create tournaments. Please apply to become a host.");
     }
 
-    // --- IGN/UID validation ---
+    // --- Mandatory profile field validation for hosts ---
+    const missingProfileFields: string[] = [];
+
     if (!userProfile.ign || userProfile.ign.length < 3) {
-      throw new Error("You must update your IGN (in-game name) in your profile before hosting a tournament.");
+      missingProfileFields.push("IGN (in-game name)");
     }
     if (!userProfile.uid || !/^[0-9]{8,12}$/.test(userProfile.uid)) {
-      throw new Error("You must update your UID (8-12 digit Free Fire ID) in your profile before hosting a tournament.");
+      missingProfileFields.push("UID (8-12 digit Free Fire ID)");
     }
-    // --- END IGN/UID validation ---
+    if (!userProfile.fullName || userProfile.fullName.trim() === '') {
+      missingProfileFields.push("Full Name");
+    }
+    if (!userProfile.location || userProfile.location.trim() === '') {
+      missingProfileFields.push("Location");
+    }
+    if (!userProfile.phone || userProfile.phone.trim() === '') {
+      missingProfileFields.push("Mobile Number");
+    }
+    if (!userProfile.gender || userProfile.gender.trim() === '') {
+      missingProfileFields.push("Gender");
+    }
+
+    if (missingProfileFields.length > 0) {
+      throw new Error(
+        `To host a tournament, you must complete your profile. Please update the following missing fields: ${missingProfileFields.join(', ')}.`
+      );
+    }
+    // --- END Mandatory profile field validation for hosts ---
 
     // Verify authentication state
     console.log("Current user ID:", currentUser.uid);
@@ -491,14 +511,34 @@ export const joinTournament = async (tournamentId: string) => {
       }
       const userProfile = userDoc.data();
 
-      // --- IGN/UID validation ---
+      // --- Mandatory profile field validation for participants ---
+      const missingProfileFields: string[] = [];
+
       if (!userProfile.ign || userProfile.ign.length < 3) {
-        throw new Error("You must update your IGN (in-game name) in your profile before joining a tournament.");
+        missingProfileFields.push("IGN (in-game name)");
       }
       if (!userProfile.uid || !/^[0-9]{8,12}$/.test(userProfile.uid)) {
-        throw new Error("You must update your UID (8-12 digit Free Fire ID) in your profile before joining a tournament.");
+        missingProfileFields.push("UID (8-12 digit Free Fire ID)");
       }
-      // --- END IGN/UID validation ---
+      if (!userProfile.fullName || userProfile.fullName.trim() === '') {
+        missingProfileFields.push("Full Name");
+      }
+      if (!userProfile.location || userProfile.location.trim() === '') {
+        missingProfileFields.push("Location");
+      }
+      if (!userProfile.phone || userProfile.phone.trim() === '') {
+        missingProfileFields.push("Mobile Number");
+      }
+      if (!userProfile.gender || userProfile.gender.trim() === '') {
+        missingProfileFields.push("Gender");
+      }
+
+      if (missingProfileFields.length > 0) {
+        throw new Error(
+          `To join a tournament, you must complete your profile. Please update the following missing fields: ${missingProfileFields.join(', ')}.`
+        );
+      }
+      // --- END Mandatory profile field validation for participants ---
 
       // 2. Perform validation checks
       if (tournament.status !== "active") {

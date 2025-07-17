@@ -98,24 +98,33 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
       {/* Contact Info */}
       <div className="space-y-5">
         <div className="space-y-2">
-          <Label htmlFor="fullName" className="text-sm text-gaming-muted block font-medium">
+          <Label 
+            htmlFor="fullName" 
+            className="text-base text-white flex items-center gap-1.5"
+          >
+            <User size={16} className="text-gaming-primary/70" />
             Full Name
+            <span className="text-red-500">*</span>
           </Label>
-          <div className="overflow-hidden rounded-md bg-transparent border border-gaming-border shadow-sm">
-            <div className="flex items-center bg-[#1a1a1a] w-full">
-              <div className="px-3 py-2">
-                <User className="h-5 w-5 text-gaming-primary" />
-              </div>
-              <input
-                type="text"
+          <div className="flex items-center">
+            <div className="relative flex-1">
+              <Input
                 id="fullName"
                 name="fullName"
+                placeholder="Your full name"
                 value={formData.fullName}
                 onChange={handleInputChange}
-                className={customInputStyles}
-                placeholder="Your full name"
-                autoComplete="off"
+                className={`${customInputStyles} text-base`}
+                required
               />
+              {errors.fullName && (
+                <div className="text-red-500 text-sm mt-2 space-y-1">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle size={14} className="mt-0.5 flex-shrink-0" />
+                    <span>{errors.fullName}</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -145,27 +154,36 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="phone" className="text-sm text-gaming-muted block font-medium">
+          <Label 
+            htmlFor="phone" 
+            className="text-base text-white flex items-center gap-1.5"
+          >
+            <Phone size={16} className="text-gaming-primary/70" />
             Phone Number
+            <span className="text-red-500">*</span>
           </Label>
-          <div className="overflow-hidden rounded-md bg-transparent border border-gaming-border shadow-sm">
-            <div className="flex items-center bg-[#1a1a1a] w-full">
-              <div className="px-3 py-2">
-                <Phone className="h-5 w-5 text-gaming-primary" />
-              </div>
-              <input
+          <div className="flex items-center">
+            <div className="relative flex-1">
+              <Input
                 type="tel"
                 id="phone"
                 name="phone"
                 value={formData.phone}
                 onChange={handleInputChange}
-                className={customInputStyles}
+                className={`${customInputStyles} text-base`}
                 placeholder="Your phone number"
-                autoComplete="off"
+                required
               />
+              {errors.phone && (
+                <div className="text-red-500 text-sm mt-2 space-y-1">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle size={14} className="mt-0.5 flex-shrink-0" />
+                    <span>{errors.phone}</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
-          {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
         </div>
       </div>
     </div>

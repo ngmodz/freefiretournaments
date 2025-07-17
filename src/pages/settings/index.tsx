@@ -140,7 +140,9 @@ const Settings = () => {
             paddingBottom: isMobile ? 'calc(1rem + env(safe-area-inset-bottom))' : '1rem',
           }}
         >
-          <div className="h-full flex flex-col">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-gaming-primary/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-gaming-accent/10 rounded-full -ml-12 -mb-12 blur-xl"></div>
+          <div className="h-full flex flex-col relative">
             {isMobile && (
               <div className="w-12 h-1 bg-gray-600 rounded-full mx-auto mb-4"></div>
             )}
@@ -166,7 +168,9 @@ const Settings = () => {
             paddingBottom: isMobile ? 'calc(1rem + env(safe-area-inset-bottom))' : '1rem',
           }}
         >
-          <div className="h-full flex flex-col">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-gaming-primary/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-gaming-accent/10 rounded-full -ml-12 -mb-12 blur-xl"></div>
+          <div className="h-full flex flex-col relative">
             {isMobile && (
               <div className="w-12 h-1 bg-gray-600 rounded-full mx-auto mb-4"></div>
             )}
@@ -192,16 +196,18 @@ const Settings = () => {
             paddingBottom: isMobile ? 'calc(1rem + env(safe-area-inset-bottom))' : '1rem',
           }}
         >
-          <div className="h-full flex flex-col">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-gaming-primary/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-gaming-accent/10 rounded-full -ml-12 -mb-12 blur-xl"></div>
+          <div className="h-full flex flex-col relative">
             {isMobile && (
               <div className="w-12 h-1 bg-gray-600 rounded-full mx-auto mb-4"></div>
             )}
-            <div className="mb-6">
+            <div className={`mb-6 ${isMobile ? 'px-4' : ''}`}>
               <h2 className="text-xl font-bold text-white">Contact Support</h2>
               <p className="text-sm text-gaming-muted">Questions, feedback, or bug reports</p>
             </div>
             
-            <div className="flex-1 overflow-auto">
+            <div className={`flex-1 overflow-auto ${isMobile ? 'pb-4 px-4' : ''}`}>
               <ContactSupportForm onClose={handleCloseSheet} />
             </div>
           </div>

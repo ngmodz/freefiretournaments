@@ -32,7 +32,6 @@ export const useProfileForm = (onClose: () => void, bypassValidation: boolean = 
     fullName: "",
     email: "",
     phone: "",
-    bio: "",
     location: "",
     birthdate: "",
     gender: "",
@@ -44,7 +43,6 @@ export const useProfileForm = (onClose: () => void, bypassValidation: boolean = 
     fullName: "",
     email: "",
     phone: "",
-    bio: "",
     location: "",
     birthdate: "",
     gender: "",
@@ -63,7 +61,6 @@ export const useProfileForm = (onClose: () => void, bypassValidation: boolean = 
         fullName: user.fullName || "",
         email: user.email || "",
         phone: user.phone || "",
-        bio: user.bio || "",
         location: user.location || "",
         birthdate: user.birthdate || "",
         gender: user.gender || "",
@@ -158,9 +155,20 @@ export const useProfileForm = (onClose: () => void, bypassValidation: boolean = 
       if (!formData.email && !newErrors.email) {
         newErrors.email = "Email is required";
       }
-      
-      // UID and IGN uniqueness checks are removed as they are no longer required.
-      // console.log("UID and IGN uniqueness checks are skipped in validateForm as duplicates are allowed.");
+
+      // Add validation for new mandatory fields
+      if (!formData.fullName || formData.fullName.trim() === '') {
+        newErrors.fullName = "Full Name is required";
+      }
+      if (!formData.phone || formData.phone.trim() === '') {
+        newErrors.phone = "Phone Number is required";
+      }
+      if (!formData.location || formData.location.trim() === '') {
+        newErrors.location = "Location is required";
+      }
+      if (!formData.gender || formData.gender.trim() === '') {
+        newErrors.gender = "Gender is required";
+      }
             
       setErrors(newErrors);
       // Return true if newErrors (which includes initial validationErrors) is empty

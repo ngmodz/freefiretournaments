@@ -26,6 +26,14 @@ import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import SettingsItem from "@/components/settings/SettingsItem";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogDescription,
+  DialogFooter,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import ContactSupportForm from "@/components/settings/ContactSupportForm";
 import ProfileEditForm from "@/components/settings/ProfileEditForm";
 import ChangePasswordDialog from "@/components/settings/ChangePasswordDialog";
@@ -43,6 +51,7 @@ import {
   signInWithPopup, 
   getAuth
 } from "firebase/auth";
+import DeleteAccount from "@/components/settings/DeleteAccount"; // Import DeleteAccount component
 
 // Context for opening the profile edit sheet globally
 type ProfileEditSheetContextType = { openProfileEdit: () => void };
@@ -363,9 +372,22 @@ const Settings = () => {
       icon: <Trash2 size={20} className="text-red-500" />,
       title: "Delete Account", 
       description: "Permanently delete your account", 
-      // isDestructive: true // Removed as SettingsItem doesn't use it
+      action: () => setShowDeleteConfirm(true) // Correctly trigger delete confirmation
     }
   ];
+
+  const renderContent = () => {
+    switch (openSheet) {
+      case "profile":
+        return <ProfileEditForm onClose={handleCloseSheet} />;
+      case "password":
+        return <ChangePasswordForm onClose={handleCloseSheet} />;
+      case "support":
+        return <ContactSupportForm onClose={handleCloseSheet} />;
+      default:
+        return null;
+    }
+  };
 
   return (
     <ProfileEditSheetContext.Provider value={{ openProfileEdit }}>
@@ -434,7 +456,6 @@ const Settings = () => {
                         icon={item.icon}
                         title={item.title}
                         description={item.description}
-                        // isDestructive={item.isDestructive} // Removed as SettingsItem doesn't use it
                         onClick={item.action ? item.action : () => handleOpenSheet(item.id)}
                       />
                       {index < settingsItems.length - 1 && <Separator className="bg-gaming-border/50" />}
@@ -453,83 +474,99 @@ const Settings = () => {
           </div>
         </motion.div>
 
-        {/* Sheets for different settings */}
-        <Sheet open={openSheet === 'profile'} onOpenChange={(isOpen) => !isOpen && handleCloseSheet()}>
-          <SheetContent 
-            side={isMobile ? "bottom" : "right"} 
-            className="bg-gaming-bg border-gaming-border max-h-[90vh] overflow-y-auto p-4 rounded-t-xl bottom-sheet-ios-fix"
-            style={{
-              maxHeight: isMobile ? 'calc(90vh - env(safe-area-inset-bottom))' : '90vh',
-              paddingBottom: isMobile ? 'calc(1rem + env(safe-area-inset-bottom))' : '1rem',
-            }}
-          >
-            <div className="h-full flex flex-col">
-              {isMobile && (
-                <div className="w-12 h-1 bg-gray-600 rounded-full mx-auto mb-4"></div>
-              )}
-              <div className="mb-6">
-                <h2 className="text-xl font-bold text-white">Edit Profile</h2>
-                <p className="text-sm text-gaming-muted">Update your personal information</p>
-              </div>
-              
-              <div className="flex-1 overflow-auto pb-10">
-                <ProfileEditForm onClose={handleCloseSheet} />
-              </div>
-            </div>
-          </SheetContent>
-        </Sheet>
+        {/* Conditional Rendering of Dialog/Sheet */}
+        {isMobile ? (
+          <Sheet open={openSheet !== null} onOpenChange={handleCloseSheet}>
+            <SheetContent
+              side="bottom"
+              className="w-full p-6 overflow-y-auto"
+              style={{
+                maxHeight: "90vh",
+                borderRadius: "12px 12px 0 0",
+              }}
+            >
+              {renderContent()}
+            </SheetContent>
+          </Sheet>
+        ) : (
+          <Dialog open={openSheet !== null} onOpenChange={handleCloseSheet}>
+            <DialogContent className="bg-gaming-card border-gaming-border text-white">
+              {renderContent()}
+            </DialogContent>
+          </Dialog>
+        )}
 
-        {/* Sheet for Password */}
-        <Sheet open={openSheet === "password"} onOpenChange={handleCloseSheet}>
-          <SheetContent 
-            side={isMobile ? "bottom" : "right"} 
-            className="bg-gaming-bg border-gaming-border max-h-[90vh] overflow-y-auto p-4 rounded-t-xl bottom-sheet-ios-fix"
-            style={{
-              maxHeight: isMobile ? 'calc(90vh - env(safe-area-inset-bottom))' : '90vh',
-              paddingBottom: isMobile ? 'calc(1rem + env(safe-area-inset-bottom))' : '1rem',
-            }}
-          >
-            <div className="h-full flex flex-col">
-              {isMobile && (
-                <div className="w-12 h-1 bg-gray-600 rounded-full mx-auto mb-4"></div>
+        {/* Delete Account Confirmation Dialog */}
+        <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+          <DialogContent className="bg-gaming-card border-gaming-border text-white p-6">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold text-red-500 flex items-center gap-2">
+                <AlertCircle size={24} /> Confirm Account Deletion
+              </DialogTitle>
+              <DialogDescription className="text-gaming-muted mt-2">
+                This action cannot be undone. All your data, including tournaments hosted and joined, will be permanently deleted.
+                Please type <span className="font-bold text-white">delete my account</span> to confirm.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="mt-4 space-y-4">
+              <Input
+                type="text"
+                placeholder="Type 'delete my account' to confirm"
+                value={deleteText}
+                onChange={(e) => setDeleteText(e.target.value)}
+                className="bg-gaming-bg/50 border-gaming-border/50 text-white focus:border-red-500"
+              />
+              {reAuthError && (
+                <p className="text-red-400 text-sm flex items-center gap-1">
+                  <AlertCircle size={14} /> {reAuthError}
+                </p>
               )}
-              <div className="mb-6">
-                <h2 className="text-xl font-bold text-white">Change Password</h2>
-                <p className="text-sm text-gaming-muted">Update your account password</p>
-              </div>
               
-              <div className="flex-1 overflow-auto">
-                <ChangePasswordForm onClose={handleCloseSheet} />
-              </div>
+              {currentUser?.providerData.some(p => p.providerId === 'password') && (
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="text-sm text-gaming-muted">Your Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="bg-gaming-bg/50 border-gaming-border/50 text-white"
+                  />
+                </div>
+              )}
+              
+              {currentUser?.providerData.some(p => p.providerId === 'google.com') && !isReauthenticating && (
+                <Button
+                  onClick={handleGoogleReauth}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                  disabled={isReauthenticating || isDeleting}
+                >
+                  Reauthenticate with Google
+                </Button>
+              )}
             </div>
-          </SheetContent>
-        </Sheet>
 
-        {/* Sheet for Contact Support */}
-        <Sheet open={openSheet === "support"} onOpenChange={handleCloseSheet}>
-          <SheetContent 
-            side={isMobile ? "bottom" : "right"} 
-            className="bg-gaming-bg border-gaming-border max-h-[90vh] overflow-y-auto p-4 rounded-t-xl bottom-sheet-ios-fix"
-            style={{
-              maxHeight: isMobile ? 'calc(90vh - env(safe-area-inset-bottom))' : '90vh',
-              paddingBottom: isMobile ? 'calc(1rem + env(safe-area-inset-bottom))' : '1rem',
-            }}
-          >
-            <div className="h-full flex flex-col">
-              {isMobile && (
-                <div className="w-12 h-1 bg-gray-600 rounded-full mx-auto mb-4"></div>
-              )}
-              <div className="mb-6">
-                <h2 className="text-xl font-bold text-white">Contact Support</h2>
-                <p className="text-sm text-gaming-muted">Questions, feedback, or bug reports</p>
-              </div>
-              
-              <div className="flex-1 overflow-auto">
-                <ContactSupportForm onClose={handleCloseSheet} />
-              </div>
-            </div>
-          </SheetContent>
-        </Sheet>
+            <DialogFooter className="mt-6">
+              <Button
+                variant="outline"
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={isDeleting}
+                className="border-gaming-primary text-gaming-primary hover:bg-gaming-primary/10"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDeleteAccount}
+                disabled={isDeleting || deleteText !== 'delete my account' || (currentUser?.providerData.some(p => p.providerId === 'password') && !password) || (currentUser?.providerData.some(p => p.providerId === 'google.com') && !currentUser?.email && !isReauthenticating)}
+              >
+                {isDeleting ? "Deleting..." : "Delete My Account"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </ProfileEditSheetContext.Provider>
   );

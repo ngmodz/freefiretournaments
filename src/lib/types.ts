@@ -25,7 +25,6 @@ export interface ProfileUpdate {
   fullName?: string;
   email?: string;
   phone?: string;
-  bio?: string;
   location?: string;
   birthdate?: string;
   gender?: string;

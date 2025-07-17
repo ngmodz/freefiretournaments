@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Define form schema with Zod for contact support form
 const formSchema = z.object({
@@ -42,6 +43,7 @@ interface ContactSupportFormProps {
 const ContactSupportForm = ({ onClose }: ContactSupportFormProps) => {
   const { toast } = useToast();
   const { currentUser } = useAuth();
+  const isMobile = useIsMobile();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -92,8 +94,11 @@ const ContactSupportForm = ({ onClose }: ContactSupportFormProps) => {
   };
 
   return (
-    <>
-      <div className="mb-6 p-4 bg-gaming-bg/40 rounded-lg border border-gaming-border">
+    <div className="relative overflow-hidden rounded-lg p-4 bg-gaming-card border-gaming-border">
+      <div className="absolute top-0 right-0 w-32 h-32 bg-gaming-primary/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+      <div className="absolute bottom-0 left-0 w-24 h-24 bg-gaming-accent/10 rounded-full -ml-12 -mb-12 blur-xl"></div>
+      
+      <div className="relative z-10">
         <div className="flex items-center gap-3 mb-3">
           <User className="text-gray-400" size={20} />
           <span className="text-white text-base">NG MODZ</span>
@@ -104,103 +109,103 @@ const ContactSupportForm = ({ onClose }: ContactSupportFormProps) => {
             freefiretournaments03@gmail.com
           </a>
         </div>
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-6">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-white">Your Name</FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder="Enter your name" 
+                      className="bg-gaming-bg border-gaming-border text-white placeholder:text-gray-500" 
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormMessage className="text-red-500" />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-white">Email Address</FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder="Enter your email" 
+                      className="bg-gaming-bg border-gaming-border text-white placeholder:text-gray-500" 
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormMessage className="text-red-500" />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="subject"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-white">Subject</FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder="What's this about?" 
+                      className="bg-gaming-bg border-gaming-border text-white placeholder:text-gray-500" 
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormMessage className="text-red-500" />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="message"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-white">Message</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="How can we help you?" 
+                      className="bg-gaming-bg border-gaming-border text-white placeholder:text-gray-500 min-h-[120px]" 
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormMessage className="text-red-500" />
+                </FormItem>
+              )}
+            />
+
+            <div className={`flex gap-3 justify-end pt-4 ${isMobile ? 'pb-4' : ''}`}>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={onClose}
+                className="border-gaming-border text-white hover:bg-gaming-bg/50"
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit"
+                disabled={isSubmitting}
+                className="bg-gaming-primary hover:bg-gaming-primary/90 text-white"
+              >
+                <Send size={16} className="mr-2" />
+                {isSubmitting ? 'Sending...' : 'Send Message'}
+              </Button>
+            </div>
+          </form>
+        </Form>
       </div>
-
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-white">Your Name</FormLabel>
-                <FormControl>
-                  <Input 
-                    placeholder="Enter your name" 
-                    className="bg-gaming-bg border-gaming-border text-white placeholder:text-gray-500" 
-                    {...field} 
-                  />
-                </FormControl>
-                <FormMessage className="text-red-500" />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-white">Email Address</FormLabel>
-                <FormControl>
-                  <Input 
-                    placeholder="Enter your email" 
-                    className="bg-gaming-bg border-gaming-border text-white placeholder:text-gray-500" 
-                    {...field} 
-                  />
-                </FormControl>
-                <FormMessage className="text-red-500" />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="subject"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-white">Subject</FormLabel>
-                <FormControl>
-                  <Input 
-                    placeholder="What's this about?" 
-                    className="bg-gaming-bg border-gaming-border text-white placeholder:text-gray-500" 
-                    {...field} 
-                  />
-                </FormControl>
-                <FormMessage className="text-red-500" />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="message"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-white">Message</FormLabel>
-                <FormControl>
-                  <Textarea 
-                    placeholder="How can we help you?" 
-                    className="bg-gaming-bg border-gaming-border text-white placeholder:text-gray-500 min-h-[120px]" 
-                    {...field} 
-                  />
-                </FormControl>
-                <FormMessage className="text-red-500" />
-              </FormItem>
-            )}
-          />
-
-          <div className="flex gap-3 justify-end pt-4">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={onClose}
-              className="border-gaming-border text-white hover:bg-gaming-bg/50"
-            >
-              Cancel
-            </Button>
-            <Button 
-              type="submit"
-              disabled={isSubmitting}
-              className="bg-gaming-primary hover:bg-gaming-primary/90 text-white"
-            >
-              <Send size={16} className="mr-2" />
-              {isSubmitting ? 'Sending...' : 'Send Message'}
-            </Button>
-          </div>
-        </form>
-      </Form>
-    </>
+    </div>
   );
 };
 

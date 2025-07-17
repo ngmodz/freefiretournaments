@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { PaymentService } from "@/lib/paymentService";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "../ui/use-toast";
+import { useUserProfile } from "@/hooks/use-user-profile"; // Import useUserProfile
 
 export interface CreditPackageProps {
   id: string;
@@ -46,6 +47,7 @@ const CreditPackageCard: React.FC<CreditPackageProps> = ({
   packageType
 }) => {
   const { currentUser } = useAuth();
+  const { user } = useUserProfile(); // Get user profile
 
   const handlePurchase = async () => {
     if (!currentUser) {
@@ -63,8 +65,9 @@ const CreditPackageCard: React.FC<CreditPackageProps> = ({
       await paymentService.initiateCashFreeCheckout({
         amount: price,
         userId: currentUser.uid,
-        userName: currentUser.displayName || 'User',
+        userName: user?.fullName || currentUser.displayName || currentUser.email?.split('@')[0] || 'User',
         userEmail: currentUser.email || '',
+        userPhone: user?.phone || '9999999999', // Use user's phone from profile
         paymentType: 'credit_purchase',
         packageId: id,
         packageName: name,

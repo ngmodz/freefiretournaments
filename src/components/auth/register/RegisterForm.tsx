@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { signUpWithEmail, db } from "@/lib/firebase";
 import { doc, setDoc } from "firebase/firestore";
+import { checkUIDExists } from "@/lib/user-utils";
 import NameField from "./NameField";
 import EmailField from "./EmailField";
 import GameIdField from "./GameIdField";
@@ -104,8 +105,16 @@ const RegisterForm = ({ setActiveTab }: RegisterFormProps) => {
     if (!validateRegisterForm()) return;
     
     setIsSubmitting(true);
-    
+
     try {
+      // Validate UID first
+      const uidError = await checkUIDExists(formState.ffid);
+      if (uidError) {
+        setFormErrors(prev => ({ ...prev, ffid: uidError }));
+        setIsSubmitting(false);
+        return;
+      }
+      
       // Register with Firebase
       const result = await signUpWithEmail(formState.email, formState.password);
       
