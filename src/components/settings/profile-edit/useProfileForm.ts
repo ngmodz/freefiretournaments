@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import { useAuth } from "@/contexts/AuthContext";
-import { validateUserData, isUIDAvailable, isIGNAvailable } from "@/lib/user-utils";
+import { validateUserData, isUIDAvailable, isIGNAvailable, checkUIDExists } from "@/lib/user-utils";
 import { FormErrors, ProfileFormData } from "./types";
 
 // Define a type that includes all possible keys with string values
@@ -114,24 +114,24 @@ export const useProfileForm = (onClose: () => void, bypassValidation: boolean = 
     }
   };
 
-  const validateForm = async () => {
-    setValidating(true);
-    setErrors({});
-    
-    // If bypass is enabled, still do basic format validation but skip availability checks
-    // This bypassValidation flag is not currently used but kept for potential future debugging needs.
+  const validateForm = async (): Promise<boolean> => {
     if (bypassValidation) {
-      console.log("VALIDATION BYPASSED - Only checking basic format");
-      
-      // Just check required fields and formats
-      const { valid, errors: validationErrors } = validateUserData(formData);
-      setErrors(validationErrors);
-      
-      setValidating(false);
-      return valid;
+      console.warn("Bypassing form validation.");
+      return true;
     }
     
+    setValidating(true);
+    
     try {
+      // Check if UID is already in use by another user
+      if (formData.uid && formData.uid !== originalData.uid) {
+        const uidError = await checkUIDExists(formData.uid);
+        if (uidError) {
+          setErrors(prev => ({ ...prev, uid: uidError }));
+          // Do not return false immediately, aggregate all errors
+        }
+      }
+      
       // Initial validation using utility function - only checks format
       const { valid, errors: validationErrors } = validateUserData(formData);
       
