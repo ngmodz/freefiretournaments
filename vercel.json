@@ -1,6 +1,6 @@
 {
   "rewrites": [
-    { "source": "/api/create-payment-order", "destination": "/api/create-payment-order.js" },
+    { "source": "/api/create-payment-order", "destination": "/api/payment-operations.js" },
     { "source": "/api/verify-payment", "destination": "/api/verify-payment.js" },
     { "source": "/api/payment-webhook", "destination": "/api/payment-webhook.js" },
     { "source": "/api/email-service", "destination": "/api/email-service.js" },
