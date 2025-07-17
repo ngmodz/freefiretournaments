@@ -183,12 +183,13 @@ const Credits = () => {
         title: "Phone Number Required",
         description: "Please add a phone number to your profile before making a purchase.",
         variant: "destructive",
+        duration: 2000,
         action: (
           <button
             onClick={() => navigate("/settings")}
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
           >
-            Go to Settings
+            Go Settings
           </button>
         ),
       });
