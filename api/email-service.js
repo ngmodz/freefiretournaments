@@ -296,14 +296,29 @@ const handleGeneralEmail = async (req, res) => {
 
     const emailUser = process.env.EMAIL_USER;
     const emailPass = process.env.EMAIL_PASSWORD;
+    
+    // Use specific host approval email credentials if available and this is a host approval email
+    let actualEmailUser = emailUser;
+    let actualEmailPass = emailPass;
+    
+    if (type === 'hostApproval') {
+      const hostApprovalEmailUser = process.env.HOST_APPROVAL_EMAIL_USER;
+      const hostApprovalEmailPass = process.env.HOST_APPROVAL_EMAIL_PASSWORD;
+      
+      if (hostApprovalEmailUser && hostApprovalEmailPass) {
+        actualEmailUser = hostApprovalEmailUser;
+        actualEmailPass = hostApprovalEmailPass;
+        console.log('Using specific host approval email credentials');
+      }
+    }
 
-    if (!emailUser || !emailPass) {
+    if (!actualEmailUser || !actualEmailPass) {
       return res.status(500).json({ error: 'Email configuration not found' });
     }
 
     const transporter = nodemailer.createTransport({
       service: 'gmail',
-      auth: { user: emailUser, pass: emailPass },
+      auth: { user: actualEmailUser, pass: actualEmailPass },
       tls: { rejectUnauthorized: false }
     });
 
@@ -323,22 +338,46 @@ const handleGeneralEmail = async (req, res) => {
           <p>Best regards,<br/>The Freefire Tournaments Team</p>
         </div>
       `;
+    } else if (type === 'hostApproval') {
+      subject = 'Congratulations! Your Host Application has been Approved';
+      html = `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <h3 style="color: #28a745;">🎉 Congratulations! Your Host Application has been Approved</h3>
+          <p>Hello, ${name},</p>
+          <p>Great news! Your application to become a tournament host on our platform has been <strong>approved</strong>!</p>
+          <p>You now have access to:</p>
+          <ul style="color: #333; margin-left: 20px;">
+            <li>Create and manage tournaments</li>
+            <li>Access the host dashboard</li>
+            <li>Earn commissions from tournaments</li>
+            <li>Build your reputation as a trusted host</li>
+          </ul>
+          <p>To get started, simply log into your account and navigate to the host panel.</p>
+          <p>Welcome to the FreeFire Tournaments hosting community!</p>
+          <br/>
+          <p>Best regards,<br/>The Freefire Tournaments Team</p>
+        </div>
+      `;
     } else {
       return res.status(400).json({ error: 'Unsupported email type' });
     }
 
     const mailOptions = {
-      from: `"Freefire Tournaments" <${emailUser}>`,
+      from: `"Freefire Tournaments" <${actualEmailUser}>`,
       to: to,
       subject: subject,
       html: html
     };
 
+    console.log(`📧 Sending ${type} email to: ${to}`);
+    console.log(`📤 Using email account: ${actualEmailUser}`);
+    
     await transporter.sendMail(mailOptions);
-
+    
+    console.log(`✅ ${type} email sent successfully to: ${to}`);
     res.status(200).json({ success: true, message: 'Email sent successfully' });
   } catch (error) {
-    console.error('Error in handleGeneralEmail:', error);
+    console.error(`❌ Error in handleGeneralEmail (${type}):`, error);
     res.status(500).json({ error: `Failed to send email: ${error.message}` });
   }
 };

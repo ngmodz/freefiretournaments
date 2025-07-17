@@ -13,7 +13,7 @@ const createTestUsers = async (count) => {
   const users = [];
   for (let i = 0; i < count; i++) {
     const email = faker.internet.email();
-    const password = 'password123'; // Simple password for all test users
+    const password = 'Password123!'; // Use a more secure password
     const displayName = faker.person.fullName();
 
     try {
