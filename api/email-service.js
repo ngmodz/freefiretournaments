@@ -46,13 +46,6 @@ const handleContactRequest = async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: { user: emailUser, pass: emailPass },
-      tls: { rejectUnauthorized: false }
-    });
-
-    // Save to database
     const supportDoc = {
       name,
       email,
@@ -66,30 +59,50 @@ const handleContactRequest = async (req, res) => {
 
     await db.collection('supportSubmissions').add(supportDoc);
 
-    // 1. Email to support inbox
-    const supportMailOptions = {
-      from: `"${name}" <${emailUser}>`,
-      to: supportRecipient,
-      replyTo: email,
-      subject: `New Support Ticket: ${subject}`,
-      html: `<p>Name: ${name}</p><p>Email: ${email}</p><p>UID: ${uid || 'N/A'}</p><p>Message: ${message}</p>`
-    };
+    // Immediately send a success response
+    res.status(200).json({ success: true, message: 'Support message received successfully' });
 
-    // 2. Confirmation email to user
-    const userMailOptions = {
-      from: `"Freefire Tournaments Support" <${emailUser}>`,
-      to: email,
-      subject: 'We have received your support request',
-      html: `<p>Dear ${name},</p><p>Thank you for contacting us. We have received your message and will get back to you shortly.</p>`
-    };
+    // Send emails in the background
+    (async () => {
+      try {
+        const transporter = nodemailer.createTransport({
+          service: 'gmail',
+          auth: { user: emailUser, pass: emailPass },
+          tls: { rejectUnauthorized: false }
+        });
 
-    await transporter.sendMail(supportMailOptions);
-    await transporter.sendMail(userMailOptions);
+        // 1. Email to support inbox
+        const supportMailOptions = {
+          from: `"${name}" <${emailUser}>`,
+          to: supportRecipient,
+          replyTo: email,
+          subject: `New Support Ticket: ${subject}`,
+          html: `<p>Name: ${name}</p><p>Email: ${email}</p><p>UID: ${uid || 'N/A'}</p><p>Message: ${message}</p>`
+        };
 
-    res.status(200).json({ success: true, message: 'Support message sent successfully' });
+        // 2. Confirmation email to user
+        const userMailOptions = {
+          from: `"Freefire Tournaments Support" <${emailUser}>`,
+          to: email,
+          subject: 'We have received your support request',
+          html: `<p>Dear ${name},</p><p>Thank you for contacting us. We have received your message and will get back to you shortly.</p>`
+        };
+
+        await transporter.sendMail(supportMailOptions);
+        await transporter.sendMail(userMailOptions);
+
+        console.log('Support emails sent successfully in the background.');
+      } catch (emailError) {
+        console.error('Error sending support emails in background:', emailError);
+      }
+    })();
+
   } catch (error) {
     console.error('Error in handleContactRequest:', error);
-    res.status(500).json({ error: `Failed to send message: ${error.message}` });
+    // Avoid sending another response if one has already been sent
+    if (!res.headersSent) {
+      res.status(500).json({ error: `Failed to process message: ${error.message}` });
+    }
   }
 };
 
@@ -129,6 +142,32 @@ const handleContactSubmissions = async (req, res) => {
   } catch (error) {
     console.error('Error in handleContactSubmissions:', error);
     res.status(500).json({ error: `Failed to fetch submissions: ${error.message}` });
+  }
+};
+
+const handleDeleteSubmission = async (req, res) => {
+  try {
+    const user = auth.currentUser;
+    if (!user) {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Authorization required' });
+      }
+      const token = authHeader.split(' ')[1];
+      await auth.verifyIdToken(token);
+    }
+
+    const { id } = req.query;
+    if (!id) {
+      return res.status(400).json({ error: 'Submission ID is required' });
+    }
+
+    await db.collection('supportSubmissions').doc(id).delete();
+
+    res.status(200).json({ success: true, message: 'Submission deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting submission:', error);
+    res.status(500).json({ error: `Failed to delete submission: ${error.message}` });
   }
 };
 
@@ -385,41 +424,36 @@ const handleGeneralEmail = async (req, res) => {
 
 // Main handler function
 export default async function handler(req, res) {
-  // Set CORS headers
-  res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization');
+  const { service } = req.query;
+  const { action } = req.body || {};
 
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
-
-  try {
-    if (req.method === 'GET') {
-      // Handle GET request for contact submissions (admin panel)
-      return await handleContactSubmissions(req, res);
-    } else if (req.method === 'POST') {
-      const { action } = req.body;
-
-      switch (action) {
-        case 'contact':
-          return await handleContactRequest(req, res);
-        case 'tournament-notification':
-          return await handleTournamentNotification(req, res);
-        case 'withdrawal-notification':
-          return await handleWithdrawalNotification(req, res);
-        case 'general-email':
-          return await handleGeneralEmail(req, res);
-        default:
-          return res.status(400).json({ error: 'Invalid action specified' });
-      }
+  if (req.method === 'POST') {
+    // Handle both formats - either service query param or action in body
+    if (service === 'contact' || action === 'contact') {
+      return handleContactRequest(req, res);
+    } else if (service === 'tournament-notification' || action === 'tournament-notification') {
+      return handleTournamentNotification(req, res);
+    } else if (service === 'withdrawal-notification' || action === 'withdrawal-notification') {
+      return handleWithdrawalNotification(req, res);
+    } else if (service === 'general' || action === 'general-email') {
+      return handleGeneralEmail(req, res);
     } else {
-      return res.status(405).json({ error: 'Method not allowed' });
+      return res.status(400).json({ error: 'Invalid service specified' });
     }
-  } catch (error) {
-    console.error('Error in email service:', error);
-    res.status(500).json({ error: `Email service error: ${error.message}` });
+  } else if (req.method === 'GET') {
+    if (service === 'contact-submissions' || action === 'contact-submissions') {
+      return handleContactSubmissions(req, res);
+    } else {
+      return res.status(400).json({ error: 'Invalid service specified' });
+    }
+  } else if (req.method === 'DELETE') {
+    if (service === 'contact-submissions') {
+      return handleDeleteSubmission(req, res);
+    } else {
+      return res.status(400).json({ error: 'Invalid service specified' });
+    }
+  } else {
+    res.setHeader('Allow', ['POST', 'GET', 'DELETE']);
+    return res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 }

@@ -18,7 +18,7 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
 }) => {
   return (
     <div className="space-y-6">
-      <h3 className="text-lg font-medium text-white">Basic Information</h3>
+      <h3 className="text-lg font-medium text-white text-center">Basic Information</h3>
       
       {/* Required Game Info */}
       <div className="space-y-5">
@@ -143,12 +143,15 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
                 id="email"
                 name="email"
                 value={formData.email}
-                onChange={handleInputChange}
                 className={customInputStyles}
                 placeholder="Your email address"
                 autoComplete="off"
+                readOnly // Make email field read-only
               />
             </div>
+          </div>
+          <div className="text-gray-500 text-xs mt-2 leading-relaxed">
+            Your email address cannot be changed from this page. Please contact support if you need to update it.
           </div>
           {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
         </div>

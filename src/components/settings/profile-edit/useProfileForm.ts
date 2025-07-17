@@ -137,9 +137,10 @@ export const useProfileForm = (onClose: () => void) => {
         newErrors.uid = "UID is required";
       }
       
-      if (!formData.email && !newErrors.email) {
-        newErrors.email = "Email is required";
-      }
+      // Remove email validation
+      // if (!formData.email && !newErrors.email) {
+      //   newErrors.email = "Email is required";
+      // }
 
       // Add validation for new mandatory fields
       if (!formData.fullName || formData.fullName.trim() === '') {
@@ -148,9 +149,10 @@ export const useProfileForm = (onClose: () => void) => {
       if (!formData.phone || formData.phone.trim() === '') {
         newErrors.phone = "Phone Number is required";
       }
-      if (!formData.location || formData.location.trim() === '') {
-        newErrors.location = "Location is required";
-      }
+      // Make location optional
+      // if (!formData.location || formData.location.trim() === '') {
+      //   newErrors.location = "Location is required";
+      // }
       if (!formData.gender || formData.gender.trim() === '') {
         newErrors.gender = "Gender is required";
       }

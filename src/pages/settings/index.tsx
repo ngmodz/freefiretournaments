@@ -134,19 +134,22 @@ const Settings = () => {
       <Sheet open={openSheet === "profile"} onOpenChange={handleCloseSheet}>
         <SheetContent 
           side={isMobile ? "bottom" : "right"} 
-          className="bg-gaming-bg border-gaming-border max-h-[90vh] overflow-y-auto p-4 rounded-t-xl bottom-sheet-ios-fix"
+          className="bg-gaming-bg border-gaming-border max-h-[90vh] overflow-y-auto rounded-t-xl bottom-sheet-ios-fix flex flex-col items-center justify-center p-0"
           style={{
             maxHeight: isMobile ? 'calc(90vh - env(safe-area-inset-bottom))' : '90vh',
             paddingBottom: isMobile ? 'calc(1rem + env(safe-area-inset-bottom))' : '1rem',
+            paddingLeft: isMobile ? '0' : '1.5rem',
+            paddingRight: isMobile ? '0' : '1.5rem',
+            paddingTop: '1rem'
           }}
         >
           <div className="absolute top-0 right-0 w-32 h-32 bg-gaming-primary/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
           <div className="absolute bottom-0 left-0 w-24 h-24 bg-gaming-accent/10 rounded-full -ml-12 -mb-12 blur-xl"></div>
-          <div className="h-full flex flex-col relative">
+          <div className="h-full flex flex-col relative w-full max-w-md mx-auto px-6">
             {isMobile && (
               <div className="w-12 h-1 bg-gray-600 rounded-full mx-auto mb-4"></div>
             )}
-            <div className="mb-6">
+            <div className="mb-6 text-center">
               <h2 className="text-xl font-bold text-white">Edit Profile</h2>
               <p className="text-sm text-gaming-muted">Update your personal information</p>
             </div>

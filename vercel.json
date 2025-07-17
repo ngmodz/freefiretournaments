@@ -1,9 +1,9 @@
 {
   "rewrites": [
+    { "source": "/api/contact", "destination": "/api/email-service.js" },
     { "source": "/api/create-payment-order", "destination": "/api/payment-operations.js" },
-    { "source": "/api/verify-payment", "destination": "/api/verify-payment.js" },
+    { "source": "/api/verify-payment", "destination": "/api/payment-operations.js" },
     { "source": "/api/payment-webhook", "destination": "/api/payment-webhook.js" },
-    { "source": "/api/email-service", "destination": "/api/email-service.js" },
     { "source": "/api/tournament-management", "destination": "/api/tournament-management.js" },
     { "source": "/api/automated-moderator", "destination": "/api/automated-moderator.js" },
     { "source": "/api/process-notifications", "destination": "/api/process-notifications.js" },

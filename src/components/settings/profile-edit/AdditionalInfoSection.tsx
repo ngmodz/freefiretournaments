@@ -21,7 +21,7 @@ const AdditionalInfoSection: React.FC<AdditionalInfoSectionProps> = ({
 }) => {
   return (
     <div className="space-y-6">
-      <h3 className="text-lg font-medium text-white">Additional Information</h3>
+      <h3 className="text-lg font-medium text-white text-center">Additional Information</h3>
       
       <div className="space-y-5">
         {/* Gender Field - Important for avatar */}
@@ -40,7 +40,7 @@ const AdditionalInfoSection: React.FC<AdditionalInfoSectionProps> = ({
                   id="gender"
                   name="gender"
                   value={formData.gender}
-                  onChange={(e) => handleSelectChange(e.target.value, "gender")}
+                  onChange={(e) => handleSelectChange("gender", e.target.value)}
                   className="w-full bg-[#1a1a1a] border-0 py-3 px-3 text-white focus:outline-none focus:ring-0 appearance-none rounded-md pr-10 text-base"
                   style={{
                     backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236B7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
@@ -78,7 +78,7 @@ const AdditionalInfoSection: React.FC<AdditionalInfoSectionProps> = ({
           >
             <MapPin size={16} className="text-gaming-primary/70" />
             Location
-            <span className="text-red-500">*</span>
+            
           </Label>
           <div className="flex items-center">
             <div className="relative flex-1">

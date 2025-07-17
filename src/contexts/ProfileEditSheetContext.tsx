@@ -44,7 +44,7 @@ export const ProfileEditSheetProvider: React.FC<ProfileEditSheetProviderProps> =
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <SheetContent 
           side={isMobile ? "bottom" : "right"} 
-          className="bg-gaming-bg border-gaming-border max-h-[95vh] overflow-y-auto p-4 rounded-t-xl bottom-sheet-ios-fix"
+          className={`bg-gaming-bg border-gaming-border max-h-[95vh] overflow-y-auto rounded-t-xl bottom-sheet-ios-fix ${isMobile ? 'w-full p-4 inset-x-0' : 'p-4'}`}
           style={{
             maxHeight: isMobile ? 'calc(95vh - env(safe-area-inset-bottom))' : '95vh',
             paddingBottom: isMobile ? 'calc(1rem + env(safe-area-inset-bottom))' : '1rem',
@@ -59,7 +59,7 @@ export const ProfileEditSheetProvider: React.FC<ProfileEditSheetProviderProps> =
               <p className="text-sm text-gaming-muted">Complete your profile to join tournaments</p>
             </SheetHeader>
             
-            <div className="flex-1 min-h-0">
+            <div className="flex-1 min-h-0 flex flex-col items-center">
               <ProfileEditForm onClose={closeProfileEdit} />
             </div>
           </div>

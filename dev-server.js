@@ -172,6 +172,16 @@ app.all('/api/contact', async (req, res) => {
   }
 });
 
+app.all('/api/email-service', async (req, res) => {
+  try {
+    const { default: handler } = await import(`./api/email-service.js?v=${Date.now()}`);
+    await handler(req, res);
+  } catch (error) {
+    console.error('API Error:', error);
+    res.status(500).json({ error: error.message, success: false });
+  }
+});
+
 app.post('/api/send-email', async (req, res) => {
   try {
     // Route to new unified email service

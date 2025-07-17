@@ -32,17 +32,17 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({ onClose }) => {
   return (
     <form 
       onSubmit={handleSubmit} 
-      className="profile-edit-form space-y-6"
+      className="profile-edit-form space-y-6 w-full max-w-md mx-auto"
     >
       {/* Profile Avatar - Mobile optimized */}
-      <div className="px-1">
+      <div>
         <ProfileAvatar formData={formData} />
       </div>
       
       <Separator className="bg-gaming-border opacity-50" />
       
       {/* Basic Information Section - Mobile optimized */}
-      <div className="px-1">
+      <div>
         <BasicInfoSection 
           formData={formData}
           errors={errors}
@@ -53,7 +53,7 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({ onClose }) => {
       <Separator className="bg-gaming-border opacity-50" />
       
       {/* Additional Information Section - Mobile optimized */}
-      <div className="px-1">
+      <div>
         <AdditionalInfoSection 
           formData={formData}
           errors={errors}
@@ -63,7 +63,7 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({ onClose }) => {
       </div>
       
       {/* Form Actions at the bottom */}
-      <div className="border-t border-gaming-border pt-4 px-1 mt-8">
+      <div className="border-t border-gaming-border pt-4 mt-8">
         <FormActions 
           loading={loading}
           userLoading={userLoading}

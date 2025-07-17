@@ -632,12 +632,52 @@ input[type="password"]::-webkit-input-password-reveal {
   display: none !important;
 }
 
+/* Add custom scrollbar styles */
+
+/* For Webkit browsers (Chrome, Safari) */
+::-webkit-scrollbar {
+  width: 8px; /* width of the vertical scrollbar */
+  height: 8px; /* height of the horizontal scrollbar */
+}
+
+::-webkit-scrollbar-track {
+  background: #1a1a1a; /* color of the track */
+  border-radius: 10px; /* round the track corners */
+}
+
+::-webkit-scrollbar-thumb {
+  background: #4a4a4a; /* color of the scrollbar thumb */
+  border-radius: 10px; /* round the thumb corners */
+  border: 2px solid #1a1a1a; /* padding around the thumb */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #6a6a6a; /* color of the scrollbar thumb on hover */
+}
+
+/* For Firefox */
+/* Firefox uses scrollbar-width and scrollbar-color properties */
+* {
+  scrollbar-width: thin; /* "auto" or "thin" */
+  scrollbar-color: #4a4a4a #1a1a1a; /* thumb color and track color */
+}
+
 /* Mobile optimization for bottom sheets */
 @media (max-width: 768px) {
   .bottom-sheet-ios-fix {
     /* Fix for iOS Safari bottom sheet positioning */
     padding-bottom: env(safe-area-inset-bottom);
     border-radius: 12px 12px 0 0 !important;
+  }
+  
+  /* Fix the dialog positioning - override left-4 right-4 */
+  [role="dialog"][data-state="open"] {
+    left: 0 !important;
+    right: 0 !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    max-width: 400px !important;
+    width: calc(100% - 2rem) !important;
   }
   
   /* Enhanced mobile form styles */
@@ -657,6 +697,20 @@ input[type="password"]::-webkit-input-password-reveal {
   /* Better mobile spacing */
   .profile-edit-form .space-y-6 > * + * {
     margin-top: 1.25rem !important;
+  }
+  
+  /* Proper form centering */
+  .profile-edit-form {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+  
+  /* Ensure proper text centering */
+  .profile-edit-form h3 {
+    text-align: center;
+    width: 100%;
   }
   
   .profile-edit-form .space-y-5 > * + * {

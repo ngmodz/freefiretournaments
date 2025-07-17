@@ -13,19 +13,29 @@ service cloud.firestore {
 
       // SECURE UPDATE LOGIC
       allow update: if request.auth != null && (
-        // Case 1: Users can update their OWN profile, but NOT the isHost field
-        (request.auth.uid == userId && 
-         (!('isHost' in request.resource.data) || 
-          request.resource.data.isHost == resource.data.isHost)) ||
+        // Case 1: Users can update their OWN profile.
+        (request.auth.uid == userId &&
+         // They are NOT allowed to change their host status.
+         (request.resource.data.isHost == resource.data.isHost) &&
+         // Allow wallet updates only if the earnings are being reduced and credits are unchanged.
+         // This handles withdrawals. It's safer than the previous rule.
+         (
+           (
+            'wallet' in request.resource.data && 'wallet' in resource.data &&
+            request.resource.data.wallet.earnings < resource.data.wallet.earnings &&
+            request.resource.data.wallet.get('credits', 0) == resource.data.wallet.get('credits', 0)
+           ) ||
+           // Or if wallet is unchanged.
+           (request.resource.data.wallet == resource.data.wallet) ||
+            // Or if wallet didn't exist and is not being added.
+           (!('wallet' in request.resource.data) && !('wallet' in resource.data))
+         )
+        ) ||
         
         // Case 2: Admin can ONLY update isHost field (for host approval)
-        (request.auth.uid == "EaiefFlrNzMgpPEBUjyJvZ4Ydlx1" && 
+        (request.auth.token.admin == true &&
          request.resource.data.diff(resource.data).affectedKeys().hasAll(['isHost']) &&
-         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isHost', 'updated_at'])) ||
-        
-        // Case 3: Allow wallet-only updates for tournament operations
-        (request.auth.uid == userId && 
-         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['wallet']))
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isHost', 'updated_at']))
       );
 
       // Allow users to delete their own profiles
@@ -41,9 +51,9 @@ service cloud.firestore {
                     exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
                     get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isHost == true;
       
-      // SPECIAL RULE FOR NOTIFICATION SYSTEM
-      // Allow updates to just the notificationSent field by anyone
-      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['notificationSent']) ||
+      // Allow updates for tournament hosts, admins, and for users joining tournaments.
+      // Notification-related fields should only be updatable by an admin.
+      allow update: if 
                     (
                       // Regular update rule for tournament hosts and admins
                       request.auth != null && 
@@ -140,13 +150,16 @@ service cloud.firestore {
       );
       
       // Allow creating credit transactions if userID matches authenticated user
+      // Re-enabling 'tournament_win' transactions but with an added security check.
       allow create: if request.auth != null && (
         request.resource.data.userId == request.auth.uid ||
         // Allow tournament host to create a 'tournament_win' transaction for a winner.
-        // This is secure because we verify the requester is the host of the tournament.
+        // This is now more secure. We verify the requester is the host of the tournament
+        // AND that the tournament has ended.
         (
           request.resource.data.type == 'tournament_win' &&
-          get(/databases/$(database)/documents/tournaments/$(request.resource.data.transactionDetails.tournamentId)).data.host_id == request.auth.uid
+          get(/databases/$(database)/documents/tournaments/$(request.resource.data.transactionDetails.tournamentId)).data.host_id == request.auth.uid &&
+          get(/databases/$(database)/documents/tournaments/$(request.resource.data.transactionDetails.tournamentId)).data.status == 'ended'
         )
       );
       
@@ -242,34 +255,37 @@ service cloud.firestore {
       // Allow users to read their own applications OR admins to read all
       allow read: if request.auth != null && (
         resource.data.userId == request.auth.uid ||
-        request.auth.uid == "EaiefFlrNzMgpPEBUjyJvZ4Ydlx1"
+        request.auth.token.admin == true
       );
       
-      // Only specific admin can update applications (for approval/rejection)
-      allow update: if request.auth != null && request.auth.uid == "EaiefFlrNzMgpPEBUjyJvZ4Ydlx1";
+      // Only admins can update applications (for approval/rejection)
+      allow update: if request.auth != null && request.auth.token.admin == true;
       
-      // Allow user to delete their own application (if they change their mind)
-      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      // Prevent deletion for record-keeping
+      allow delete: if false;
     }
-    
+
+    // Consolidated and corrected rules for support submissions
+    match /supportSubmissions/{submissionId} {
+      // Allow any user to create a submission.
+      // If a UID is provided, it must match the authenticated user.
+      allow create: if request.resource.data.uid == null ||
+                      (request.auth != null && request.resource.data.uid == request.auth.uid);
+
+      // Allow only admins to read or delete submissions.
+      allow read, delete: if request.auth != null && request.auth.token.admin == true;
+
+      // Prevent updates to submissions for data integrity.
+      allow update: if false;
+    }
+
+    // Admins can list all support submissions.
+    match /supportSubmissions {
+      allow list: if request.auth != null && request.auth.token.admin == true;
+    }
+
     // Admins can list all host applications
     match /hostApplications {
-      allow list: if request.auth != null && request.auth.uid == "EaiefFlrNzMgpPEBUjyJvZ4Ydlx1";
-    }
-
-    // Contact Submissions
-    match /contactSubmissions/{submissionId} {
-      // Allow anyone to create a submission.
-      // If a UID is provided, it must match the authenticated user.
-      allow create: if request.resource.data.uid == null || 
-                      (request.auth != null && request.resource.data.uid == request.auth.uid);
-      
-      // Only admins can read, update, or delete submissions.
-      allow read, update, delete: if request.auth != null && request.auth.token.admin == true;
-    }
-
-    // Admins can list all contact submissions.
-    match /contactSubmissions {
       allow list: if request.auth != null && request.auth.token.admin == true;
     }
     
