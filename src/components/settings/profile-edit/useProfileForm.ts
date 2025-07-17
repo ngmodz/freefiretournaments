@@ -123,25 +123,19 @@ export const useProfileForm = (onClose: () => void, bypassValidation: boolean = 
     setValidating(true);
     
     try {
-      // Check if UID is already in use by another user
+      // Initial validation using utility function - only checks format
+      const { valid, errors: validationErrors } = validateUserData(formData);
+      const newErrors: Record<string, string> = { ...validationErrors };
+
+      // Asynchronously check if UID is already in use by another user, only if it has changed
       if (formData.uid && formData.uid !== originalData.uid) {
         const uidError = await checkUIDExists(formData.uid);
         if (uidError) {
-          setErrors(prev => ({ ...prev, uid: uidError }));
-          // Do not return false immediately, aggregate all errors
+          newErrors.uid = uidError;
         }
       }
       
-      // Initial validation using utility function - only checks format
-      const { valid, errors: validationErrors } = validateUserData(formData);
-      
-      // if (!valid) { // Keep this commented out if we want to aggregate all errors
-      //   setErrors(validationErrors);
-      //   return false;
-      // }
-      
       // Aggregate errors from validateUserData and newErrors
-      const newErrors: Record<string, string> = { ...validationErrors }; 
       
       // Check required fields if not already caught by validateUserData
       if (!formData.ign && !newErrors.ign) {
