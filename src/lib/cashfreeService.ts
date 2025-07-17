@@ -190,14 +190,15 @@ export class CashFreeService {
         throw new Error(`API Error: ${response.status} ${response.statusText} - ${errorText}`);
       }
 
-      const orderResponse: { success: boolean, data: CashFreeOrderResponse } = await response.json();
+      const orderResponse = await response.json();
       console.log('✅ Payment order created:', orderResponse);
 
       if (!orderResponse.success) {
-        throw new Error('Failed to create payment order.');
+        const errorDetails = orderResponse.details || JSON.stringify(orderResponse);
+        throw new Error(`Failed to create payment order: ${errorDetails}`);
       }
 
-      return orderResponse.data;
+      return orderResponse;
     } catch (error) {
       console.error('❌ Error creating payment order:', error);
       throw error;
