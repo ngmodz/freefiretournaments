@@ -18,6 +18,7 @@ import {
   Mail,
   Github,
   Crown,
+  ThumbsUp
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import ContactSupportForm from "@/components/settings/ContactSupportForm";
+import FeedbackForm from "@/components/settings/FeedbackForm";
 import ProfileEditForm from "@/components/settings/ProfileEditForm";
 import ChangePasswordDialog from "@/components/settings/ChangePasswordDialog";
 import ForgotPasswordDialog from "@/components/settings/ForgotPasswordDialog";
@@ -368,6 +370,12 @@ const Settings = () => {
       description: "Help & support" 
     },
     { 
+      id: "feedback",
+      icon: <ThumbsUp size={20} className="text-green-500" />,
+      title: "Give Feedback", 
+      description: "Share your thoughts and suggestions" 
+    },
+    { 
       id: "delete",
       icon: <Trash2 size={20} className="text-red-500" />,
       title: "Delete Account", 
@@ -384,6 +392,8 @@ const Settings = () => {
         return <ChangePasswordForm onClose={handleCloseSheet} />;
       case "support":
         return <ContactSupportForm onClose={handleCloseSheet} />;
+      case "feedback":
+        return <FeedbackForm onClose={handleCloseSheet} />;
       default:
         return null;
     }

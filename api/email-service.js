@@ -422,6 +422,157 @@ const handleGeneralEmail = async (req, res) => {
   }
 };
 
+// Feedback form handler
+const handleFeedbackRequest = async (req, res) => {
+  try {
+    const emailUser = process.env.EMAIL_USER;
+    const emailPass = process.env.EMAIL_PASSWORD;
+
+    if (!emailUser || !emailPass) {
+      console.error('Email credentials not found');
+      return res.status(500).json({ error: 'Server email configuration is incomplete' });
+    }
+
+    const { name, email, category, feedback, uid } = req.body;
+    if (!name || !email || !category || !feedback) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const feedbackDoc = {
+      name,
+      email,
+      category,
+      feedback,
+      uid: uid || null,
+      status: 'new',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    await db.collection('feedbackSubmissions').add(feedbackDoc);
+
+    // Immediately send a success response
+    res.status(200).json({ success: true, message: 'Feedback received successfully' });
+
+    // Send emails in the background
+    (async () => {
+      try {
+        const transporter = nodemailer.createTransport({
+          service: 'gmail',
+          auth: { user: emailUser, pass: emailPass },
+          tls: { rejectUnauthorized: false }
+        });
+
+        // Email to admin
+        const adminMailOptions = {
+          from: `"${name}" <${emailUser}>`,
+          to: emailUser,
+          replyTo: email,
+          subject: `New Feedback: ${category}`,
+          html: `
+            <p><strong>Category:</strong> ${category}</p>
+            <p><strong>From:</strong> ${name} (${email})</p>
+            <p><strong>UID:</strong> ${uid || 'N/A'}</p>
+            <p><strong>Feedback:</strong></p>
+            <p>${feedback}</p>
+          `
+        };
+
+        // Confirmation email to user
+        const userMailOptions = {
+          from: `"Freefire Tournaments" <${emailUser}>`,
+          to: email,
+          subject: 'Thank you for your feedback',
+          html: `
+            <p>Dear ${name},</p>
+            <p>Thank you for sharing your feedback with us. We value your input and will use it to improve our platform.</p>
+            <p>Best regards,<br>The Freefire Tournaments Team</p>
+          `
+        };
+
+        await transporter.sendMail(adminMailOptions);
+        await transporter.sendMail(userMailOptions);
+
+        console.log('Feedback emails sent successfully in the background.');
+      } catch (emailError) {
+        console.error('Error sending feedback emails in background:', emailError);
+      }
+    })();
+
+  } catch (error) {
+    console.error('Error in handleFeedbackRequest:', error);
+    // Avoid sending another response if one has already been sent
+    if (!res.headersSent) {
+      res.status(500).json({ error: `Failed to process feedback: ${error.message}` });
+    }
+  }
+};
+
+// Feedback submissions handler (for admin panel)
+const handleFeedbackSubmissions = async (req, res) => {
+  try {
+    // Verify admin authorization
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Authorization required' });
+    }
+
+    const token = authHeader.split(' ')[1];
+    
+    try {
+      await auth.verifyIdToken(token);
+    } catch (error) {
+      return res.status(401).json({ error: 'Invalid authorization token' });
+    }
+
+    // Get all feedback submissions
+    const submissionsSnapshot = await db.collection('feedbackSubmissions')
+      .orderBy('createdAt', 'desc')
+      .get();
+
+    const submissions = submissionsSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      createdAt: doc.data().createdAt.toDate().toISOString(),
+      updatedAt: doc.data().updatedAt.toDate().toISOString()
+    }));
+
+    res.status(200).json({ 
+      success: true, 
+      data: submissions 
+    });
+  } catch (error) {
+    console.error('Error in handleFeedbackSubmissions:', error);
+    res.status(500).json({ error: `Failed to fetch feedback submissions: ${error.message}` });
+  }
+};
+
+const handleDeleteFeedback = async (req, res) => {
+  try {
+    const user = auth.currentUser;
+    if (!user) {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Authorization required' });
+      }
+      const token = authHeader.split(' ')[1];
+      await auth.verifyIdToken(token);
+    }
+
+    const { id } = req.query;
+    if (!id) {
+      return res.status(400).json({ error: 'Feedback ID is required' });
+    }
+
+    await db.collection('feedbackSubmissions').doc(id).delete();
+
+    res.status(200).json({ success: true, message: 'Feedback deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting feedback:', error);
+    res.status(500).json({ error: `Failed to delete feedback: ${error.message}` });
+  }
+};
+
 // Main handler function
 export default async function handler(req, res) {
   const { service } = req.query;
@@ -437,18 +588,24 @@ export default async function handler(req, res) {
       return handleWithdrawalNotification(req, res);
     } else if (service === 'general' || action === 'general-email') {
       return handleGeneralEmail(req, res);
+    } else if (service === 'feedback' || action === 'feedback') {
+      return handleFeedbackRequest(req, res);
     } else {
       return res.status(400).json({ error: 'Invalid service specified' });
     }
   } else if (req.method === 'GET') {
     if (service === 'contact-submissions' || action === 'contact-submissions') {
       return handleContactSubmissions(req, res);
+    } else if (service === 'feedback-submissions' || action === 'feedback-submissions') {
+      return handleFeedbackSubmissions(req, res);
     } else {
       return res.status(400).json({ error: 'Invalid service specified' });
     }
   } else if (req.method === 'DELETE') {
     if (service === 'contact-submissions') {
       return handleDeleteSubmission(req, res);
+    } else if (service === 'feedback-submissions') {
+      return handleDeleteFeedback(req, res);
     } else {
       return res.status(400).json({ error: 'Invalid service specified' });
     }

@@ -27,6 +27,7 @@ import PaymentStatus from "./pages/PaymentStatus";
 import AdminPage from "./pages/admin/withdrawals";
 import HostPanel from "./pages/admin/HostPanel";
 import ContactSupportPanel from "./pages/admin/ContactSupportPanel";
+import FeedbackPanel from "./pages/admin/FeedbackPanel";
 import "./App.css";
 
 function App() {
@@ -130,6 +131,11 @@ function App() {
             <Route path="/admin/contactsupport" element={
               <ProtectedRoute adminRoute>
                 <ContactSupportPanel />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/feedback" element={
+              <ProtectedRoute adminRoute>
+                <FeedbackPanel />
               </ProtectedRoute>
             } />
             

@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import ContactSupportForm from "@/components/settings/ContactSupportForm";
+import FeedbackForm from "@/components/settings/FeedbackForm";
 import { useAuth } from "@/contexts/AuthContext";
 import AvatarDisplay from "@/components/ui/AvatarDisplay";
 import ProfileSection from "./ProfileSection";
@@ -84,6 +85,12 @@ const Settings = () => {
       title: "Change Password",
       description: "Update your password",
       onClick: () => handleOpenSheet("password"),
+    },
+    {
+      id: "feedback",
+      title: "Submit Feedback",
+      description: "Share your thoughts and suggestions",
+      onClick: () => handleOpenSheet("feedback"),
     },
     {
       id: "contact",
@@ -184,6 +191,34 @@ const Settings = () => {
             
             <div className="flex-1 overflow-auto">
               <ChangePasswordForm onClose={handleCloseSheet} />
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Sheet for Feedback */}
+      <Sheet open={openSheet === "feedback"} onOpenChange={handleCloseSheet}>
+        <SheetContent 
+          side={isMobile ? "bottom" : "right"} 
+          className="bg-gaming-bg border-gaming-border max-h-[90vh] overflow-y-auto p-4 rounded-t-xl bottom-sheet-ios-fix"
+          style={{
+            maxHeight: isMobile ? 'calc(90vh - env(safe-area-inset-bottom))' : '90vh',
+            paddingBottom: isMobile ? 'calc(1rem + env(safe-area-inset-bottom))' : '1rem',
+          }}
+        >
+          <div className="absolute top-0 right-0 w-32 h-32 bg-gaming-primary/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-gaming-accent/10 rounded-full -ml-12 -mb-12 blur-xl"></div>
+          <div className="h-full flex flex-col relative">
+            {isMobile && (
+              <div className="w-12 h-1 bg-gray-600 rounded-full mx-auto mb-4"></div>
+            )}
+            <div className={`mb-6 ${isMobile ? 'px-4' : ''}`}>
+              <h2 className="text-xl font-bold text-white">Submit Feedback</h2>
+              <p className="text-sm text-gaming-muted">Share your thoughts, suggestions, or report issues</p>
+            </div>
+            
+            <div className={`flex-1 overflow-auto ${isMobile ? 'pb-4 px-4' : ''}`}>
+              <FeedbackForm onClose={handleCloseSheet} />
             </div>
           </div>
         </SheetContent>
