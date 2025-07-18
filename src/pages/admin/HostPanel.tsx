@@ -30,24 +30,24 @@ const ApplicationRow: React.FC<ApplicationRowProps> = ({ application, onClick })
   const { handleStatusUpdate } = React.useContext(HostPanelContext);
   return (
     <tr className={styles.tableRow} onClick={onClick}>
-      <td>
+      <td data-label="APPLICANT">
         <div className={styles.userInfo}>
-          <Crown size={16} />
+          <Crown size={16} className={styles.crownIcon} />
           <div>
-            <div>{application.userName || application.userEmail}</div>
+            <div className={styles.userName}>{application.userName || application.userEmail}</div>
             <div className={styles.userDetails}>
               Applied: {application.submittedAt && application.submittedAt.toDate().toLocaleString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })}
             </div>
           </div>
         </div>
       </td>
-      <td>
+      <td data-label="CONTACT">
         <div className={styles.contactInfo}>
           <div>{application.userEmail}</div>
           {application.contactInfo && <div className={styles.contactDetails}>{application.contactInfo}</div>}
         </div>
       </td>
-      <td>
+      <td data-label="EXPERIENCE">
         <div className={styles.experiencePreview}>
           {application.experience.length > 100 
             ? `${application.experience.substring(0, 100)}...`
@@ -55,7 +55,7 @@ const ApplicationRow: React.FC<ApplicationRowProps> = ({ application, onClick })
           }
         </div>
       </td>
-      <td>
+      <td data-label="STATUS">
         <span 
           className={styles.statusBadge}
           style={{ backgroundColor: getStatusColor(application.status) }}
@@ -63,22 +63,24 @@ const ApplicationRow: React.FC<ApplicationRowProps> = ({ application, onClick })
           {application.status}
         </span>
       </td>
-      <td style={{ display: 'flex', gap: 8 }}>
-        <button className={styles.viewButton}>
-          <Eye size={14} />
-          View Details
-        </button>
-        {(application.status === 'approved' || application.status === 'rejected') && (
-          <button
-            className={withdrawStyles.actionBtn}
-            onClick={e => {
-              e.stopPropagation();
-              handleStatusUpdate(application.id, 'pending');
-            }}
-          >
-            Move to Pending
+      <td data-label="ACTIONS" className={styles.actionsCell}>
+        <div className={styles.actionsContainer}>
+          <button className={styles.viewButton}>
+            <Eye size={14} />
+            View Details
           </button>
-        )}
+          {(application.status === 'approved' || application.status === 'rejected') && (
+            <button
+              className={withdrawStyles.actionBtn}
+              onClick={e => {
+                e.stopPropagation();
+                handleStatusUpdate(application.id, 'pending');
+              }}
+            >
+              Move to Pending
+            </button>
+          )}
+        </div>
       </td>
     </tr>
   );
@@ -381,7 +383,8 @@ const HostPanel: React.FC = () => {
                       <Check size={16} /> Approve
                     </button>
                     <button
-                      className={withdrawStyles.actionBtn}
+                      className={`${styles.approveButton}`}
+                      style={{ backgroundColor: "#6c757d" }}
                       onClick={() => handleStatusUpdate(selectedApplication.id, 'pending')}
                       disabled={updating}
                     >
@@ -401,7 +404,8 @@ const HostPanel: React.FC = () => {
                       <X size={16} /> Reject
                     </button>
                     <button
-                      className={withdrawStyles.actionBtn}
+                      className={`${styles.approveButton}`}
+                      style={{ backgroundColor: "#6c757d" }}
                       onClick={() => handleStatusUpdate(selectedApplication.id, 'pending')}
                       disabled={updating}
                     >

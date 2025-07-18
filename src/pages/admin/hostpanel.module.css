@@ -270,10 +270,10 @@
 }
 
 .userName {
-  font-size: 1.25rem;
   font-weight: 600;
-  color: #f8fafc;
-  margin: 0;
+  font-size: 16px;
+  color: #2c2c2c;
+  margin-bottom: 4px;
 }
 
 .userDetails {
@@ -387,175 +387,151 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
+  background-color: rgba(0, 0, 0, 0.4);
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
   z-index: 1000;
-  padding: 1rem;
+  backdrop-filter: blur(4px);
 }
 
 .modalContent {
-  background: #1e293b;
-  border-radius: 1rem;
+  background-color: #fefcf5;
+  color: #2c2c2c;
+  border-radius: 12px;
   padding: 2rem;
-  max-width: 32rem;
-  width: 100%;
-  border: 1px solid #334155;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  border: 1px solid #f0f0f0;
+  margin: 0 auto;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
-.modalContent h2 {
-  color: #f8fafc;
-  margin: 0 0 1.5rem 0;
-  font-size: 1.5rem;
-}
-
-.reviewNotes {
-  margin-bottom: 2rem;
-}
-
-.reviewNotes label {
-  display: block;
-  color: #e2e8f0;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
-}
-
-.reviewNotes textarea {
-  width: 100%;
-  padding: 0.75rem;
-  background: #0f172a;
-  border: 2px solid #334155;
-  border-radius: 0.5rem;
-  color: #f8fafc;
-  font-family: inherit;
-  resize: vertical;
-  min-height: 6rem;
-}
-
-.reviewNotes textarea:focus {
-  outline: none;
-  border-color: #3b82f6;
-}
-
-.modalActions {
+.modalHeader {
   display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #f0f0f0;
+  position: relative;
+}
+
+.modalHeader h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+  color: #2c2c2c;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #6b6b6b;
+  padding: 0;
+  line-height: 1;
+}
+
+.closeButton:hover {
+  color: #2c2c2c;
+}
+
+.modalBody {
+  overflow-y: auto;
+}
+
+.applicationDetails {
+  display: grid;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.detailRow {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0.5rem;
+}
+
+.detailLabel {
+  font-weight: 600;
+  color: #6b6b6b;
+  font-size: 0.875rem;
+  margin-bottom: 0.25rem;
+}
+
+.detailText {
+  font-size: 1rem;
+  line-height: 1.6;
+  margin: 0;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.reviewSection {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #f0f0f0;
+}
+
+.reviewActions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.approveButton, .rejectButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 8px;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+}
+
+.approveButton svg, .rejectButton svg {
+  width: 1em;
+  height: 1em;
 }
 
 .approveButton {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  background: #10b981;
+  background-color: #28a745;
   color: white;
-  border: none;
-  border-radius: 0.5rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
 }
-
 .approveButton:hover {
-  background: #059669;
+  background-color: #218838;
 }
 
 .rejectButton {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  background: #ef4444;
+  background-color: #dc3545;
   color: white;
-  border: none;
-  border-radius: 0.5rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
 }
-
 .rejectButton:hover {
-  background: #dc2626;
+  background-color: #c82333;
 }
 
-.cancelButton {
-  padding: 0.75rem 1.5rem;
-  background: #6b7280;
-  color: white;
-  border: none;
-  border-radius: 0.5rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.cancelButton:hover {
-  background: #4b5563;
-}
-
-.spinner {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-/* Responsive Design */
+/* Media query for mobile devices */
 @media (max-width: 768px) {
-  .container {
-    padding: 0.5rem;
-  }
-  
-  .header {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  
-  .titleSection {
-    justify-content: center;
-    text-align: center;
-  }
-  
-  .title {
-    font-size: 1.5rem;
-  }
-  
-  .actions {
-    justify-content: center;
-  }
-  
-  .tabs {
-    justify-content: center;
-  }
-  
-  .applicationHeader {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  
-  .userInfo {
-    justify-content: center;
-  }
-  
-  .statusSection {
-    justify-content: center;
-  }
-  
-  .actions {
-    justify-content: center;
-  }
-  
   .modalContent {
+    width: 95%;
     padding: 1.5rem;
-    margin: 1rem;
   }
   
-  .modalActions {
+  .reviewActions {
     flex-direction: column;
+  }
+  
+  .approveButton, .rejectButton {
+    width: 100%;
+    justify-content: center;
   }
 }
 
@@ -699,12 +675,16 @@
 
 .contactInfo {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .contactDetails {
   font-size: 0.875rem;
   color: #8c8c8c;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .experiencePreview {
@@ -762,6 +742,10 @@
   color: #111;
 }
 
+.actionsCell {
+  padding-right: 24px;
+}
+
 .actionsContainer {
   display: flex;
   align-items: center;
@@ -812,160 +796,238 @@
   color: #fff;
 }
 
-/* Modal Styles */
-.modal {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.4);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-  backdrop-filter: blur(4px);
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+  .container {
+    padding: 16px;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .title {
+    font-size: 24px;
+  }
+
+  .tableContainer {
+    border-radius: 8px;
+    overflow: visible;
+  }
+
+  .table {
+    display: block;
+    width: 100%;
+  }
+
+  .table thead {
+    display: none;
+  }
+
+  .table tbody, .table tr, .table td {
+    display: block;
+    width: 100%;
+  }
+
+  .table tr {
+    margin-bottom: 16px;
+    border: 1px solid #f0f0f0;
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: #fefcf5;
+    padding: 16px;
+  }
+
+  .table td {
+    padding: 12px 0;
+    text-align: left;
+    position: relative;
+    border-bottom: 1px solid #f5f5f5;
+    word-break: break-word;
+    white-space: normal;
+  }
+
+  .table td:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+  
+  .table td:first-child {
+    padding-top: 0;
+  }
+
+  .table td::before {
+    content: attr(data-label);
+    display: block;
+    font-weight: 600;
+    color: #6b6b6b;
+    text-transform: uppercase;
+    font-size: 12px;
+    margin-bottom: 8px;
+  }
+
+  .userInfo, .contactInfo, .experiencePreview {
+    text-align: left;
+    width: 100%;
+    white-space: normal;
+    display: block;
+    margin-top: 4px;
+  }
+
+  .contactDetails, .userDetails {
+    text-align: left;
+    width: 100%;
+    white-space: normal;
+    display: block;
+    margin-top: 4px;
+  }
+
+  .viewButton {
+    width: 100%;
+    justify-content: center;
+    margin-top: 8px;
+  }
+
+  .actionsContainer {
+    justify-content: center;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Modal fixes for mobile */
+  .modal {
+    padding: 16px;
+  }
+
+  .modalContent {
+    width: 100%;
+    padding: 16px;
+    max-height: 85vh;
+  }
+
+  .modalHeader {
+    margin-bottom: 16px;
+  }
+
+  .modalHeader h2 {
+    font-size: 20px;
+  }
+
+  .detailRow {
+    margin-bottom: 16px;
+  }
+
+  .detailLabel {
+    margin-bottom: 4px;
+    display: block;
+  }
+
+  .detailText {
+    word-break: break-word;
+  }
+
+  .reviewActions {
+    flex-direction: column;
+  }
+
+  .approveButton, .rejectButton {
+    width: 100%;
+    margin-bottom: 8px;
+  }
 }
 
-.modalContent {
-  background-color: #fefcf5;
-  color: #2c2c2c;
-  border-radius: 12px;
-  padding: 2rem;
-  width: 90%;
-  max-width: 600px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  border: 1px solid #f0f0f0;
+/* Mobile Card Layout */
+@media (max-width: 768px) {
+  .table tr {
+    margin-bottom: 16px;
+    border: 1px solid #f0f0f0;
+    border-radius: 12px;
+    overflow: hidden;
+    background-color: #fefcf5;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  }
+
+  .table td {
+    padding: 16px 0;
+    text-align: left;
+    position: relative;
+    border-bottom: 1px solid #f0f0f0;
+    word-break: break-word;
+    white-space: normal;
+  }
+
+  .table td::before {
+    content: attr(data-label);
+    display: block;
+    font-weight: 600;
+    color: #6b6b6b;
+    font-size: 14px;
+    margin-bottom: 8px;
+  }
+
+  /* Special styling for the first cell (Applicant) */
+  .table td:first-child::before {
+    color: #6b6b6b;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* Fix for the Crown icon in mobile view */
+  .userInfo svg {
+    display: none;
+  }
+
+  .userName {
+    font-size: 18px;
+    margin-bottom: 4px;
+  }
+
+  .userDetails {
+    color: #8c8c8c;
+    font-size: 14px;
+  }
+
+  .contactInfo {
+    font-size: 16px;
+  }
+
+  .contactDetails {
+    margin-top: 4px;
+  }
+
+  .experiencePreview {
+    font-size: 16px;
+  }
+
+  /* Status badge alignment */
+  .table td[data-label="STATUS"] .statusBadge {
+    display: inline-block;
+    margin-top: 4px;
+    font-size: 14px;
+    padding: 6px 16px;
+  }
+
+  /* View Details button */
+  .table td[data-label="ACTIONS"] .viewButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 12px;
+    margin-top: 8px;
+    font-size: 16px;
+    border-radius: 8px;
+    background-color: #fefcf5;
+    border: 1px solid #e8e4d8;
+  }
 }
 
-.modalHeader {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid #f0f0f0;
-  position: relative;
-}
-
-.modalHeader h2 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin: 0 auto;
-  color: #2c2c2c;
-  flex: 1;
-  text-align: center;
-}
-
-.closeButton {
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-.closeButton:hover {
-  color: #2c2c2c;
-}
-
-.modalBody {
-  max-height: 70vh;
-  overflow-y: auto;
-}
-
-.applicationDetails {
-  display: grid;
-  gap: 1.25rem;
-}
-
-.detailRow {
-  display: flex;
-  flex-direction: column;
-}
-
-.detailLabel {
-  font-weight: 600;
-  color: #6b6b6b;
-  font-size: 0.875rem;
-  margin-bottom: 0.25rem;
-}
-
-.detailText {
-  font-size: 1rem;
-  line-height: 1.6;
-}
-
-.reviewSection {
-  margin-top: 2rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid #f0f0f0;
-}
-
-.reviewSection h3 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin: 0 0 1rem 0;
-}
-
-.reviewNotesInput {
-  width: 100%;
-  min-height: 100px;
-  padding: 0.75rem;
-  border-radius: 8px;
-  border: 1px solid #e8e4d8;
-  background-color: #fefcf5;
-  color: #2c2c2c;
-  font-size: 1rem;
-  resize: vertical;
-}
-
-.reviewNotesInput:focus {
-  outline: none;
-  border-color: #d4b106;
-  box-shadow: 0 0 0 2px rgba(212, 177, 6, 0.1);
-}
-
-.reviewNotesInput::placeholder {
-  color: #a8a8a8;
-}
-
-.reviewActions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-  margin-top: 1rem;
-}
-
-.approveButton, .rejectButton {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.525rem 1.05rem;
-  font-size: 0.7rem;
-  font-weight: 500;
-  border-radius: 8px;
-  cursor: pointer;
-  border: none;
-  transition: all 0.2s;
-}
-
-.approveButton svg, .rejectButton svg {
-  width: 1em;
-  height: 1em;
-}
-
-.approveButton {
-  background-color: #28a745;
-  color: white;
-}
-.approveButton:hover {
-  background-color: #218838;
-}
-
-.rejectButton {
-  background-color: #dc3545;
-  color: white;
-}
-.rejectButton:hover {
-  background-color: #c82333;
+.crownIcon {
+  color: #d4b106;
 }
