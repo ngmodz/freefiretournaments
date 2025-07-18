@@ -626,7 +626,7 @@ function WithdrawalRequestRow({
 
   return (
     <tr>
-      <td>
+      <td data-label="USER">
         <div className={styles.userInfo}>
           <div>
             <strong>{userProfile?.displayName || userProfile?.fullName || 'N/A'}</strong>
@@ -637,13 +637,13 @@ function WithdrawalRequestRow({
           </div>
         </div>
       </td>
-      <td>
+      <td data-label="AMOUNT">
         <div className={styles.amountInfo}>
           <div className={styles.payout}>₹{payoutAmount.toFixed(2)} (Payout)</div>
           <div className={styles.original}>₹{request.amount.toFixed(2)} (Original)</div>
         </div>
       </td>
-      <td>
+      <td data-label="UPI ID">
         <div className={styles.upiInfo}>
           {highlight(request.upiId || '', searchTerm, 0, currentMatch, 0, matchRefs)}
           <button
@@ -663,13 +663,13 @@ function WithdrawalRequestRow({
           )}
         </div>
       </td>
-      <td>{request.timestamp ? new Date(request.timestamp).toLocaleString() : 'N/A'}</td>
-      <td>
+      <td data-label="REQUESTED AT">{request.timestamp ? new Date(request.timestamp).toLocaleString() : 'N/A'}</td>
+      <td data-label="STATUS">
         <span className={`${styles.status} ${styles[request.status]}`}>
           {request.status === 'pending' ? 'Pending' : 'Done'}
         </span>
       </td>
-      <td>
+      <td data-label="ACTION" className={styles.actionsCell}>
         {request.status === 'pending' && (
           <button
             className={styles.actionButton}
