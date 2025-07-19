@@ -682,9 +682,9 @@ async function distributePrize(req, res) {
         }
       }
 
-      const winnerCurrentCredits = winner.wallet?.tournamentCredits || 0;
-      const winnerNewCredits = winnerCurrentCredits + prizeAmount;
-      transaction.update(winnerRef, { 'wallet.tournamentCredits': winnerNewCredits });
+      const winnerCurrentEarnings = winner.wallet?.earnings || 0;
+      const winnerNewEarnings = winnerCurrentEarnings + prizeAmount;
+      transaction.update(winnerRef, { 'wallet.earnings': winnerNewEarnings });
 
       // Update the tournament's currentPrizePool by deducting the prize amount
       transaction.update(tournamentRef, {
@@ -696,9 +696,9 @@ async function distributePrize(req, res) {
         userId: winnerId,
         type: 'tournament_win',
         amount: prizeAmount,
-        balanceBefore: winnerCurrentCredits,
-        balanceAfter: winnerNewCredits,
-        walletType: 'tournamentCredits',
+        balanceBefore: winnerCurrentEarnings,
+        balanceAfter: winnerNewEarnings,
+        walletType: 'earnings',
         description: `Prize for winning: ${tournament.name}`,
         transactionDetails: { 
           tournamentId, 
@@ -811,11 +811,11 @@ async function distributeHostEarnings(req, res) {
         }
       }
 
-      const hostCurrentCredits = host.wallet?.hostCredits || 0;
-      const hostNewCredits = hostCurrentCredits + currentPrizePool;
+      const hostCurrentEarnings = host.wallet?.earnings || 0;
+      const hostNewEarnings = hostCurrentEarnings + currentPrizePool;
 
-      // Update host's credits
-      transaction.update(hostRef, { 'wallet.hostCredits': hostNewCredits });
+      // Update host's earnings
+      transaction.update(hostRef, { 'wallet.earnings': hostNewEarnings });
 
       // Mark host earnings as distributed and clear the prize pool
       transaction.update(tournamentRef, {
@@ -831,9 +831,9 @@ async function distributeHostEarnings(req, res) {
         userId: hostUser.uid,
         type: 'tournament_host_earnings',
         amount: currentPrizePool,
-        balanceBefore: hostCurrentCredits,
-        balanceAfter: hostNewCredits,
-        walletType: 'hostCredits',
+        balanceBefore: hostCurrentEarnings,
+        balanceAfter: hostNewEarnings,
+        walletType: 'earnings',
         description: `Host earnings for: ${tournament.name}`,
         transactionDetails: { 
           tournamentId, 

@@ -739,7 +739,7 @@ const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
               <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
                 <div className="text-sm text-green-200">
                   <p>Ready to collect <strong className="text-green-300">{hostEarnings.toLocaleString()} credits</strong> as host earnings.</p>
-                  <p className="text-xs text-green-400 mt-1">These will be added to your Host Credits wallet.</p>
+                  <p className="text-xs text-green-400 mt-1">These will be added to your Earnings wallet.</p>
                 </div>
                 <Button
                   onClick={handleCollectHostEarnings}
