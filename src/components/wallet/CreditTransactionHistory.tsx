@@ -468,7 +468,15 @@ const CreditTransactionHistory = ({ userId, refreshTrigger = 0 }: CreditTransact
 
   // Helper function to get transaction badge based on wallet type
   const getTransactionBadge = (transaction: CreditTransaction) => {
-    const { walletType } = transaction;
+    const { type, walletType } = transaction;
+
+    if (type === 'tournament_join') {
+      return (
+        <Badge className="bg-gaming-accent/20 text-gaming-accent text-xs">
+          Tournament
+        </Badge>
+      );
+    }
     
     if (walletType === 'tournamentCredits') {
       return (
