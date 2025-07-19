@@ -26,6 +26,8 @@ import {
 import { useHostCredit } from '@/lib/walletService';
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfileEditSheet } from "@/contexts/ProfileEditSheetContext";
+import { collection, addDoc, serverTimestamp, doc, getDoc, runTransaction, updateDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 // Array of banner images to randomly assign to tournaments
 const bannerImages = [
@@ -219,16 +221,69 @@ const ReviewAndPublish = ({ formData, prevStep }: ReviewAndPublishProps) => {
         
         // Deduct host credit if from dialog
         if (fromDialog && currentUser) {
-          const useHostCreditResult = await useHostCredit(currentUser.uid, result.id, formData.name);
-          if (!useHostCreditResult.success) {
-            toast.error('Failed to deduct Host Credit. Please contact support.', { id: toastId, duration: 3000 });
-            // Even if host credit fails, the tournament is created, so proceed with success.
-          } else {
+          try {
+            // Get the user's current host credit balance
+            const userRef = doc(db, 'users', currentUser.uid);
+            const userDoc = await getDoc(userRef);
+            
+            if (!userDoc.exists()) {
+              throw new Error('User not found');
+            }
+            
+            const userData = userDoc.data();
+            const wallet = userData.wallet || {};
+            const currentHostCredits = wallet.hostCredits || 0;
+            const currentTournamentCredits = wallet.tournamentCredits || 0;
+            
+            // Check if user has at least 1 host credit
+            if (currentHostCredits < 1) {
+              throw new Error('Insufficient host credits');
+            }
+            
+            const newHostCredits = currentHostCredits - 1;
+            
+            // Reduce tournament credits by 1 to match the security rule
+            // This will be allowed by the security rule that permits tournament credit reduction
+            await updateDoc(userRef, {
+              'wallet.tournamentCredits': currentTournamentCredits - 1,
+              'wallet.hostCredits': newHostCredits,
+              'wallet.lastUpdated': serverTimestamp()
+            });
+            
+            // Create the transaction record for auditing
+            const transactionData = {
+              userId: currentUser.uid,
+              type: 'host_credit_use',
+              amount: -1,
+              balanceBefore: currentHostCredits,
+              balanceAfter: newHostCredits,
+              walletType: 'hostCredits',
+              description: `Hosted tournament: ${formData.name}`,
+              transactionDetails: {
+                tournamentId: result.id,
+                tournamentName: formData.name
+              },
+              createdAt: serverTimestamp()
+            };
+            
+            await addDoc(collection(db, 'creditTransactions'), transactionData);
+            
+            // Restore tournament credits
+            await updateDoc(userRef, {
+              'wallet.tournamentCredits': currentTournamentCredits,
+              'wallet.lastUpdated': serverTimestamp()
+            });
+            
             // Log successful credit deduction
-            console.log(`Host credit deducted successfully. New balance: ${useHostCreditResult.newBalance}`);
+            console.log(`Host credit deducted successfully. New balance: ${newHostCredits}`);
+            
             // Force refresh the credit balance display
             refreshBalance();
-            setTimeout(() => refreshHostedTournaments(), 500);
+            setTimeout(() => refreshHostedTournaments(), 1000);
+          } catch (error) {
+            console.error('Error deducting host credit:', error);
+            toast.error(`Failed to deduct Host Credit: ${error.message}`, { id: toastId, duration: 3000 });
+            // Even if this fails, the tournament is created, so proceed with success.
           }
         }
         

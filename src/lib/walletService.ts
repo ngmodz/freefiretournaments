@@ -686,20 +686,13 @@ export const useHostCredit = async (
       createdAt: new Date()
     };
     
-    // Add the transaction AND update the wallet directly to ensure it happens
-    const transactionRef = collection(db, 'creditTransactions');
-    await addDoc(transactionRef, {
-      ...transaction,
-      createdAt: serverTimestamp()
-    });
+    // Use the existing addCreditTransaction function which should have proper permissions
+    const result = await addCreditTransaction(transaction);
     
-    // Update the user's host credits directly
-    await updateDoc(userRef, {
-      'wallet.hostCredits': newCredits,
-      'wallet.lastUpdated': serverTimestamp()
-    });
+    // Log the result for debugging
+    console.log('Host credit transaction result:', result);
     
-    return { success: true, newBalance: newCredits };
+    return result;
   } catch (error) {
     console.error('Error using host credit:', error);
     return { success: false, error };
