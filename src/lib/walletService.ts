@@ -44,7 +44,7 @@ export interface Transaction {
 export interface CreditTransaction {
   id?: string;
   userId: string;
-  type: 'host_credit_purchase' | 'tournament_credit_purchase' | 'tournament_join' | 'tournament_win' | 'referral_bonus' | 'host_credit_use' | 'host_penalty' | 'tournament_refund';
+  type: 'host_credit_purchase' | 'tournament_credit_purchase' | 'tournament_join' | 'tournament_win' | 'referral_bonus' | 'host_credit_use' | 'host_penalty' | 'tournament_refund' | 'fund_prize_pool';
   amount: number;
   value?: number;
   balanceBefore: number;
@@ -579,14 +579,9 @@ export const useTournamentCredits = async (
     };
     
     // Add the transaction
-    await addCreditTransaction(transaction);
+    const result = await addCreditTransaction(transaction);
     
-    // Update the user's tournament credits
-    await updateDoc(userRef, {
-      'wallet.tournamentCredits': newCredits
-    });
-    
-    return { success: true };
+    return result;
   } catch (error) {
     console.error('Error using tournament credits:', error);
     return { success: false, error };
@@ -637,14 +632,11 @@ export const addTournamentWinnings = async (
     };
     
     // Add the transaction
-    await addCreditTransaction(transaction);
+    const result = await addCreditTransaction(transaction);
     
-    // Update the user's tournament credits
-    await updateDoc(userRef, {
-      'wallet.tournamentCredits': newCredits
-    });
+    // Remove redundant update - addCreditTransaction already updates the wallet
     
-    return { success: true };
+    return result;
   } catch (error) {
     console.error('Error adding tournament winnings:', error);
     return { success: false, error };
@@ -693,17 +685,14 @@ export const useHostCredit = async (
       createdAt: new Date()
     };
     // Add the transaction
-    await addCreditTransaction(transaction);
-    // Update the user's host credits
-    await updateDoc(userRef, {
-      'wallet.hostCredits': newCredits
-    });
-    return { success: true };
+    const result = await addCreditTransaction(transaction);
+    // Remove the redundant update - addCreditTransaction already updates the wallet
+    return result;
   } catch (error) {
     console.error('Error using host credit:', error);
     return { success: false, error };
   }
-}; 
+};
 
 /**
  * Use tournament credits to fund a free-entry tournament's prize pool
@@ -744,7 +733,7 @@ export const useTournamentCreditsForPrizePool = async (
     // Create a credit transaction
     const transaction: CreditTransaction = {
       userId,
-      type: 'tournament_join',
+      type: 'fund_prize_pool',
       amount: -prizePoolAmount,
       balanceBefore: currentCredits,
       balanceAfter: newCredits,
@@ -758,14 +747,11 @@ export const useTournamentCreditsForPrizePool = async (
     };
     
     // Add the transaction
-    await addCreditTransaction(transaction);
+    const result = await addCreditTransaction(transaction);
     
-    // Update the user's tournament credits
-    await updateDoc(userRef, {
-      'wallet.tournamentCredits': newCredits
-    });
+    // Remove redundant update - addCreditTransaction already updates the wallet
     
-    return { success: true };
+    return result;
   } catch (error) {
     console.error('Error using tournament credits for prize pool:', error);
     return { success: false, error };
