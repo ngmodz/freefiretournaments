@@ -116,6 +116,8 @@ export interface Tournament {
   participantUids: string[]; // List of authUids of participants
   currentPrizePool: number; // Current prize pool accumulated from entry fees
   initialPrizePool?: number; // Stores the initial prize pool amount for free tournaments
+  hostEarningsDistributed?: boolean; // Flag to check if host earnings have been collected
+  hostEarningsAmount?: number; // Amount of host earnings collected
 }
 
 // Helper to convert Firestore timestamps to ISO strings

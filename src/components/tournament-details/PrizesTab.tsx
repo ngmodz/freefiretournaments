@@ -1,5 +1,5 @@
 import React from "react";
-import { Trophy, User, Gamepad2, CheckCircle2, XCircle, Lock, AlertTriangle } from "lucide-react";
+import { Trophy, User, Gamepad2, CheckCircle2, XCircle, Lock, AlertTriangle, TrendingUp, Info } from "lucide-react";
 import { Tournament } from "@/lib/tournamentService";
 import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
@@ -83,7 +83,7 @@ const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
   const { currentUser } = useAuth();
   const isHost = currentUser && tournament.host_id === currentUser.uid;
   const [inputs, setInputs] = useState<{ [position: string]: { uid: string; ign: string } }>({});
-  const [saving, setSaving] = useState<{ [position: string]: boolean }>({});
+  const [saving, setSaving] = useState<{ [position: string]: boolean; hostEarnings?: boolean }>({});
   const [error, setError] = useState<string | null>(null);
   const [duplicateErrors, setDuplicateErrors] = useState<{ [position: string]: string }>({});
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -382,6 +382,76 @@ const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
     console.log("handleSendCredits is deprecated. Use handleSave.", { position });
   };
 
+  const getTotalPrizePool = () => {
+    const { entry_fee, filled_spots, currentPrizePool } = tournament;
+    let actualPrizePool = currentPrizePool || 0;
+    
+    // Fallback calculation if currentPrizePool seems incorrect
+    const calculatedPool = entry_fee * filled_spots;
+    if (actualPrizePool === 0 || (calculatedPool > 0 && Math.abs(actualPrizePool - calculatedPool) > calculatedPool * 0.1)) {
+      actualPrizePool = calculatedPool;
+    }
+    
+    return actualPrizePool;
+  };
+
+  const handleCollectHostEarnings = async () => {
+    if (!currentUser) {
+      setError("User not authenticated");
+      return;
+    }
+
+    setSaving({ ...saving, hostEarnings: true });
+    setError(null);
+
+    try {
+      const response = await fetch('/api/tournament-management', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await currentUser.getIdToken()}`
+        },
+        body: JSON.stringify({
+          action: 'distribute-host-earnings',
+          tournamentId: tournament.id
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to collect host earnings');
+      }
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to collect host earnings');
+      }
+
+      // Update local tournament state to reflect that host earnings have been distributed
+      await runTransaction(db, async (transaction) => {
+        const tournamentRef = doc(db, "tournaments", tournament.id);
+        transaction.update(tournamentRef, {
+          hostEarningsDistributed: true,
+          hostEarningsAmount: data.amount,
+          currentPrizePool: 0
+        });
+      });
+
+      setError(`✅ Successfully collected ${data.amount} credits as host earnings!`);
+      
+      // Refresh the page to show updated tournament state
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+
+    } catch (error) {
+      console.error("Host earnings collection error:", error);
+      setError(error.message || "Failed to collect host earnings.");
+    } finally {
+      setSaving({ ...saving, hostEarnings: false });
+    }
+  };
+
   return (
     <div>
       <h2 className="text-xl font-semibold mb-4">Prize Distribution</h2>
@@ -602,6 +672,100 @@ const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
         )}
         </div>
       </div>
+
+      {/* Host Earnings Collection */}
+      {isHost && tournament.status === "ended" && !tournament.hostEarningsDistributed && (
+        <div className="mb-6 p-4 bg-gradient-to-r from-green-900/20 to-gaming-bg rounded-lg border border-green-400/20">
+          <h3 className="text-lg font-semibold mb-3 text-green-300 flex items-center gap-2">
+            <TrendingUp className="w-5 h-5" />
+            Host Earnings Collection
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div className="text-center p-3 bg-green-900/20 rounded-lg border border-green-400/10">
+              <div className="text-2xl font-bold text-green-400">
+                {getTotalPrizePool() && tournament.prize_distribution ? 
+                  Math.max(0, getTotalPrizePool() - Object.entries(tournament.prize_distribution).reduce((sum, [position, percentage]) => {
+                    const prizeAmount = Math.floor((percentage / 100) * getTotalPrizePool());
+                    return sum + prizeAmount;
+                  }, 0)).toLocaleString() : '0'}
+              </div>
+              <div className="text-sm text-green-300">Available Host Earnings</div>
+            </div>
+            <div className="text-center p-3 bg-green-900/20 rounded-lg border border-green-400/10">
+              <div className="text-2xl font-bold text-green-400">
+                {tournament.prize_distribution ? 
+                  Math.max(0, 100 - Object.values(tournament.prize_distribution).reduce((sum, percentage) => sum + percentage, 0)) : 0}%
+              </div>
+              <div className="text-sm text-green-300">Host Commission Rate</div>
+            </div>
+          </div>
+          
+          {/* Check if all prizes have been distributed */}
+          {(() => {
+            const allPrizesDistributed = tournament.prize_distribution && 
+              Object.keys(tournament.prize_distribution).every(position => 
+                tournament.winners && tournament.winners[position] && tournament.winners[position].prize_distributed
+              );
+            
+            if (!allPrizesDistributed) {
+              return (
+                <Alert className="mb-4">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    Host earnings can only be collected after all prizes have been distributed to winners.
+                  </AlertDescription>
+                </Alert>
+              );
+            }
+
+            const hostEarnings = getTotalPrizePool() && tournament.prize_distribution ? 
+              Math.max(0, getTotalPrizePool() - Object.entries(tournament.prize_distribution).reduce((sum, [position, percentage]) => {
+                const prizeAmount = Math.floor((percentage / 100) * getTotalPrizePool());
+                return sum + prizeAmount;
+              }, 0)) : 0;
+
+            if (hostEarnings <= 0) {
+              return (
+                <Alert className="mb-4">
+                  <Info className="h-4 w-4" />
+                  <AlertDescription>
+                    No host earnings available. The prize pool has been fully distributed to winners.
+                  </AlertDescription>
+                </Alert>
+              );
+            }
+
+            return (
+              <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+                <div className="text-sm text-green-200">
+                  <p>Ready to collect <strong className="text-green-300">{hostEarnings.toLocaleString()} credits</strong> as host earnings.</p>
+                  <p className="text-xs text-green-400 mt-1">These will be added to your Host Credits wallet.</p>
+                </div>
+                <Button
+                  onClick={handleCollectHostEarnings}
+                  disabled={saving.hostEarnings}
+                  className="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-2"
+                >
+                  {saving.hostEarnings ? "Collecting..." : "Collect Host Earnings"}
+                </Button>
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
+      {/* Host Earnings Already Collected */}
+      {isHost && tournament.hostEarningsDistributed && (
+        <div className="mb-6 p-4 bg-gradient-to-r from-green-900/10 to-gaming-bg rounded-lg border border-green-400/10">
+          <div className="flex items-center gap-2 text-green-400">
+            <CheckCircle2 className="w-5 h-5" />
+            <span className="font-semibold">Host Earnings Collected</span>
+          </div>
+          <p className="text-sm text-green-300 mt-1">
+            You have already collected {tournament.hostEarningsAmount?.toLocaleString() || 'your'} credits as host earnings for this tournament.
+          </p>
+        </div>
+      )}
 
       {/* Confirmation Dialog */}
       <Dialog open={confirmDialog.open} onOpenChange={(open) => setConfirmDialog(prev => ({ ...prev, open }))}>

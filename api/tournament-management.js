@@ -753,6 +753,136 @@ async function distributePrize(req, res) {
   }
 }
 
+// ==================== HOST EARNINGS DISTRIBUTION ====================
+async function distributeHostEarnings(req, res) {
+  const hostUser = await getAuthenticatedUser(req);
+  if (!hostUser) {
+    return res.status(401).json({ success: false, error: 'Unauthorized' });
+  }
+
+  const { tournamentId } = req.body;
+
+  if (!tournamentId) {
+    return res.status(400).json({ success: false, error: 'Missing required field: tournamentId.' });
+  }
+
+  const tournamentRef = db.collection('tournaments').doc(tournamentId);
+  const hostRef = db.collection('users').doc(hostUser.uid);
+
+  try {
+    const result = await db.runTransaction(async (transaction) => {
+      const tournamentDoc = await transaction.get(tournamentRef);
+      const hostDoc = await transaction.get(hostRef);
+
+      if (!tournamentDoc.exists) throw new Error('Tournament not found.');
+      if (!hostDoc.exists) throw new Error('Host not found.');
+
+      const tournament = tournamentDoc.data();
+      const host = hostDoc.data();
+
+      if (tournament.host_id !== hostUser.uid) {
+        throw new Error('Only the tournament host can collect host earnings.');
+      }
+
+      // Check if host earnings have already been distributed
+      if (tournament.hostEarningsDistributed) {
+        throw new Error('Host earnings have already been distributed for this tournament.');
+      }
+
+      // Check if tournament has ended
+      if (tournament.status !== 'ended') {
+        throw new Error('Host earnings can only be distributed after the tournament has ended.');
+      }
+
+      // Calculate host earnings (remaining prize pool after all prizes are distributed)
+      const currentPrizePool = tournament.currentPrizePool || 0;
+      
+      if (currentPrizePool <= 0) {
+        throw new Error('No host earnings available. Prize pool has been fully distributed.');
+      }
+
+      // Verify that all prizes have been distributed
+      const winners = tournament.winners || {};
+      const prizeDistribution = tournament.prize_distribution || {};
+      
+      for (const position of Object.keys(prizeDistribution)) {
+        if (!winners[position] || !winners[position].prize_distributed) {
+          throw new Error(`Cannot distribute host earnings until all prizes are distributed. Position ${position} is still pending.`);
+        }
+      }
+
+      const hostCurrentCredits = host.wallet?.hostCredits || 0;
+      const hostNewCredits = hostCurrentCredits + currentPrizePool;
+
+      // Update host's credits
+      transaction.update(hostRef, { 'wallet.hostCredits': hostNewCredits });
+
+      // Mark host earnings as distributed and clear the prize pool
+      transaction.update(tournamentRef, {
+        currentPrizePool: 0,
+        hostEarningsDistributed: true,
+        hostEarningsAmount: currentPrizePool,
+        hostEarningsDistributedAt: FieldValue.serverTimestamp()
+      });
+
+      // Create transaction record
+      const transactionRef = db.collection('creditTransactions').doc();
+      transaction.set(transactionRef, {
+        userId: hostUser.uid,
+        type: 'tournament_host_earnings',
+        amount: currentPrizePool,
+        balanceBefore: hostCurrentCredits,
+        balanceAfter: hostNewCredits,
+        walletType: 'hostCredits',
+        description: `Host earnings for: ${tournament.name}`,
+        transactionDetails: { 
+          tournamentId, 
+          tournamentName: tournament.name,
+          prizePoolRemaining: currentPrizePool
+        },
+        createdAt: FieldValue.serverTimestamp(),
+      });
+
+      return { 
+        tournamentName: tournament.name, 
+        hostEmail: host.email,
+        earningsAmount: currentPrizePool
+      };
+    });
+
+    return res.status(200).json({ 
+      success: true, 
+      message: `Successfully distributed ${result.earningsAmount} credits as host earnings.`,
+      hostEarningsDistributed: true,
+      amount: result.earningsAmount
+    });
+  } catch (error) {
+    console.error('Error in host earnings distribution:', error);
+    
+    let errorMessage = 'An internal server error occurred.';
+    
+    if (error.message.includes('not found')) {
+      errorMessage = error.message;
+    } else if (error.message.includes('already been distributed')) {
+      errorMessage = error.message;
+    } else if (error.message.includes('Only the tournament host')) {
+      errorMessage = error.message;
+    } else if (error.message.includes('can only be distributed')) {
+      errorMessage = error.message;
+    } else if (error.message.includes('No host earnings available')) {
+      errorMessage = error.message;
+    } else if (error.message.includes('until all prizes are distributed')) {
+      errorMessage = error.message;
+    }
+    
+    return res.status(500).json({ 
+      success: false, 
+      error: errorMessage,
+      originalError: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+}
+
 // ==================== MAIN HANDLER ====================
 export default async function handler(req, res) {
   // FIX: Allow both GET and POST methods for cron job compatibility
@@ -777,6 +907,9 @@ export default async function handler(req, res) {
       
       case 'distribute-prize':
         return await distributePrize(req, res);
+        
+      case 'distribute-host-earnings':
+        return await distributeHostEarnings(req, res);
         
       default:
         // Default to notification check for backward compatibility
