@@ -669,6 +669,7 @@ export const useHostCredit = async (
       return { success: false, error: 'Insufficient host credits' };
     }
     const newCredits = currentCredits - 1;
+    
     // Create a credit transaction
     const transaction: CreditTransaction = {
       userId,
@@ -684,10 +685,21 @@ export const useHostCredit = async (
       },
       createdAt: new Date()
     };
-    // Add the transaction
-    const result = await addCreditTransaction(transaction);
-    // Remove the redundant update - addCreditTransaction already updates the wallet
-    return result;
+    
+    // Add the transaction AND update the wallet directly to ensure it happens
+    const transactionRef = collection(db, 'creditTransactions');
+    await addDoc(transactionRef, {
+      ...transaction,
+      createdAt: serverTimestamp()
+    });
+    
+    // Update the user's host credits directly
+    await updateDoc(userRef, {
+      'wallet.hostCredits': newCredits,
+      'wallet.lastUpdated': serverTimestamp()
+    });
+    
+    return { success: true, newBalance: newCredits };
   } catch (error) {
     console.error('Error using host credit:', error);
     return { success: false, error };

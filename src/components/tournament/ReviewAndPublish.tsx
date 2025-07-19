@@ -60,7 +60,7 @@ const ReviewAndPublish = ({ formData, prevStep }: ReviewAndPublishProps) => {
   const [hostCreditError, setHostCreditError] = useState<string | null>(null);
   const { currentUser, userProfile } = useAuth();
   const { openProfileEdit } = useProfileEditSheet();
-  const { hostCredits, isLoading: isHostCreditsLoading } = useCreditBalance(currentUser?.uid);
+  const { hostCredits, isLoading: isHostCreditsLoading, refreshBalance } = useCreditBalance(currentUser?.uid);
   const [showIgnDialog, setShowIgnDialog] = useState(false);
   const [missingFields, setMissingFields] = useState<{ ign: boolean; uid: boolean }>({ ign: false, uid: false });
   
@@ -223,6 +223,12 @@ const ReviewAndPublish = ({ formData, prevStep }: ReviewAndPublishProps) => {
           if (!useHostCreditResult.success) {
             toast.error('Failed to deduct Host Credit. Please contact support.', { id: toastId, duration: 3000 });
             // Even if host credit fails, the tournament is created, so proceed with success.
+          } else {
+            // Log successful credit deduction
+            console.log(`Host credit deducted successfully. New balance: ${useHostCreditResult.newBalance}`);
+            // Force refresh the credit balance display
+            refreshBalance();
+            setTimeout(() => refreshHostedTournaments(), 500);
           }
         }
         

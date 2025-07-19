@@ -22,6 +22,12 @@ export const useCreditBalance = (userId: string | undefined) => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  // Function to force refresh the balance
+  const refreshBalance = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
 
   useEffect(() => {
     if (!userId) {
@@ -29,6 +35,7 @@ export const useCreditBalance = (userId: string | undefined) => {
       return;
     }
 
+    setIsLoading(true);
     const userRef = doc(db, 'users', userId);
 
     const unsubscribe = onSnapshot(
@@ -37,6 +44,8 @@ export const useCreditBalance = (userId: string | undefined) => {
         if (doc.exists()) {
           const userData = doc.data();
           const wallet = userData.wallet || {};
+          
+          console.log('Credit balance updated:', wallet);
 
           setCredits({
             hostCredits: wallet.hostCredits || 0,
@@ -58,11 +67,12 @@ export const useCreditBalance = (userId: string | undefined) => {
     );
 
     return () => unsubscribe();
-  }, [userId]);
+  }, [userId, refreshTrigger]);
 
   return {
     ...credits,
     isLoading,
-    error
+    error,
+    refreshBalance
   };
 }; 
