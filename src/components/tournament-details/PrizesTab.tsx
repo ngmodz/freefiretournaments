@@ -52,16 +52,29 @@ function getPrizeAmount(tournament: Tournament, position: string) {
     : entry_fee * filled_spots;
   const values = Object.values(prize_distribution || {});
   const sum = values.reduce((a, b) => a + b, 0);
+  
+  console.log("getPrizeAmount debug:", {
+    position, 
+    totalPrizePool, 
+    values, 
+    sum, 
+    percentage: prize_distribution[position]
+  });
+  
   // If sum is 100, treat as percentage mode
   if (sum === 100) {
     const percentage = prize_distribution[position] || 0;
-    return Math.floor((percentage / 100) * totalPrizePool);
+    const calculatedAmount = Math.floor((percentage / 100) * totalPrizePool);
+    console.log(`Calculating ${position} prize as percentage: ${percentage}% of ${totalPrizePool} = ${calculatedAmount}`);
+    return calculatedAmount;
   }
   // If sum <= totalPrizePool, treat as fixed mode
   if (sum <= totalPrizePool) {
+    console.log(`Using fixed prize amount for ${position}: ${prize_distribution[position]}`);
     return prize_distribution[position] || 0;
   }
   // Fallback: treat as fixed
+  console.log(`Fallback to fixed prize for ${position}: ${prize_distribution[position]}`);
   return prize_distribution[position] || 0;
 }
 
@@ -232,7 +245,17 @@ const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
         return;
       }
       
+      // Calculate prize amount from the current prize pool using the distribution percentage
       const prizeAmount = getPrizeAmount(tournament, position);
+      
+      // Log for debugging
+      console.log('Prize Distribution Debug:', {
+        position,
+        currentPrizePool: tournament.currentPrizePool,
+        percentage: tournament.prize_distribution[position],
+        calculatedPrizeAmount: prizeAmount,
+        distribution: tournament.prize_distribution
+      });
       
       setConfirmDialog({
         open: true,
@@ -255,13 +278,30 @@ const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
     const { position, winnerAuthUid, prizeAmount, ign, uid } = confirmDialog;
     if (!winnerAuthUid) return;
 
+    // Double-check the prizeAmount calculation
+    const recalculatedPrizeAmount = getPrizeAmount(tournament, position);
+    const isSignificantDifference = Math.abs(recalculatedPrizeAmount - prizeAmount) > 1;
+
+    if (isSignificantDifference) {
+      console.error("Prize amount mismatch detected!", {
+        original: prizeAmount,
+        recalculated: recalculatedPrizeAmount,
+        difference: prizeAmount - recalculatedPrizeAmount
+      });
+      setError(`Error: Prize amount calculation mismatch. Please refresh and try again.`);
+      return;
+    }
+
+    // Always use the recalculated value for extra safety
+    const finalPrizeAmount = recalculatedPrizeAmount;
+    
     setSaving({ ...saving, [position]: true });
     try {
       const token = await currentUser.getIdToken();
       const response = await fetch('/api/tournament-management', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ action: 'distribute-prize', tournamentId: tournament.id, winnerId: winnerAuthUid, prizeAmount })
+        body: JSON.stringify({ action: 'distribute-prize', tournamentId: tournament.id, winnerId: winnerAuthUid, prizeAmount: finalPrizeAmount })
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error);
@@ -271,11 +311,13 @@ const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
         const tournamentRef = doc(db, "tournaments", tournament.id);
         const winnerUpdatePath = `winners.${position}`;
         transaction.update(tournamentRef, {
-          [winnerUpdatePath]: { uid, ign, authUid: winnerAuthUid, prize_distributed: true, prize_amount: prizeAmount },
-          total_prizes_distributed: (tournament.total_prizes_distributed || 0) + prizeAmount
+          [winnerUpdatePath]: { uid, ign, authUid: winnerAuthUid, prize_distributed: true, prize_amount: finalPrizeAmount },
+          total_prizes_distributed: (tournament.total_prizes_distributed || 0) + finalPrizeAmount,
+          // Also update the tournament's currentPrizePool to keep frontend and backend in sync
+          currentPrizePool: Math.max(0, (tournament.currentPrizePool || 0) - finalPrizeAmount)
         });
       });
-      setError(null);
+      setError(`✅ Successfully distributed ${finalPrizeAmount} credits to ${ign} (${uid})`);
     } catch (error) {
       setError(error.message || "Failed to distribute prize.");
     } finally {
@@ -542,11 +584,14 @@ const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
                   <div className="font-semibold text-gaming-text">{confirmDialog.ign}</div>
                 </div>
               </div>
+              <div className="mt-3 pt-3 border-t border-gaming-border text-xs text-gaming-muted">
+                <p>This amount is calculated as {tournament.prize_distribution[confirmDialog.position]}% of the current prize pool ({tournament.currentPrizePool} credits).</p>
+              </div>
             </div>
             <Alert>
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                This action cannot be undone. The credits will be immediately added to the player's earnings wallet.
+                This action cannot be undone. The credits will be immediately added to the player's earnings wallet and deducted from the tournament's prize pool.
               </AlertDescription>
             </Alert>
           </div>

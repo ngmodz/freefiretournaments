@@ -656,9 +656,40 @@ async function distributePrize(req, res) {
         throw new Error('Only the tournament host can distribute prizes.');
       }
 
+      // VALIDATION: Check if tournament has sufficient prize pool
+      const currentPrizePool = tournament.currentPrizePool || 0;
+      if (currentPrizePool < prizeAmount) {
+        throw new Error(`Insufficient prize pool. Available: ${currentPrizePool}, Required: ${prizeAmount}`);
+      }
+
+      // VALIDATION: Verify prizeAmount matches the expected calculation based on prize distribution
+      const position = Object.entries(tournament.winners || {}).find(
+        ([_, w]) => w?.authUid === winnerId || w?.uid === winnerId
+      )?.[0];
+      
+      if (position && tournament.prize_distribution) {
+        const percentage = tournament.prize_distribution[position] || 0;
+        // If prize distribution is percentage-based (sum = 100)
+        const values = Object.values(tournament.prize_distribution);
+        const sum = values.reduce((a, b) => a + b, 0);
+        
+        if (sum === 100) {
+          const expectedAmount = Math.floor((percentage / 100) * currentPrizePool);
+          // Allow small rounding differences (1 credit)
+          if (Math.abs(expectedAmount - prizeAmount) > 1) {
+            throw new Error(`Invalid prize amount. Expected: ${expectedAmount}, Received: ${prizeAmount}`);
+          }
+        }
+      }
+
       const winnerCurrentCredits = winner.wallet?.tournamentCredits || 0;
       const winnerNewCredits = winnerCurrentCredits + prizeAmount;
       transaction.update(winnerRef, { 'wallet.tournamentCredits': winnerNewCredits });
+
+      // Update the tournament's currentPrizePool by deducting the prize amount
+      transaction.update(tournamentRef, {
+        currentPrizePool: currentPrizePool - prizeAmount
+      });
 
       const transactionRef = db.collection('creditTransactions').doc();
       transaction.set(transactionRef, {
@@ -669,7 +700,12 @@ async function distributePrize(req, res) {
         balanceAfter: winnerNewCredits,
         walletType: 'tournamentCredits',
         description: `Prize for winning: ${tournament.name}`,
-        transactionDetails: { tournamentId, tournamentName: tournament.name },
+        transactionDetails: { 
+          tournamentId, 
+          tournamentName: tournament.name,
+          prizePoolBefore: currentPrizePool,
+          prizePoolAfter: currentPrizePool - prizeAmount
+        },
         createdAt: FieldValue.serverTimestamp(),
       });
 
