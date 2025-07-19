@@ -161,12 +161,14 @@ async function cancelTournament(req, res) {
         transaction.set(transactionRef, {
           userId: userDoc.id,
           amount: entryFee,
-          type: 'refund',
+          type: 'tournament_refund',
           description: `Refund for cancelled tournament: ${tournament.name}`,
           status: 'completed',
+          walletType: 'tournamentCredits',
           transactionDetails: {
             tournamentId: tournamentId,
-            tournamentName: tournament.name
+            tournamentName: tournament.name,
+            creditType: 'tournamentCredits'
           },
           createdAt: Timestamp.now()
         });
