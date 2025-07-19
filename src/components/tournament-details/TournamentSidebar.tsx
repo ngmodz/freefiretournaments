@@ -72,14 +72,12 @@ const TournamentSidebar: React.FC<TournamentDetailsSidebarProps> = ({
           <h3 className="font-semibold mb-4">Registration</h3>
           <div className="flex justify-between items-center mb-2">
             <div className="text-gaming-muted">Entry Fee</div>
-            <div className="font-bold text-lg">{tournament.entry_fee} credits</div>
+            <div className="font-bold text-lg">{tournament.entry_fee.toLocaleString()} credits</div>
           </div>
           <div className="flex justify-between items-center mb-4">
             <div className="text-gaming-muted">Current Prize Pool</div>
             <div className="font-bold text-lg text-gaming-accent">
-              {tournament.currentPrizePool !== undefined 
-                ? tournament.currentPrizePool 
-                : tournament.entry_fee * tournament.filled_spots} credits
+              {(tournament.currentPrizePool || (tournament.entry_fee * tournament.filled_spots)).toLocaleString()} credits
             </div>
           </div>
           <Separator className="my-4" />

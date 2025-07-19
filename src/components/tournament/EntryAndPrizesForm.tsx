@@ -139,7 +139,7 @@ const EntryAndPrizesForm = ({ formData, updateFormData, nextStep, prevStep }: En
             className="bg-gaming-card border-2 border-gray-600 text-white focus:border-gaming-primary" 
           />
           <p className="text-xs text-gray-400">
-            <span className="font-semibold text-purple-400">Expected prize pool:</span> <span className="text-purple-300 font-semibold">{totalExpectedPrizePool}</span> credits ({maxPlayers} players × {entryFeeState} credits)
+            <span className="font-semibold text-purple-400">Total prize pool:</span> <span className="text-purple-300 font-semibold">{totalExpectedPrizePool.toLocaleString()}</span> credits ({maxPlayers} players × {entryFeeState} credits)
           </p>
         </div>
 
@@ -202,7 +202,7 @@ const EntryAndPrizesForm = ({ formData, updateFormData, nextStep, prevStep }: En
                       </div>
                       <div className="text-right mt-1">
                         <span className="text-xs text-gray-400">
-                          Estimated: {Math.round(((percentages[idx] || 0) / 100) * totalExpectedPrizePool)} credits
+                          Estimated: {Math.round(((percentages[idx] || 0) / 100) * totalExpectedPrizePool).toLocaleString()} credits
                         </span>
                       </div>
                     </div>
@@ -254,7 +254,7 @@ const EntryAndPrizesForm = ({ formData, updateFormData, nextStep, prevStep }: En
                     />
                     <span className="text-sm text-white">%</span>
                     <span className="text-xs text-gray-400 min-w-[80px]">
-                      ({Math.round(((percentages[idx] || 0) / 100) * totalExpectedPrizePool)} credits)
+                      ({Math.round(((percentages[idx] || 0) / 100) * totalExpectedPrizePool).toLocaleString()} credits)
                     </span>
                   </div>
                   {prizePositions.length > 1 && (
@@ -284,12 +284,12 @@ const EntryAndPrizesForm = ({ formData, updateFormData, nextStep, prevStep }: En
                 <span className={`ml-1 font-semibold ${totalPercentage > 100 ? 'text-red-400' : 'text-purple-300'}`}>
                   {totalPercentage}%
                 </span>
-                <span className="text-gray-400"> ({Math.round((totalPercentage / 100) * totalExpectedPrizePool)} credits)</span>
+                <span className="text-gray-400"> ({Math.round((totalPercentage / 100) * totalExpectedPrizePool).toLocaleString()} credits)</span>
               </p>
               <p className="text-xs text-gray-400">
                 <span className="font-semibold text-green-400">Host earnings:</span> 
                 <span className="text-green-300 font-semibold ml-1">{hostEarningsPercentage}%</span>
-                <span className="text-gray-400"> ({hostEarningsCredits} credits)</span>
+                <span className="text-gray-400"> ({hostEarningsCredits.toLocaleString()} credits)</span>
               </p>
             </div>
           </div>

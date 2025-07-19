@@ -64,10 +64,8 @@ const TournamentHeader: React.FC<TournamentHeaderProps> = ({
   const formattedDate = startDate.toLocaleDateString();
   const formattedTime = startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-  // Calculate prize pool - use currentPrizePool if available, fallback to calculation
-  const prizePool = tournament.currentPrizePool !== undefined 
-    ? tournament.currentPrizePool 
-    : tournament.entry_fee * tournament.filled_spots;
+  // Calculate prize pool - use currentPrizePool if available, otherwise calculate from joined players
+  const prizePool = tournament.currentPrizePool || (tournament.entry_fee * tournament.filled_spots);
 
   // Status color mapping
   const getStatusColor = (status: string) => {
@@ -218,14 +216,14 @@ const TournamentHeader: React.FC<TournamentHeaderProps> = ({
             <div className="text-[#A0A0A0] text-xs mb-1">Prize Pool</div>
             <div className="flex items-center">
               <Trophy size={18} className="mr-2 text-gaming-accent" />
-              <span className="text-gaming-accent font-bold text-lg">{prizePool} credits</span>
+              <span className="text-gaming-accent font-bold text-lg">{prizePool.toLocaleString()} credits</span>
             </div>
           </div>
           
           {/* Entry fee */}
           <div className="bg-[#1A1A1A]/60 backdrop-blur-sm p-3 rounded-md border border-white/5">
             <div className="text-[#A0A0A0] text-xs mb-1">Entry Fee</div>
-            <div className="text-[#D0D0D0] font-bold text-lg">{tournament.entry_fee} credits</div>
+            <div className="text-[#D0D0D0] font-bold text-lg">{tournament.entry_fee.toLocaleString()} credits</div>
           </div>
           
           {/* Start date and time */}

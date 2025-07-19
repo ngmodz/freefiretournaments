@@ -20,15 +20,15 @@ const LivePrizePool: React.FC<LivePrizePoolProps> = ({ tournament, isHost = fals
 
   // Calculate pools
   const expectedPrizePool = entry_fee * max_players;
-  const actualPrizePool = currentPrizePool || 0;
-  const collectionPercentage = expectedPrizePool > 0 ? (actualPrizePool / expectedPrizePool) * 100 : 0;
+  const actualPrizePool = currentPrizePool || (entry_fee * filled_spots);
+  const collectionPercentage = expectedPrizePool > 0 ? Math.min(100, (actualPrizePool / expectedPrizePool) * 100) : 0;
 
   // Calculate percentage-based prizes from actual pool
   const prizeEntries = Object.entries(prize_distribution || {});
   const totalPrizePercentage = prizeEntries.reduce((sum, [_, percentage]) => sum + percentage, 0);
   const hostEarningsPercentage = Math.max(0, 100 - totalPrizePercentage);
 
-  // Calculate actual credit amounts
+  // Calculate actual credit amounts based on current prize pool
   let prizeCalculations = prizeEntries.map(([position, percentage]) => ({
     position,
     percentage,
@@ -59,9 +59,9 @@ const LivePrizePool: React.FC<LivePrizePoolProps> = ({ tournament, isHost = fals
         {/* Prize Pool Progress */}
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="text-gray-400">Prize Pool Collection</span>
+            <span className="text-gray-400">Prize Pool Progress</span>
             <span className="text-white font-medium">
-              {actualPrizePool} / {expectedPrizePool} credits
+              {actualPrizePool.toLocaleString()} / {expectedPrizePool.toLocaleString()} credits
             </span>
           </div>
           <Progress 
@@ -71,7 +71,7 @@ const LivePrizePool: React.FC<LivePrizePoolProps> = ({ tournament, isHost = fals
           <div className="flex justify-between text-xs text-gray-400">
             <span className="flex items-center gap-1">
               <Users className="h-3 w-3" />
-              {filled_spots}/{max_players} players
+              {filled_spots}/{max_players} players joined
             </span>
             <span>{Math.round(collectionPercentage)}% collected</span>
           </div>
@@ -91,9 +91,9 @@ const LivePrizePool: React.FC<LivePrizePoolProps> = ({ tournament, isHost = fals
                 <span className="text-xs text-gaming-accent font-semibold">{percentage}%</span>
               </div>
               <div className="text-right">
-                <div className="text-sm font-bold text-gaming-primary">{credits} credits</div>
+                <div className="text-sm font-bold text-gaming-primary">{credits.toLocaleString()} credits</div>
                 <div className="text-xs text-gray-400">
-                  {percentage}% of {actualPrizePool}
+                  {percentage}% of {actualPrizePool.toLocaleString()}
                 </div>
               </div>
             </div>
@@ -107,7 +107,7 @@ const LivePrizePool: React.FC<LivePrizePoolProps> = ({ tournament, isHost = fals
                 <span className="text-xs text-green-400 font-semibold">{hostEarningsPercentage}%</span>
               </div>
               <div className="text-right">
-                <div className="text-sm font-bold text-green-400">{hostEarningsCredits} credits</div>
+                <div className="text-sm font-bold text-green-400">{hostEarningsCredits.toLocaleString()} credits</div>
                 <div className="text-xs text-gray-400">
                   Remaining pool balance
                 </div>
@@ -123,15 +123,15 @@ const LivePrizePool: React.FC<LivePrizePoolProps> = ({ tournament, isHost = fals
         </div>
 
         {/* Full Tournament Potential */}
-        {collectionPercentage < 100 && (
+        {collectionPercentage < 100 && expectedPrizePool > actualPrizePool && (
           <div className="mt-3 p-3 bg-gaming-accent/10 rounded-lg border border-gaming-accent/20">
-            <h5 className="text-xs font-semibold text-gaming-accent mb-2">With Full Tournament:</h5>
+            <h5 className="text-xs font-semibold text-gaming-accent mb-2">When Tournament is Full:</h5>
             <div className="space-y-1 text-xs">
               {prizeCalculations.map(({ position, percentage }) => (
                 <div key={position} className="flex justify-between">
                   <span className="text-gray-400">{position}: {percentage}%</span>
                   <span className="text-gaming-accent font-medium">
-                    {Math.floor((percentage / 100) * expectedPrizePool)} credits
+                    {Math.floor((percentage / 100) * expectedPrizePool).toLocaleString()} credits
                   </span>
                 </div>
               ))}
@@ -139,7 +139,7 @@ const LivePrizePool: React.FC<LivePrizePoolProps> = ({ tournament, isHost = fals
                 <div className="flex justify-between border-t border-gaming-accent/20 pt-1">
                   <span className="text-gray-400">Host: {hostEarningsPercentage}%</span>
                   <span className="text-green-400 font-medium">
-                    {Math.floor((hostEarningsPercentage / 100) * expectedPrizePool)} credits
+                    {Math.floor((hostEarningsPercentage / 100) * expectedPrizePool).toLocaleString()} credits
                   </span>
                 </div>
               )}

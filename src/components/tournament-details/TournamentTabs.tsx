@@ -19,18 +19,23 @@ const TournamentTabs: React.FC<TournamentTabsProps> = ({
   const auth = useContext(AuthContext);
   const currentUser = auth?.currentUser;
   
-  // Check if user is a participant using participantUids array (preferred method)
-  let isParticipant = tournament.participantUids?.includes(currentUser?.uid) || false;
+  // Check if user is a participant using multiple methods for reliability
+  let isParticipant = false;
   
-  // Fallback: Check participants array for both string and object formats
-  if (!isParticipant) {
-    const participants = tournament.participants || [];
-    isParticipant = participants.some(p => {
-      if (typeof p === 'object' && p !== null && 'authUid' in p) {
-        return p.authUid === currentUser?.uid;
-      }
-      return p === currentUser?.uid;
-    });
+  if (currentUser?.uid) {
+    // Method 1: Check participantUids array (most reliable)
+    isParticipant = tournament.participantUids?.includes(currentUser.uid) || false;
+    
+    // Method 2: Fallback to participants array for both string and object formats
+    if (!isParticipant) {
+      const participants = tournament.participants || [];
+      isParticipant = participants.some(p => {
+        if (typeof p === 'object' && p !== null && 'authUid' in p) {
+          return p.authUid === currentUser.uid;
+        }
+        return p === currentUser.uid;
+      });
+    }
   }
   return (
     <Tabs defaultValue="info" className="w-full">

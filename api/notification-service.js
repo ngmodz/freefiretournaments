@@ -1,7 +1,7 @@
 import nodemailer from 'nodemailer';
 import { db } from './firebase-admin-helper.js';
 
-// Reusable email transporter configuration
+// Reusable email transporter configuration with better resilience
 const createTransporter = () => {
   const emailUser = process.env.EMAIL_USER;
   const emailPass = process.env.EMAIL_PASSWORD;
@@ -11,7 +11,7 @@ const createTransporter = () => {
     return null;
   }
 
-  return nodemailer.createTransport({
+  return nodemailer.createTransporter({
     service: 'gmail',
     auth: {
       user: emailUser,
@@ -20,26 +20,51 @@ const createTransporter = () => {
     tls: {
       rejectUnauthorized: process.env.NODE_ENV !== 'development',
     },
+    // Add connection pooling and timeout settings for better reliability
+    pool: true,
+    maxConnections: 5,
+    maxMessages: 100,
+    rateLimit: 10, // 10 emails per second
+    connectionTimeout: 60000, // 60 seconds
+    greetingTimeout: 30000,   // 30 seconds
+    socketTimeout: 60000,     // 60 seconds
   });
 };
 
 /**
- * A generic email sending function.
+ * A generic email sending function with retry logic and better error handling.
  * @param {object} mailOptions - The mail options for nodemailer.
  */
-const sendEmail = async (mailOptions) => {
+const sendEmail = async (mailOptions, retries = 3) => {
   const transporter = createTransporter();
   if (!transporter) {
     throw new Error('Failed to create email transporter. Check server environment variables.');
   }
 
-  try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`Email sent successfully: ${info.messageId}`);
-    return info;
-  } catch (error) {
-    console.error(`Error sending email:`, error);
-    throw error; // Rethrow to be handled by the caller
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const info = await transporter.sendMail(mailOptions);
+      console.log(`Email sent successfully: ${info.messageId}`);
+      return info;
+    } catch (error) {
+      console.error(`Email sending attempt ${attempt} failed:`, error.message);
+      
+      // Check if it's a network-related error that might be retryable
+      const isRetryableError = error.code === 'ECONNRESET' || 
+                               error.code === 'ESOCKET' || 
+                               error.code === 'ETIMEDOUT' ||
+                               error.code === 'ENOTFOUND' ||
+                               error.syscall === 'read';
+      
+      if (attempt < retries && isRetryableError) {
+        console.log(`Retrying email send in ${attempt * 1000}ms...`);
+        await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+        continue;
+      }
+      
+      // If not retryable or last attempt, throw the error
+      throw new Error(`Failed to send email after ${retries} attempts: ${error.message}`);
+    }
   }
 };
 
@@ -48,21 +73,23 @@ const sendEmail = async (mailOptions) => {
  * @param {string} hostEmail - The email address of the host.
  * @param {string} tournamentName - The name of the tournament.
  */
-export const sendHostPenaltyEmail = async (hostEmail, tournamentName) => {
+export const sendHostPenaltyEmail = async (hostEmail, tournamentName, penaltyAmount) => {
   const mailOptions = {
     from: `"FreeFire Tournaments" <${process.env.EMAIL_USER}>`,
     to: hostEmail,
-    subject: `Penalty Applied for Tournament: "${tournamentName}"`,
+    subject: `Tournament Penalty Notice - ${tournamentName}`,
     html: `
-      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-            <h3 style="color: #dc3545; background-color: #f8d7da; padding: 15px; border-radius: 8px; border-left: 5px solid #dc3545; margin-bottom: 20px; text-align: center; font-weight: bold;">⚠️ PENALTY NOTICE ⚠️</h3>
-        <p>Hello,</p>
-        <p>This is to inform you that a penalty of <b style="color: #dc3545;">10 credits</b> has been applied to your account.</p>
-        <p><b>Reason:</b> Your tournament, "<b>${tournamentName}</b>," was not started within 10 minutes of its scheduled time.</p>
-        <p>Please ensure that you start your tournaments on time to avoid further penalties or automatic cancellation.</p>
-        <p>The tournament will be automatically cancelled if it is not started within 20 minutes of the scheduled time.</p>
-        <br/>
-        <p>Regards,<br/>The FreeFire Tournaments Team</p>
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; border: 1px solid #ddd; padding: 20px; border-radius: 10px; max-width: 600px; margin: auto;">
+        <h2 style="color: #dc3545;">Tournament Penalty Notice</h2>
+        <p>Dear Host,</p>
+        <p>You have been penalized for not starting the tournament <strong>"${tournamentName}"</strong> within the required time.</p>
+        <p><strong>Penalty Amount:</strong> ${penaltyAmount} credits</p>
+        <p>This amount has been deducted from your tournament credits balance.</p>
+        <p>Please ensure you start tournaments on time to avoid future penalties.</p>
+        <p>If you believe this penalty was issued in error, please contact our support team.</p>
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+        <p style="font-size: 14px; color: #666;">Thank you for your understanding.</p>
+        <p style="font-size: 14px; color: #666;">Best regards,<br/>The FreeFire Tournaments Team</p>
       </div>
     `,
   };
@@ -70,50 +97,34 @@ export const sendHostPenaltyEmail = async (hostEmail, tournamentName) => {
 };
 
 /**
- * Notifies a host that their tournament has been automatically cancelled.
- * @param {string} hostEmail - The email address of the host.
- * @param {string} tournamentName - The name of the tournament.
+ * Notifies participants when a tournament has been cancelled by the moderator.
+ * @param {string[]} participantEmails - Array of participant email addresses.
+ * @param {string} tournamentName - The name of the cancelled tournament.
+ * @param {number} refundAmount - The refund amount per participant.
  */
-export const sendCancellationEmailToHost = async (hostEmail, tournamentName) => {
-  const mailOptions = {
-    from: `"FreeFire Tournaments" <${process.env.EMAIL_USER}>`,
-    to: hostEmail,
-    subject: `Tournament Cancelled: "${tournamentName}"`,
-    html: `
-      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-            <h3 style="color: #dc3545; background-color: #f8d7da; padding: 15px; border-radius: 8px; border-left: 5px solid #dc3545; margin-bottom: 20px; text-align: center; font-weight: bold;">🚫 TOURNAMENT CANCELLED 🚫</h3>
-        <p>Hello,</p>
-        <p>Your tournament, "<b>${tournamentName}</b>," has been automatically cancelled because it was not started within 20 minutes of its scheduled time.</p>
-        <p>All entry fees have been refunded to the participants.</p>
-        <p>Please make sure to start future tournaments promptly to ensure a good experience for all users.</p>
-        <br/>
-        <p>Regards,<br/>The FreeFire Tournaments Team</p>
-      </div>
-    `,
-  };
-  return sendEmail(mailOptions);
-};
+export const sendTournamentCancellationEmail = async (participantEmails, tournamentName, refundAmount) => {
+  // Don't send to empty lists
+  if (!participantEmails || participantEmails.length === 0) {
+    console.log('No participant emails provided for cancellation notification');
+    return;
+  }
 
-/**
- * Notifies a participant that a tournament has been cancelled and they have been refunded.
- * @param {string} participantEmail - The email address of the participant.
- * @param {string} tournamentName - The name of the tournament.
- * @param {number} entryFee - The entry fee that was refunded.
- */
-export const sendCancellationEmailToParticipant = async (participantEmail, tournamentName, entryFee) => {
   const mailOptions = {
     from: `"FreeFire Tournaments" <${process.env.EMAIL_USER}>`,
-    to: participantEmail,
-    subject: `Tournament Cancelled & Refunded: "${tournamentName}"`,
+    to: process.env.EMAIL_USER, // Send to ourselves
+    bcc: participantEmails, // Blind copy to all participants
+    subject: `Tournament Cancelled: ${tournamentName}`,
     html: `
-      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-            <h3 style="color: #dc3545; background-color: #f8d7da; padding: 15px; border-radius: 8px; border-left: 5px solid #dc3545; margin-bottom: 20px; text-align: center; font-weight: bold;">🚫 TOURNAMENT CANCELLED 🚫</h3>
-        <p>Hello,</p>
-        <p>The tournament you joined, "<b>${tournamentName}</b>," has been cancelled because the host did not start it on time.</p>
-        <p>We have processed a full refund of your entry fee. <b style="color: #28a745;">${entryFee} credits</b> have been returned to your tournament wallet.</p>
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; border: 1px solid #ddd; padding: 20px; border-radius: 10px; max-width: 600px; margin: auto;">
+        <h2 style="color: #dc3545;">Tournament Cancelled</h2>
+        <p>Dear Participant,</p>
+        <p>We regret to inform you that the tournament <strong>"${tournamentName}"</strong> has been cancelled by the moderator.</p>
+        ${refundAmount > 0 ? `<p><strong>Refund:</strong> Your entry fee of ${refundAmount} credits has been refunded to your account.</p>` : ''}
         <p>We apologize for any inconvenience this may have caused.</p>
-        <br/>
-        <p>Regards,<br/>The FreeFire Tournaments Team</p>
+        <p>Please check out other exciting tournaments available on our platform!</p>
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+        <p style="font-size: 14px; color: #666;">Thank you for your understanding.</p>
+        <p style="font-size: 14px; color: #666;">Best regards,<br/>The FreeFire Tournaments Team</p>
       </div>
     `,
   };
@@ -121,22 +132,20 @@ export const sendCancellationEmailToParticipant = async (participantEmail, tourn
 };
 
 /**
- * Fetches the email address for a given user ID.
- * @param {string} userId - The Firebase UID of the user.
- * @returns {Promise<string|null>} The user's email or null if not found.
+ * Records tournament-related information in the database for audit/tracking.
+ * @param {string} type - The type of event.
+ * @param {object} data - The event data.
  */
-export const getUserEmail = async (userId) => {
+export const recordTournamentEvent = async (type, data) => {
   try {
-    const userRef = db.collection('users').doc(userId);
-    const userDoc = await userRef.get();
-    if (userDoc.exists) {
-      return userDoc.data().email || null;
-    }
-    console.warn(`Could not find user document for ID: ${userId}`);
-    return null;
+    await db.collection('tournament_events').add({
+      type,
+      data,
+      timestamp: new Date(),
+    });
   } catch (error) {
-    console.error(`Failed to get email for user ${userId}:`, error);
-    return null;
+    console.error('Failed to record tournament event:', error);
+    // Don't throw - this is not critical
   }
 };
 
@@ -166,4 +175,4 @@ export const sendTournamentWinningsEmail = async (winnerEmail, tournamentName, p
     `,
   };
   return sendEmail(mailOptions);
-}; 
+};

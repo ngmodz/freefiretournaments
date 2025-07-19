@@ -46,36 +46,37 @@ const sortPositions = (a: string, b: string): number => {
 // Helper to determine prize mode and get prize amount
 function getPrizeAmount(tournament: Tournament, position: string) {
   const { entry_fee, filled_spots, prize_distribution, currentPrizePool } = tournament;
-  // Use currentPrizePool if available, otherwise fall back to calculation
-  const totalPrizePool = currentPrizePool !== undefined 
-    ? currentPrizePool 
-    : entry_fee * filled_spots;
-  const values = Object.values(prize_distribution || {});
-  const sum = values.reduce((a, b) => a + b, 0);
   
-  console.log("getPrizeAmount debug:", {
+  // Calculate the actual prize pool - use currentPrizePool if it exists and is reasonable,
+  // otherwise calculate from entry fees and participants
+  let actualPrizePool = currentPrizePool || 0;
+  
+  // Fallback calculation if currentPrizePool seems incorrect
+  const calculatedPool = entry_fee * filled_spots;
+  if (actualPrizePool === 0 || (calculatedPool > 0 && Math.abs(actualPrizePool - calculatedPool) > calculatedPool * 0.1)) {
+    actualPrizePool = calculatedPool;
+  }
+  
+  const percentage = prize_distribution?.[position] || 0;
+  
+  if (percentage <= 0 || actualPrizePool <= 0) {
+    return 0;
+  }
+  
+  // Calculate prize as percentage of actual prize pool
+  const calculatedAmount = Math.floor((percentage / 100) * actualPrizePool);
+  
+  console.log("getPrizeAmount calculation:", {
     position, 
-    totalPrizePool, 
-    values, 
-    sum, 
-    percentage: prize_distribution[position]
+    currentPrizePool,
+    calculatedPool,
+    actualPrizePool,
+    percentage,
+    calculatedAmount,
+    tournament: tournament.name
   });
   
-  // If sum is 100, treat as percentage mode
-  if (sum === 100) {
-    const percentage = prize_distribution[position] || 0;
-    const calculatedAmount = Math.floor((percentage / 100) * totalPrizePool);
-    console.log(`Calculating ${position} prize as percentage: ${percentage}% of ${totalPrizePool} = ${calculatedAmount}`);
-    return calculatedAmount;
-  }
-  // If sum <= totalPrizePool, treat as fixed mode
-  if (sum <= totalPrizePool) {
-    console.log(`Using fixed prize amount for ${position}: ${prize_distribution[position]}`);
-    return prize_distribution[position] || 0;
-  }
-  // Fallback: treat as fixed
-  console.log(`Fallback to fixed prize for ${position}: ${prize_distribution[position]}`);
-  return prize_distribution[position] || 0;
+  return calculatedAmount;
 }
 
 const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
@@ -116,6 +117,14 @@ const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
     const errors = checkForDuplicates(inputs);
     setDuplicateErrors(errors);
     console.log("Initial duplicate check on mount/input change:", { inputs, errors });
+    
+    // Clear general error if there are no duplicates and no active inputs
+    const hasActiveInputs = Object.values(inputs).some(input => input?.uid?.trim() || input?.ign?.trim());
+    const hasErrors = Object.keys(errors).length > 0;
+    
+    if (!hasActiveInputs && !hasErrors) {
+      setError(null);
+    }
   }, [inputs, tournament.winners]);
 
   // Helper function to check for duplicate UID+IGN combinations across all positions
@@ -125,13 +134,13 @@ const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
     
     console.log("🔍 Checking duplicates with:", { currentInputs, existingWinners });
     
-    // Create a map of UID+IGN combinations to positions for current inputs
+    // Create a map of UID+IGN combinations to positions
     const uidIgnCombinations: { [combination: string]: string[] } = {};
     
     // Check current inputs
     Object.entries(currentInputs).forEach(([position, winner]) => {
-      if (winner?.uid && winner?.ign) {
-        const combination = `${winner.uid.trim()}-${winner.ign.trim()}`;
+      if (winner?.uid?.trim() && winner?.ign?.trim()) {
+        const combination = `${winner.uid.trim().toLowerCase()}-${winner.ign.trim().toLowerCase()}`;
         console.log(`📝 Adding current input: ${position} -> ${combination}`);
         if (!uidIgnCombinations[combination]) {
           uidIgnCombinations[combination] = [];
@@ -142,8 +151,8 @@ const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
     
     // Check existing saved winners (only for positions not currently being edited)
     Object.entries(existingWinners).forEach(([position, winner]) => {
-      if (winner?.uid && winner?.ign && !currentInputs[position]) {
-        const combination = `${winner.uid.trim()}-${winner.ign.trim()}`;
+      if (winner?.uid?.trim() && winner?.ign?.trim() && !currentInputs[position]) {
+        const combination = `${winner.uid.trim().toLowerCase()}-${winner.ign.trim().toLowerCase()}`;
         console.log(`💾 Adding existing winner: ${position} -> ${combination}`);
         if (!uidIgnCombinations[combination]) {
           uidIgnCombinations[combination] = [];
@@ -210,28 +219,52 @@ const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
 
     const findParticipantAuthUid = async (): Promise<string | null> => {
       const currentInput = inputs[position];
-      if (!currentInput?.uid || !currentInput?.ign) {
-        setError("Both UID and IGN are required");
+      if (!currentInput?.uid?.trim() || !currentInput?.ign?.trim()) {
+        setError("Both UID and IGN are required and cannot be empty");
         return null;
       }
 
       const participants = tournament.participants || [];
-      if (participants.length === 0) return null;
-
-      // New structure: array of objects
-      if (typeof participants[0] === 'object' && participants[0] !== null) {
-        const participant = (participants as any[]).find(p => p.customUid === currentInput.uid && p.ign === currentInput.ign);
-        return participant ? participant.authUid : null;
+      const participantUids = tournament.participantUids || [];
+      
+      if (participants.length === 0) {
+        setError("No participants found in this tournament");
+        return null;
       }
 
-      // Legacy structure: array of auth UIDs (strings)
-      if (typeof participants[0] === 'string') {
-        const userProfile = await findUserByUID(currentInput.uid);
-        // Ensure the found user's IGN matches and their auth UID is in the participants list
-        if (userProfile && userProfile.ign.toLowerCase() === currentInput.ign.toLowerCase() && participants.includes(userProfile.id)) {
-          return userProfile.id; // userProfile.id is the authUid
+      // New structure: array of participant objects
+      if (participants.length > 0 && typeof participants[0] === 'object' && participants[0] !== null) {
+        const participant = (participants as any[]).find(p => 
+          p.customUid?.toString().trim() === currentInput.uid.trim() && 
+          p.ign?.trim().toLowerCase() === currentInput.ign.trim().toLowerCase()
+        );
+        
+        if (participant && participant.authUid) {
+          // Double-check that this authUid is in participantUids
+          if (participantUids.includes(participant.authUid)) {
+            return participant.authUid;
+          } else {
+            setError(`Found participant data but user ${currentInput.uid} is not in the official participant list. Please contact support.`);
+            return null;
+          }
         }
       }
+
+      // Legacy structure: array of auth UIDs (strings) - need to look up user profiles
+      if (participants.length > 0 && typeof participants[0] === 'string') {
+        try {
+          const userProfile = await findUserByUID(currentInput.uid.trim());
+          if (userProfile && 
+              userProfile.ign.trim().toLowerCase() === currentInput.ign.trim().toLowerCase() && 
+              participants.includes(userProfile.id)) {
+            return userProfile.id; // userProfile.id is the authUid
+          }
+        } catch (error) {
+          console.error("Error finding user by UID:", error);
+        }
+      }
+      
+      setError(`Player with UID ${currentInput.uid} and IGN ${currentInput.ign} is not a participant in this tournament. Please verify the details.`);
       return null;
     };
 
@@ -240,7 +273,6 @@ const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
       const currentInput = inputs[position]; // re-get for error message
 
       if (!winnerAuthUid) {
-        setError(`UID ${currentInput.uid} with IGN ${currentInput.ign} is not a participant in this tournament. Please check the details and try again.`);
         setSaving({ ...saving, [position]: false });
         return;
       }
@@ -268,7 +300,16 @@ const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
 
     } catch (error) {
       console.error("Error during save preparation:", error);
-      setError(error.message || "An unexpected error occurred while preparing to save.");
+      // Check if it's a network-related error and show a user-friendly message
+      const isNetworkError = error.message?.includes('ECONNRESET') || 
+                            error.message?.includes('ESOCKET') || 
+                            error.message?.includes('Network Error');
+      
+      if (isNetworkError) {
+        setError("Network connection issue occurred. The prize has been distributed successfully, but email notification may have failed. Please refresh the page to see the updated status.");
+      } else {
+        setError(error.message || "An unexpected error occurred while preparing to save.");
+      }
     } finally {
       setSaving({ ...saving, [position]: false });
     }
@@ -319,7 +360,17 @@ const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
       });
       setError(`✅ Successfully distributed ${finalPrizeAmount} credits to ${ign} (${uid})`);
     } catch (error) {
-      setError(error.message || "Failed to distribute prize.");
+      console.error("Prize distribution error:", error);
+      // Check if it's a network-related error and provide better user feedback
+      const isNetworkError = error.message?.includes('ECONNRESET') || 
+                            error.message?.includes('ESOCKET') || 
+                            error.message?.includes('Network Error');
+      
+      if (isNetworkError) {
+        setError("Prize distributed successfully! Email notification failed due to network issues, but the credits have been added to the winner's account.");
+      } else {
+        setError(error.message || "Failed to distribute prize.");
+      }
     } finally {
       setSaving({ ...saving, [position]: false });
       setConfirmDialog({ ...confirmDialog, open: false });
@@ -337,15 +388,17 @@ const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
       
       {/* Live Prize Pool Summary */}
       <div className="mb-6 p-4 bg-gradient-to-r from-gaming-card to-gaming-bg rounded-lg border border-gaming-primary/20">
-        <h3 className="text-lg font-semibold mb-3 text-gaming-accent">Current Prize Pool Status</h3>
+        <h3 className="text-lg font-semibold mb-3 text-gaming-accent">Prize Pool Status</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="text-center p-3 bg-gaming-bg/30 rounded-lg">
-            <div className="text-2xl font-bold text-gaming-primary">{tournament.currentPrizePool || 0}</div>
+            <div className="text-2xl font-bold text-gaming-primary">
+              {(tournament.currentPrizePool || (tournament.entry_fee * tournament.filled_spots)).toLocaleString()}
+            </div>
             <div className="text-sm text-gray-400">Current Pool</div>
           </div>
           <div className="text-center p-3 bg-gaming-bg/30 rounded-lg">
-            <div className="text-2xl font-bold text-gaming-accent">{tournament.entry_fee * tournament.max_players}</div>
-            <div className="text-sm text-gray-400">Expected Pool</div>
+            <div className="text-2xl font-bold text-gaming-accent">{(tournament.entry_fee * tournament.max_players).toLocaleString()}</div>
+            <div className="text-sm text-gray-400">Maximum Pool</div>
           </div>
           <div className="text-center p-3 bg-gaming-bg/30 rounded-lg">
             <div className="text-2xl font-bold text-white">{tournament.filled_spots}/{tournament.max_players}</div>
@@ -353,7 +406,7 @@ const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
           </div>
         </div>
         <div className="mt-3 text-center text-xs text-gray-400">
-          Prizes calculated from <span className="text-gaming-accent font-semibold">current pool</span>, not expected pool
+          All prize calculations are based on the <span className="text-gaming-accent font-semibold">current prize pool</span>
         </div>
       </div>
 
@@ -437,12 +490,12 @@ const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
                   <div className="text-sm text-gaming-muted font-medium">{position} Place</div>
                   <div className="space-y-1">
                     <div className="font-bold text-lg flex items-center gap-2">
-                      <span className="text-gaming-accent">{credits}%</span>
-                      <span className="text-gray-400">→</span>
-                      <span className="text-white">{getPrizeAmount(tournament, position)} credits</span>
+                      <span className="text-gaming-accent">{getPrizeAmount(tournament, position).toLocaleString()} credits</span>
+                      <span className="text-gray-400">•</span>
+                      <span className="text-gray-300 text-sm">{credits}%</span>
                     </div>
                     <div className="text-xs text-gray-400">
-                      {credits}% of current pool ({tournament.currentPrizePool || 0} credits)
+                      {credits}% of {(tournament.currentPrizePool || (tournament.entry_fee * tournament.filled_spots)).toLocaleString()} credits pool
                     </div>
                   </div>
                 </div>

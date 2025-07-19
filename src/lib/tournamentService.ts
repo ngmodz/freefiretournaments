@@ -199,9 +199,20 @@ export const createTournament = async (tournamentData: Omit<TournamentFormData, 
     }
 
     // Validate prize distribution percentages
-    const prizeTotalPercentage = Object.values(tournamentData.prize_distribution).reduce((sum, value) => sum + value, 0);
+    const prizePercentages = Object.values(tournamentData.prize_distribution);
+    const prizeTotalPercentage = prizePercentages.reduce((sum, value) => sum + value, 0);
+    
     if (prizeTotalPercentage > 100) {
       throw new Error(`Prize distribution total cannot exceed 100%. Current total: ${prizeTotalPercentage}%`);
+    }
+    
+    if (prizeTotalPercentage < 0) {
+      throw new Error('Prize distribution percentages cannot be negative');
+    }
+    
+    // Validate that all prize percentages are valid numbers
+    if (prizePercentages.some(p => isNaN(p) || p < 0)) {
+      throw new Error('All prize percentages must be valid non-negative numbers');
     }
 
     // Validate minimum participants
@@ -245,7 +256,7 @@ export const createTournament = async (tournamentData: Omit<TournamentFormData, 
     // Don't set TTL during creation - only when tournament is started by host
     // The TTL will be set when the host manually starts the tournament
 
-    // Prepare tournament data
+    // Prepare tournament data with proper initial values
     const tournament = {
       ...tournamentData,
       host_id: currentUser.uid,
@@ -253,9 +264,11 @@ export const createTournament = async (tournamentData: Omit<TournamentFormData, 
       created_at: serverTimestamp(),
       participants: [],
       filled_spots: 0,
-      participantUids: [], // Initialize participantUids
-      currentPrizePool: initialPrizePool, // Set initial prize pool if it's a free tournament with prizes
-      initialPrizePool: initialPrizePool > 0 ? initialPrizePool : 0,
+      participantUids: [], // Initialize participantUids array
+      currentPrizePool: initialPrizePool, // Set initial prize pool (0 for paid tournaments, calculated for free tournaments)
+      initialPrizePool: initialPrizePool > 0 ? initialPrizePool : 0, // Store initial amount for reference
+      total_prizes_distributed: 0, // Initialize prizes distributed tracking
+      host_earnings_distributed: 0, // Initialize host earnings tracking
       // ttl will be set when host starts the tournament
     };
 

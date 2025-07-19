@@ -202,12 +202,27 @@ const handleTournamentNotification = async (req, res) => {
     const participantEmails = [];
     for (const participant of participants) {
       try {
-        const userRecord = await auth.getUser(participant.uid);
+        // Handle both old and new participant structure
+        let userUid;
+        if (typeof participant === 'string') {
+          userUid = participant; // Legacy format
+        } else if (participant && participant.authUid) {
+          userUid = participant.authUid; // New format
+        } else if (participant && participant.uid) {
+          userUid = participant.uid; // Fallback
+        }
+
+        if (!userUid) {
+          console.warn('Participant has no valid UID:', participant);
+          continue;
+        }
+
+        const userRecord = await auth.getUser(userUid);
         if (userRecord.email) {
           participantEmails.push(userRecord.email);
         }
       } catch (error) {
-        console.error(`Error getting user ${participant.uid}:`, error);
+        console.error(`Error getting user ${participant.authUid || participant.uid || participant}:`, error);
       }
     }
 

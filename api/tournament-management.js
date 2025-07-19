@@ -712,14 +712,44 @@ async function distributePrize(req, res) {
       return { tournamentName: tournament.name, winnerEmail: winner.email };
     });
 
+    // Try to send email notification, but don't fail the transaction if email fails
     if (result.winnerEmail) {
-      await sendTournamentWinningsEmail(result.winnerEmail, result.tournamentName, prizeAmount);
+      try {
+        await sendTournamentWinningsEmail(result.winnerEmail, result.tournamentName, prizeAmount);
+      } catch (emailError) {
+        console.error('Error sending email notification:', emailError);
+        // Continue execution - email failure should not affect prize distribution
+      }
     }
 
-    return res.status(200).json({ success: true, message: `Successfully distributed ${prizeAmount} credits to the winner.` });
+    return res.status(200).json({ 
+      success: true, 
+      message: `Successfully distributed ${prizeAmount} credits to the winner.`,
+      prizeDistributed: true
+    });
   } catch (error) {
     console.error('Error in prize distribution:', error);
-    return res.status(500).json({ success: false, error: error.message || 'An internal server error occurred.' });
+    
+    // Provide more specific error messages based on error type
+    let errorMessage = 'An internal server error occurred.';
+    
+    if (error.message.includes('not found')) {
+      errorMessage = error.message;
+    } else if (error.message.includes('Insufficient')) {
+      errorMessage = error.message;
+    } else if (error.message.includes('Only the tournament host')) {
+      errorMessage = error.message;
+    } else if (error.message.includes('Invalid prize amount')) {
+      errorMessage = error.message;
+    } else if (error.code === 'ECONNRESET' || error.code === 'ESOCKET') {
+      errorMessage = 'Prize distributed successfully, but email notification failed due to network issues.';
+    }
+    
+    return res.status(500).json({ 
+      success: false, 
+      error: errorMessage,
+      originalError: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 }
 

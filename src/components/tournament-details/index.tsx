@@ -177,14 +177,18 @@ const TournamentDetailsContent: React.FC<TournamentDetailsContentProps> = ({
       return;
     }
     
-    // Check if user is already a participant
+    // Check if user is already a participant using both participantUids and participants arrays
+    const participantUids = tournament.participantUids || [];
     const participants = tournament.participants || [];
-    const isAlreadyParticipant = participants.some(p => {
-      if (typeof p === 'object' && p !== null && 'authUid' in p) {
-        return p.authUid === currentUser.uid;
-      }
-      return p === currentUser.uid;
-    });
+    
+    // Check participantUids first (most reliable)
+    const isAlreadyParticipant = participantUids.includes(currentUser.uid) || 
+      participants.some(p => {
+        if (typeof p === 'object' && p !== null && 'authUid' in p) {
+          return p.authUid === currentUser.uid;
+        }
+        return p === currentUser.uid;
+      });
     
     if (isAlreadyParticipant) {
       console.error("User is already a participant in this tournament");
@@ -212,44 +216,36 @@ const TournamentDetailsContent: React.FC<TournamentDetailsContentProps> = ({
   };
 
   const handleConfirmJoin = async () => {
-    console.log("Confirming join tournament", { 
-      tournamentId: id, 
-      userId: currentUser?.uid,
-      isJoining
-    });
-    
-    if (isJoining) return;
-    
-    setIsJoining(true);
-    try {
-      console.log("Calling joinTournament function");
-      const result = await joinTournament(id);
-      console.log("Join tournament result", result);
-      
-      toast({
-        title: "Success",
-        description: result.message || "You have successfully joined the tournament!",
-      });
-      
-      // Close the dialog
-      setShowJoinDialog(false);
-      
-      // Refresh tournament data
-      // if (onRefresh) { // Removed as per edit hint
-      //   await onRefresh();
-      // }
-    } catch (error) {
-      console.error("Failed to join tournament:", error);
-      let errorMessage = "Failed to join the tournament.";
-      
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      }
-      
-      setError(errorMessage);
+    if (!currentUser || !userProfile) {
       toast({
         title: "Error",
-        description: errorMessage,
+        description: "You must be logged in and have a complete profile to join.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    console.log(`Confirming join tournament {tournamentId: '${id}', userId: '${currentUser.uid}', isJoining: ${isJoining}}`);
+    setIsJoining(true);
+    console.log("Calling joinTournament function");
+    
+    try {
+      const result = await joinTournament(id);
+
+      if (result.success) {
+        toast({
+          title: "Success!",
+          description: result.message,
+        });
+        setShowJoinDialog(false);
+      } else {
+        throw new Error(result.message);
+      }
+    } catch (error) {
+      console.error("Failed to join tournament:", error);
+      toast({
+        title: "Failed to Join",
+        description: error instanceof Error ? error.message : "An unexpected error occurred.",
         variant: "destructive",
       });
     } finally {
