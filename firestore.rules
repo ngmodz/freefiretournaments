@@ -17,12 +17,19 @@ service cloud.firestore {
         (request.auth.uid == userId &&
          // They are NOT allowed to change their host status.
          (request.resource.data.isHost == resource.data.isHost) &&
-         // Allow wallet updates only if the earnings are being reduced and credits are unchanged.
-         // This handles withdrawals. It's safer than the previous rule.
+         // Allow wallet updates for various scenarios
          (
+           // Withdrawal: earnings are being reduced and credits are unchanged
            (
             'wallet' in request.resource.data && 'wallet' in resource.data &&
             request.resource.data.wallet.earnings < resource.data.wallet.earnings &&
+            request.resource.data.wallet.get('credits', 0) == resource.data.wallet.get('credits', 0)
+           ) ||
+           // Tournament join: tournamentCredits are being reduced and earnings unchanged
+           (
+            'wallet' in request.resource.data && 'wallet' in resource.data &&
+            request.resource.data.wallet.get('tournamentCredits', 0) < resource.data.wallet.get('tournamentCredits', 0) &&
+            request.resource.data.wallet.get('earnings', 0) == resource.data.wallet.get('earnings', 0) &&
             request.resource.data.wallet.get('credits', 0) == resource.data.wallet.get('credits', 0)
            ) ||
            // Or if wallet is unchanged.
