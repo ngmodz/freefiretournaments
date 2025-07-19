@@ -8,6 +8,7 @@ import RoomDetailsTab from "./RoomDetailsTab";
 import ResultsTab from "./ResultsTab";
 import { useContext } from "react";
 import AuthContext from "@/contexts/AuthContext";
+import { Participant } from "@/lib/tournamentService";
 
 const TournamentTabs: React.FC<TournamentTabsProps> = ({
   tournament,
@@ -17,7 +18,20 @@ const TournamentTabs: React.FC<TournamentTabsProps> = ({
 }) => {
   const auth = useContext(AuthContext);
   const currentUser = auth?.currentUser;
-  const isParticipant = tournament.participants?.includes(currentUser?.uid) || false;
+  
+  // Check if user is a participant using participantUids array (preferred method)
+  let isParticipant = tournament.participantUids?.includes(currentUser?.uid) || false;
+  
+  // Fallback: Check participants array for both string and object formats
+  if (!isParticipant) {
+    const participants = tournament.participants || [];
+    isParticipant = participants.some(p => {
+      if (typeof p === 'object' && p !== null && 'authUid' in p) {
+        return p.authUid === currentUser?.uid;
+      }
+      return p === currentUser?.uid;
+    });
+  }
   return (
     <Tabs defaultValue="info" className="w-full">
       <TabsList className="bg-gradient-to-b from-gaming-card to-gaming-bg rounded-full flex justify-center items-center px-1 py-1 shadow-md border border-gaming-primary/20 overflow-hidden backdrop-blur-sm relative">
