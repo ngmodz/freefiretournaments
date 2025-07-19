@@ -127,41 +127,48 @@ async function cancelTournament(req, res) {
       }
 
       const entryFee = tournament.entry_fee;
-
-      for (const participant of participants) {
-        const participantId = typeof participant === 'string' ? participant : participant.authUid;
-        if (!participantId) continue;
-        
-        const userRef = db.collection('users').doc(participantId);
-        const userDoc = await transaction.get(userRef);
-        
+      const participantIds = participants.map(p => typeof p === 'string' ? p : p.authUid).filter(Boolean);
+      
+      // Read all participant documents first
+      const userRefs = participantIds.map(id => db.collection('users').doc(id));
+      const userDocs = await transaction.getAll(...userRefs);
+      
+      // Now, perform all writes
+      for (const userDoc of userDocs) {
         if (!userDoc.exists) {
-          console.warn(`User ${participantId} not found, cannot refund.`);
+          console.warn(`User ${userDoc.id} not found, cannot refund.`);
           continue;
         }
 
         const userData = userDoc.data();
-        const currentCredits = userData.credits || 0;
-
-        console.log(`💰 Refunding ${entryFee} credits to user ${participantId} (current: ${currentCredits})`);
         
-        // Update user's credits
-        transaction.update(userRef, {
-          credits: currentCredits + entryFee
-        });
+        // Check if user has a wallet and credits before attempting refund
+        if (userData.wallet && userData.wallet.credits !== undefined) {
+          console.log(`💰 Refunding ${entryFee} credits to user ${userDoc.id}`);
+          
+          // Atomically increment user's credits
+          transaction.update(userDoc.ref, {
+            'wallet.credits': FieldValue.increment(entryFee)
+          });
+        } else {
+          // If the user has no wallet, we might create it or simply log it.
+          // For now, let's assume refunding requires an existing wallet structure.
+          console.warn(`User ${userDoc.id} has no wallet or credits, skipping refund.`);
+        }
 
-        // Add transaction record
-        transaction.create(db.collection('transactions').doc(), {
-          uid: participantId,
+        // Add transaction record regardless of wallet status for audit purposes
+        const transactionRef = db.collection('creditTransactions').doc();
+        transaction.set(transactionRef, {
+          userId: userDoc.id,
           amount: entryFee,
           type: 'refund',
           description: `Refund for cancelled tournament: ${tournament.name}`,
           status: 'completed',
-          metadata: {
+          transactionDetails: {
             tournamentId: tournamentId,
             tournamentName: tournament.name
           },
-          createdAt: FieldValue.serverTimestamp()
+          createdAt: Timestamp.now()
         });
       }
 

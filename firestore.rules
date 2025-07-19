@@ -60,57 +60,63 @@ service cloud.firestore {
       
       // Allow updates for tournament hosts, admins, and for users joining tournaments.
       // Notification-related fields should only be updatable by an admin.
-      allow update: if 
-                    (
-                      // Regular update rule for tournament hosts and admins
-                      request.auth != null && 
-                      (
-                       // Admin users can update anything
-                       request.auth.token.admin == true || 
-                       
-                       // Tournament hosts can update their tournaments
-                       resource.data.host_id == request.auth.uid ||
-                       
-                       // Special rule for users joining tournaments
-                       (
-                         // Only allow updates to participants, participantUids, filled_spots and currentPrizePool fields
-                         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants', 'participantUids', 'filled_spots', 'currentPrizePool']) &&
-                         
-                         // Ensure filled_spots is only incremented by 1
-                         request.resource.data.filled_spots == resource.data.filled_spots + 1 &&
-                         
-                         // Ensure currentPrizePool is incremented by the entry fee amount
-                         request.resource.data.currentPrizePool == (resource.data.currentPrizePool == null ? 0 : resource.data.currentPrizePool) + resource.data.entry_fee &&
-                         
-                         // Ensure the user wasn't already in the participantUids list
-                         (resource.data.participantUids == null || !(request.auth.uid in resource.data.participantUids)) &&
-                         
-                         // Check that the tournament isn't full
-                         resource.data.filled_spots < resource.data.max_players &&
-                         
-                         // Check that tournament is in 'active' status
-                         resource.data.status == 'active' &&
-                         
-                         // Ensure the joining user is authenticated
-                         request.auth.uid != null
-                       ) ||
-                       
-                       // Special rule for prize distribution by tournament host
-                       (
-                         // Only tournament host can distribute prizes
-                         resource.data.host_id == request.auth.uid &&
-                         
-                         // Allow updates to prize distribution related fields
-                         request.resource.data.diff(resource.data).affectedKeys().hasAll(['winners', 'currentPrizePool']) &&
-                         
-                         // Ensure currentPrizePool is only decreased (prizes being distributed)
-                         request.resource.data.currentPrizePool <= resource.data.currentPrizePool &&
-                         
-                         // Tournament must be ended to distribute prizes
-                         resource.data.status == 'ended'
-                       )
-                      )
-                    );
+      allow update: if request.auth != null && (
+        // Admin users can update anything
+        request.auth.token.admin == true ||
+        
+        // Rules for tournament hosts, conditioned by being the actual host
+        (resource.data.host_id == request.auth.uid && (
+          // 1. Host can cancel a tournament if it's active or ongoing
+          (
+            ['active', 'ongoing'].includes(resource.data.status) &&
+            request.resource.data.status == 'cancelled' &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'cancelled_at', 'ttl'])
+          ) ||
+
+          // 2. Host can manage a tournament's lifecycle (start/end)
+          (
+            request.resource.data.status in ['ongoing', 'ended'] &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'started_at', 'ended_at', 'ttl'])
+          ) ||
+
+          // 3. Host can update room details, but ONLY before it starts
+          (
+            resource.data.status == 'active' &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['room_id', 'room_password'])
+          ) ||
+
+          // 4. Host can distribute prizes, but ONLY after it has ended
+          (
+            resource.data.status == 'ended' &&
+            request.resource.data.diff(resource.data).affectedKeys().hasAll(['winners', 'currentPrizePool']) &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['winners', 'currentPrizePool', 'status', 'completed_at'])
+          )
+        )) ||
+        
+        // Special rule for users joining tournaments
+        (
+          // Only allow updates to participants, participantUids, filled_spots and currentPrizePool fields
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants', 'participantUids', 'filled_spots', 'currentPrizePool']) &&
+          
+          // Ensure filled_spots is only incremented by 1
+          request.resource.data.filled_spots == resource.data.filled_spots + 1 &&
+          
+          // Ensure currentPrizePool is incremented by the entry fee amount
+          request.resource.data.currentPrizePool == (resource.data.currentPrizePool == null ? 0 : resource.data.currentPrizePool) + resource.data.entry_fee &&
+          
+          // Ensure the user wasn't already in the participantUids list
+          (resource.data.participantUids == null || !(request.auth.uid in resource.data.participantUids)) &&
+          
+          // Check that the tournament isn't full
+          resource.data.filled_spots < resource.data.max_players &&
+          
+          // Check that tournament is in 'active' status
+          resource.data.status == 'active' &&
+          
+          // Ensure the joining user is authenticated
+          request.auth.uid != null
+        )
+      );
       
       allow delete: if request.auth != null && 
                     (request.auth.token.admin == true || 
