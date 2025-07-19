@@ -709,17 +709,36 @@ async function distributePrize(req, res) {
         createdAt: FieldValue.serverTimestamp(),
       });
 
-      return { tournamentName: tournament.name, winnerEmail: winner.email };
+      return { tournamentName: tournament.name, winnerAuthUid: winnerId };
     });
 
+    // Get winner's email from Firebase Auth (more reliable than Firestore profile)
+    let winnerEmail = null;
+    try {
+      const winnerAuthRecord = await auth.getUser(result.winnerAuthUid);
+      winnerEmail = winnerAuthRecord.email;
+      console.log(`🔍 Retrieved winner email from Firebase Auth: ${winnerEmail ? 'Found' : 'Not found'}`);
+    } catch (authError) {
+      console.error('❌ Error getting winner email from Firebase Auth:', authError);
+    }
+
     // Try to send email notification, but don't fail the transaction if email fails
-    if (result.winnerEmail) {
+    if (winnerEmail) {
+      console.log(`📧 Attempting to send prize winning email to: ${winnerEmail}`);
       try {
-        await sendTournamentWinningsEmail(result.winnerEmail, result.tournamentName, prizeAmount);
+        await sendTournamentWinningsEmail(winnerEmail, result.tournamentName, prizeAmount);
+        console.log(`✅ Prize winning email sent successfully to ${winnerEmail}`);
       } catch (emailError) {
-        console.error('Error sending email notification:', emailError);
+        console.error('❌ Error sending email notification:', emailError);
+        console.error('❌ Email error details:', {
+          message: emailError.message,
+          code: emailError.code,
+          stack: emailError.stack
+        });
         // Continue execution - email failure should not affect prize distribution
       }
+    } else {
+      console.warn('⚠️ No email address found for winner. Skipping email notification.');
     }
 
     return res.status(200).json({ 

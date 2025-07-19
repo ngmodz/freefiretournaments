@@ -614,7 +614,7 @@ export const joinTournament = async (tournamentId: string) => {
         userId: currentUser.uid,
         type: 'tournament_join',
         amount: -tournament.entry_fee,
-        walletType: 'tournament',
+        walletType: 'tournamentCredits',
         description: `Joined tournament: ${tournament.name}`,
         transactionDetails: { tournamentId: tournament.id, tournamentName: tournament.name },
         createdAt: serverTimestamp()

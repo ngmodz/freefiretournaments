@@ -156,6 +156,12 @@ export const recordTournamentEvent = async (type, data) => {
  * @param {number} prizeAmount - The amount of credits won.
  */
 export const sendTournamentWinningsEmail = async (winnerEmail, tournamentName, prizeAmount) => {
+  console.log(`📧 Preparing to send tournament winnings email:`, {
+    to: winnerEmail,
+    tournamentName,
+    prizeAmount
+  });
+  
   const mailOptions = {
     from: `"FreeFire Tournaments" <${process.env.EMAIL_USER}>`,
     to: winnerEmail,
@@ -174,5 +180,7 @@ export const sendTournamentWinningsEmail = async (winnerEmail, tournamentName, p
       </div>
     `,
   };
+  
+  console.log(`📧 Sending email via sendEmail function...`);
   return sendEmail(mailOptions);
 };
