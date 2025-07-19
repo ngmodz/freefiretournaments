@@ -142,18 +142,18 @@ async function cancelTournament(req, res) {
 
         const userData = userDoc.data();
         
-        // Check if user has a wallet and credits before attempting refund
-        if (userData.wallet && userData.wallet.credits !== undefined) {
-          console.log(`💰 Refunding ${entryFee} credits to user ${userDoc.id}`);
+        // Check if user has a wallet and tournament credits before attempting refund
+        if (userData.wallet && userData.wallet.tournamentCredits !== undefined) {
+          console.log(`💰 Refunding ${entryFee} tournament credits to user ${userDoc.id}`);
           
-          // Atomically increment user's credits
+          // Atomically increment user's tournament credits
           transaction.update(userDoc.ref, {
-            'wallet.credits': FieldValue.increment(entryFee)
+            'wallet.tournamentCredits': FieldValue.increment(entryFee)
           });
         } else {
           // If the user has no wallet, we might create it or simply log it.
           // For now, let's assume refunding requires an existing wallet structure.
-          console.warn(`User ${userDoc.id} has no wallet or credits, skipping refund.`);
+          console.warn(`User ${userDoc.id} has no wallet or tournament credits, skipping refund.`);
         }
 
         // Add transaction record regardless of wallet status for audit purposes
