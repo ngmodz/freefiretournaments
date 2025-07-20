@@ -138,10 +138,20 @@ const ReviewAndPublish = ({ formData, prevStep }: ReviewAndPublishProps) => {
     // Check required fields
     const requiredFields: (keyof TournamentFormData)[] = [
       'name', 'description', 'mode', 'max_players', 'start_date', 
-      'map', 'room_type', 'entry_fee', 'prize_distribution', 'rules'
+      'map', 'room_type', 'rules'
     ];
     
-    const missingFields = requiredFields.filter(field => !formData[field]);
+    const missingFields = requiredFields.filter(field => {
+      const value = formData[field];
+      // Check for null, undefined, or empty strings
+      return value === null || value === undefined || value === '';
+    });
+    
+    // Explicitly check for entry_fee being null or undefined, but allow 0
+    if (formData.entry_fee === null || formData.entry_fee === undefined) {
+      missingFields.push('entry_fee');
+    }
+
     if (missingFields.length > 0) {
       setError(`Missing required fields: ${missingFields.join(', ')}`);
       return false;
@@ -155,11 +165,13 @@ const ReviewAndPublish = ({ formData, prevStep }: ReviewAndPublishProps) => {
       return false;
     }
     
-    // Validate prize distribution percentages
+    // Validate prize distribution percentages only for paid tournaments
+    if (formData.entry_fee > 0) {
     const totalPercentage = Object.values(formData.prize_distribution).reduce((sum, value) => sum + value, 0);
     if (totalPercentage > 100) {
       setError(`Total prize percentage cannot exceed 100%. Current total: ${totalPercentage}%`);
       return false;
+      }
     }
     
     return true;
@@ -219,70 +231,65 @@ const ReviewAndPublish = ({ formData, prevStep }: ReviewAndPublishProps) => {
         // Create the tournament in Firestore
         const result = await createTournament(formData);
         
-        // Deduct host credit if from dialog
-        if (fromDialog && currentUser) {
+        // Host credit deduction logic
+        if (currentUser) {
           try {
             // Get the user's current host credit balance
             const userRef = doc(db, 'users', currentUser.uid);
-            const userDoc = await getDoc(userRef);
             
-            if (!userDoc.exists()) {
-              throw new Error('User not found');
-            }
-            
-            const userData = userDoc.data();
-            const wallet = userData.wallet || {};
-            const currentHostCredits = wallet.hostCredits || 0;
-            const currentTournamentCredits = wallet.tournamentCredits || 0;
-            
-            // Check if user has at least 1 host credit
-            if (currentHostCredits < 1) {
-              throw new Error('Insufficient host credits');
-            }
-            
-            const newHostCredits = currentHostCredits - 1;
-            
-            // Reduce tournament credits by 1 to match the security rule
-            // This will be allowed by the security rule that permits tournament credit reduction
-            await updateDoc(userRef, {
-              'wallet.tournamentCredits': currentTournamentCredits - 1,
-              'wallet.hostCredits': newHostCredits,
-              'wallet.lastUpdated': serverTimestamp()
+            // This is the correct way to deduct host credits
+            // It will only run if the user has enough host credits
+            await runTransaction(db, async (transaction) => {
+              const userDoc = await transaction.get(userRef);
+              if (!userDoc.exists()) {
+                throw new Error("User not found");
+              }
+              const userData = userDoc.data();
+              const wallet = userData.wallet || {};
+              const currentHostCredits = wallet.hostCredits || 0;
+
+              if (currentHostCredits < 1) {
+                throw new Error("Insufficient host credits. You need at least 1 Host Credit to publish a tournament.");
+              }
+              
+              const newHostCredits = currentHostCredits - 1;
+
+              // Update host credits within the transaction
+              transaction.update(userRef, {
+                'wallet.hostCredits': newHostCredits,
+                'wallet.lastUpdated': serverTimestamp()
+              });
+
+              // Create transaction record for auditing (outside of the main transaction update)
+              const transactionData = {
+                userId: currentUser.uid,
+                type: 'host_credit_use',
+                amount: -1,
+                balanceBefore: currentHostCredits,
+                balanceAfter: newHostCredits,
+                walletType: 'hostCredits',
+                description: `Hosted tournament: ${formData.name}`,
+                transactionDetails: {
+                  tournamentId: result.id,
+                  tournamentName: formData.name
+                },
+                createdAt: serverTimestamp() // Use server timestamp for consistency
+              };
+              // Add the transaction record in a separate step after the transaction
+              await addDoc(collection(db, 'creditTransactions'), transactionData);
             });
             
-            // Create the transaction record for auditing
-            const transactionData = {
-              userId: currentUser.uid,
-              type: 'host_credit_use',
-              amount: -1,
-              balanceBefore: currentHostCredits,
-              balanceAfter: newHostCredits,
-              walletType: 'hostCredits',
-              description: `Hosted tournament: ${formData.name}`,
-              transactionDetails: {
-                tournamentId: result.id,
-                tournamentName: formData.name
-              },
-              createdAt: serverTimestamp()
-            };
-            
-            await addDoc(collection(db, 'creditTransactions'), transactionData);
-            
-            // Restore tournament credits
-            await updateDoc(userRef, {
-              'wallet.tournamentCredits': currentTournamentCredits,
-              'wallet.lastUpdated': serverTimestamp()
-            });
-            
-            // Log successful credit deduction
-            console.log(`Host credit deducted successfully. New balance: ${newHostCredits}`);
+            console.log(`Host credit deducted successfully.`);
             
             // Force refresh the credit balance display
             refreshBalance();
             setTimeout(() => refreshHostedTournaments(), 1000);
+
           } catch (error) {
             console.error('Error deducting host credit:', error);
-            toast.error(`Failed to deduct Host Credit: ${error.message}`, { id: toastId, duration: 3000 });
+            // If host credit deduction fails, we should ideally roll back the tournament creation
+            // For now, we'll show an error to the user
+            toast.error(`Failed to deduct Host Credit: ${error.message}`, { id: toastId, duration: 5000 });
             // Even if this fails, the tournament is created, so proceed with success.
           }
         }

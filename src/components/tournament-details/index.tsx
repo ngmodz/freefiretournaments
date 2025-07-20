@@ -470,6 +470,7 @@ const TournamentDetailsContent: React.FC<TournamentDetailsContentProps> = ({
                 spotsLeft={spotsLeft}
                 onJoin={handleJoinTournament}
                 isHost={isHost}
+                currentUser={currentUser}
               />
 
               {/* Prize Pool Card - Show if tournament has prize pool */}
@@ -543,6 +544,7 @@ const TournamentDetailsContent: React.FC<TournamentDetailsContentProps> = ({
               {isHost && (
                 <JoinedUsersList participantUids={tournament.participants as (string | Participant)[] || []} />
               )}
+
             </div>
           </div>
 

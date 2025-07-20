@@ -9,6 +9,7 @@ import { db } from "@/lib/firebase";
 import { getUserProfile } from "@/lib/firebase/profile";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import LivePrizePool from "./LivePrizePool";
+import FixedPrizePool from "./FixedPrizePool";
 
 interface OrganizerData {
   ign: string;
@@ -22,10 +23,17 @@ const TournamentSidebar: React.FC<TournamentDetailsSidebarProps> = ({
   progressPercentage,
   spotsLeft,
   onJoin,
-  isHost = false
+  isHost = false,
+  currentUser,
 }) => {
   const [organizer, setOrganizer] = useState<OrganizerData | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Check if the current user has already joined the tournament
+  const hasJoined = currentUser && tournament.participants.some(p => {
+    if (typeof p === 'string') return p === currentUser.uid;
+    return p.authUid === currentUser.uid;
+  });
 
   useEffect(() => {
     const fetchOrganizerData = async () => {
@@ -111,13 +119,21 @@ const TournamentSidebar: React.FC<TournamentDetailsSidebarProps> = ({
               {spotsLeft > 0 ? `${spotsLeft} spots remaining` : 'Fully booked'}
             </div>
           </div>
-          <Button 
-            className="w-full bg-gaming-primary hover:bg-gaming-primary/90" 
-            disabled={tournament.status !== 'active' || spotsLeft <= 0}
-            onClick={onJoin}
-          >
-            {tournament.status !== 'active' ? `Registration ${tournament.status}` : spotsLeft <= 0 ? 'Tournament Full' : 'Join Tournament'}
-          </Button>
+          {!isHost && (
+            <Button
+              className="w-full bg-gaming-primary hover:bg-gaming-primary/90"
+              disabled={tournament.status !== 'active' || spotsLeft <= 0 || hasJoined}
+              onClick={onJoin}
+            >
+              {hasJoined
+                ? "Joined"
+                : tournament.status !== 'active'
+                ? `Registration ${tournament.status}`
+                : spotsLeft <= 0
+                ? 'Tournament Full'
+                : 'Join Tournament'}
+            </Button>
+          )}
         </div>
       </Card>
 
@@ -145,8 +161,12 @@ const TournamentSidebar: React.FC<TournamentDetailsSidebarProps> = ({
         </div>
       </Card>
 
-      {/* Live Prize Pool Component */}
-      <LivePrizePool tournament={tournament} isHost={isHost} />
+      {/* Conditionally render Prize Pool Component */}
+      {tournament.entry_fee > 0 ? (
+        <LivePrizePool tournament={tournament} isHost={isHost} />
+      ) : (
+        <FixedPrizePool tournament={tournament} />
+      )}
     </div>
   );
 };

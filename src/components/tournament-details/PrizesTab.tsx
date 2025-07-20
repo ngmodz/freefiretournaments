@@ -45,10 +45,17 @@ const sortPositions = (a: string, b: string): number => {
 
 // Helper to determine prize mode and get prize amount
 function getPrizeAmount(tournament: Tournament, position: string) {
-  const { entry_fee, filled_spots, prize_distribution, currentPrizePool } = tournament;
+  const { entry_fee, filled_spots, prize_distribution, currentPrizePool, manual_prize_pool } = tournament;
   
-  // Calculate the actual prize pool - use currentPrizePool if it exists and is reasonable,
-  // otherwise calculate from entry fees and participants
+  // 1. Check for manual prize pool (for free tournaments)
+  if (entry_fee === 0 && manual_prize_pool) {
+    const key = position.toLowerCase().replace(/ place/g, ''); // "First Place" -> "first"
+    if (key.startsWith('first') || key.startsWith('1')) return manual_prize_pool.first || 0;
+    if (key.startsWith('second') || key.startsWith('2')) return manual_prize_pool.second || 0;
+    if (key.startsWith('third') || key.startsWith('3')) return manual_prize_pool.third || 0;
+  }
+  
+  // 2. Calculate for percentage-based prize pool
   let actualPrizePool = currentPrizePool || 0;
   
   // Fallback calculation if currentPrizePool seems incorrect
@@ -182,10 +189,19 @@ const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
     return errors;
   };
 
-  // Sort prizes by position
-  const sortedPrizes = Object.entries(tournament.prize_distribution || {})
-    .filter(([_, percentage]) => percentage > 0)
-    .sort(([posA], [posB]) => sortPositions(posA, posB));
+  // Determine which prize structure to use
+  const hasManualPrizes = tournament.entry_fee === 0 && tournament.manual_prize_pool && 
+                         Object.values(tournament.manual_prize_pool).some(p => p > 0);
+
+  // Sort prizes based on the structure
+  const sortedPrizes = hasManualPrizes
+    ? Object.entries(tournament.manual_prize_pool || {})
+        .map(([pos, amount]) => [`${pos.charAt(0).toUpperCase() + pos.slice(1)}`, amount] as [string, number]) // Format position name
+        .filter(([_, amount]) => amount > 0)
+        .sort(([posA], [posB]) => sortPositions(posA, posB))
+    : Object.entries(tournament.prize_distribution || {})
+        .filter(([_, percentage]) => percentage > 0)
+        .sort(([posA], [posB]) => sortPositions(posA, posB));
 
   const handleInputChange = (position: string, field: "uid" | "ign", value: string) => {
     console.log("🎯 Input change:", { position, field, value });
@@ -559,14 +575,22 @@ const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
                 <div>
                   <div className="text-sm text-gaming-muted font-medium">{position} Place</div>
                   <div className="space-y-1">
-                    <div className="font-bold text-lg flex items-center gap-2">
-                      <span className="text-gaming-accent">{getPrizeAmount(tournament, position).toLocaleString()} credits</span>
-                      <span className="text-gray-400">•</span>
-                      <span className="text-gray-300 text-sm">{credits}%</span>
-                    </div>
-                    <div className="text-xs text-gray-400">
-                      {credits}% of {(tournament.currentPrizePool || (tournament.entry_fee * tournament.filled_spots)).toLocaleString()} credits pool
-                    </div>
+                    {hasManualPrizes ? (
+                      <div className="font-bold text-lg flex items-center gap-2">
+                        <span className="text-gaming-accent">{credits.toLocaleString()} credits</span>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="font-bold text-lg flex items-center gap-2">
+                          <span className="text-gaming-accent">{getPrizeAmount(tournament, position).toLocaleString()} credits</span>
+                          <span className="text-gray-400">•</span>
+                          <span className="text-gray-300 text-sm">{credits}%</span>
+                        </div>
+                        <div className="text-xs text-gray-400">
+                          {credits}% of {(tournament.currentPrizePool || (tournament.entry_fee * tournament.filled_spots)).toLocaleString()} credits pool
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -673,8 +697,8 @@ const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
         </div>
       </div>
 
-      {/* Host Earnings Collection */}
-      {isHost && tournament.status === "ended" && !tournament.hostEarningsDistributed && (
+      {/* Host Earnings Collection - ONLY for paid tournaments */}
+      {isHost && tournament.status === "ended" && !tournament.hostEarningsDistributed && tournament.entry_fee > 0 && (
         <div className="mb-6 p-4 bg-gradient-to-r from-green-900/20 to-gaming-bg rounded-lg border border-green-400/20">
           <h3 className="text-lg font-semibold mb-3 text-green-300 flex items-center gap-2">
             <TrendingUp className="w-5 h-5" />
@@ -754,8 +778,8 @@ const PrizesTab: React.FC<PrizesTabProps> = ({ tournament }) => {
         </div>
       )}
 
-      {/* Host Earnings Already Collected */}
-      {isHost && tournament.hostEarningsDistributed && (
+      {/* Host Earnings Already Collected - ONLY for paid tournaments */}
+      {isHost && tournament.hostEarningsDistributed && tournament.entry_fee > 0 && (
         <div className="mb-6 p-4 bg-gradient-to-r from-green-900/10 to-gaming-bg rounded-lg border border-green-400/10">
           <div className="flex items-center gap-2 text-green-400">
             <CheckCircle2 className="w-5 h-5" />

@@ -110,7 +110,7 @@ const TournamentCard = ({ tournament }: TournamentCardProps) => {
             {/* Prize Money */}
             <div className="flex items-center bg-black/60 backdrop-blur-sm text-white text-xs font-bold px-1.5 py-0.5 rounded transition-all duration-300 group-hover:bg-black/80">
               <Trophy size={12} className="mr-1 text-gaming-accent" />
-              <span className="text-gaming-accent">{prizeMoney} credits</span>
+              <span className="text-gaming-accent">{prizeMoney || 0} credits</span>
             </div>
             
             {/* Status Badge */}
@@ -122,7 +122,7 @@ const TournamentCard = ({ tournament }: TournamentCardProps) => {
           
           {/* Entry Fee - Bottom right */}
           <div className="absolute bottom-1.5 right-1.5 bg-gaming-accent text-white text-xs font-bold px-1.5 py-0.5 rounded transition-all duration-300 group-hover:bg-gaming-accent/90 group-hover:shadow-md group-hover:shadow-purple-500/20 group-hover:scale-105">
-            {entryFee} credits Entry
+            {entryFee > 0 ? `${entryFee} credits Entry` : "Free Entry"}
           </div>
         </div>
         

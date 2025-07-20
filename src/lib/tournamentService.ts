@@ -20,7 +20,7 @@ import {
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage, auth } from "./firebase";
 import { TournamentFormData } from "@/pages/TournamentCreate";
-import { useTournamentCredits, useTournamentCreditsForPrizePool } from "./walletService";
+import { useTournamentCreditsForPrizePool } from "./walletService";
 import { getUserProfile } from './firebase';
 
 /**
@@ -118,6 +118,11 @@ export interface Tournament {
   initialPrizePool?: number; // Stores the initial prize pool amount for free tournaments
   hostEarningsDistributed?: boolean; // Flag to check if host earnings have been collected
   hostEarningsAmount?: number; // Amount of host earnings collected
+  manual_prize_pool?: {
+    first?: number;
+    second?: number;
+    third?: number;
+  };
 }
 
 // Helper to convert Firestore timestamps to ISO strings
@@ -187,10 +192,19 @@ export const createTournament = async (tournamentData: Omit<TournamentFormData, 
     // Validate required fields
     const requiredFields = [
       'name', 'description', 'mode', 'max_players', 'min_participants', 'start_date',
-      'map', 'room_type', 'entry_fee', 'prize_distribution', 'rules'
+      'map', 'room_type', 'rules'
     ];
 
-    const missingFields = requiredFields.filter(field => !tournamentData[field]);
+    const missingFields = requiredFields.filter(field => {
+      const value = tournamentData[field];
+      return value === null || value === undefined || value === '';
+    });
+    
+    // Explicitly check for entry_fee being null or undefined, but allow 0
+    if (tournamentData.entry_fee === null || tournamentData.entry_fee === undefined) {
+      missingFields.push('entry_fee');
+    }
+
     if (missingFields.length > 0) {
       throw new Error(`Missing required tournament fields: ${missingFields.join(', ')}`);
     }
@@ -200,7 +214,8 @@ export const createTournament = async (tournamentData: Omit<TournamentFormData, 
       throw new Error('Invalid start date format');
     }
 
-    // Validate prize distribution percentages
+    // Validate prize distribution percentages only for paid tournaments
+    if (tournamentData.entry_fee > 0) {
     const prizePercentages = Object.values(tournamentData.prize_distribution);
     const prizeTotalPercentage = prizePercentages.reduce((sum, value) => sum + value, 0);
     
@@ -215,6 +230,7 @@ export const createTournament = async (tournamentData: Omit<TournamentFormData, 
     // Validate that all prize percentages are valid numbers
     if (prizePercentages.some(p => isNaN(p) || p < 0)) {
       throw new Error('All prize percentages must be valid non-negative numbers');
+      }
     }
 
     // Validate minimum participants
@@ -228,20 +244,14 @@ export const createTournament = async (tournamentData: Omit<TournamentFormData, 
     // Prepare tournament data
     let initialPrizePool = 0;
     
-    // Calculate total prize pool amount for free tournaments
-    if (tournamentData.entry_fee === 0) {
-      // If there's a prize distribution but entry fee is 0, host must fund it from their credits
-      const hasPrizeDistribution = Object.keys(tournamentData.prize_distribution).length > 0;
-      
-      // If this is a free tournament with prizes, we need to deduct from host tournament credits
-      if (hasPrizeDistribution) {
-        // For free tournaments, we need to determine the prize pool amount
-        // This is based on the max number of players and a base prize value
-        // This calculation can be adjusted based on business requirements
-        const basePrizeValue = 10; // Base value per player
-        initialPrizePool = tournamentData.max_players * basePrizeValue;
-        
+    // Handle manual prize pool for free tournaments
+    if (tournamentData.entry_fee === 0 && tournamentData.manual_prize_pool) {
+      const { first = 0, second = 0, third = 0 } = tournamentData.manual_prize_pool;
+      initialPrizePool = first + second + third;
+
+      if (initialPrizePool > 0) {
         // Deduct the prize pool amount from the host's tournament credits
+        // This can result in a negative balance
         const deductionResult = await useTournamentCreditsForPrizePool(
           currentUser.uid,
           'pending', // We don't have the tournament ID yet, will update after creation
@@ -253,6 +263,10 @@ export const createTournament = async (tournamentData: Omit<TournamentFormData, 
           throw new Error(`Failed to fund prize pool: ${deductionResult.error}`);
         }
       }
+    } else if (tournamentData.entry_fee > 0) {
+      // For paid tournaments, prize pool is calculated based on entry fees
+      // This will be handled dynamically as users join
+      initialPrizePool = 0; // Starts at 0 and grows
     }
 
     // Don't set TTL during creation - only when tournament is started by host
@@ -271,6 +285,7 @@ export const createTournament = async (tournamentData: Omit<TournamentFormData, 
       initialPrizePool: initialPrizePool > 0 ? initialPrizePool : 0, // Store initial amount for reference
       total_prizes_distributed: 0, // Initialize prizes distributed tracking
       host_earnings_distributed: 0, // Initialize host earnings tracking
+      manual_prize_pool: tournamentData.manual_prize_pool || {},
       // ttl will be set when host starts the tournament
     };
 
@@ -1022,7 +1037,7 @@ export const setTTLForScheduledTournaments = async () => {
 
     const allTournaments = await getDocs(allTournamentsQuery);
     
-    console.log(`� DEBUGGING: Found ${allTournaments.size} total tournaments`);
+    console.log(`🔍 DEBUGGING: Found ${allTournaments.size} total tournaments`);
 
     // Filter and debug each tournament
     const tournamentsNeedingTTL: any[] = [];

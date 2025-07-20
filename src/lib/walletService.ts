@@ -713,52 +713,47 @@ export const useTournamentCreditsForPrizePool = async (
   tournamentName: string,
   prizePoolAmount: number
 ) => {
+  const userRef = doc(db, 'users', userId);
   try {
-    // Get the user's current host credit balance
-    const userRef = doc(db, 'users', userId);
     const userDoc = await getDoc(userRef);
-    
     if (!userDoc.exists()) {
       return { success: false, error: 'User not found' };
     }
-    
+
     const userData = userDoc.data();
-    const currentCredits = userData.wallet?.tournamentCredits || 0;
-    
-    // Check if user has enough tournament credits for the prize pool
-    if (currentCredits < prizePoolAmount) {
-      return { 
-        success: false, 
-        error: `Insufficient tournament credits. You need ${prizePoolAmount} credits to fund this prize pool.` 
-      };
-    }
-    
-    const newCredits = currentCredits - prizePoolAmount;
-    
-    // Create a credit transaction
-    const transaction: CreditTransaction = {
+    const wallet = userData.wallet || {};
+    const currentTournamentCredits = wallet.tournamentCredits || 0;
+
+    // Allow balance to go negative
+    const newTournamentCredits = currentTournamentCredits - prizePoolAmount;
+
+    // Manually add a transaction record for auditing first
+    const transactionData = {
       userId,
-      type: 'fund_prize_pool',
+      type: 'fund_prize_pool' as const,
       amount: -prizePoolAmount,
-      balanceBefore: currentCredits,
-      balanceAfter: newCredits,
-      walletType: 'tournamentCredits',
-      description: `Funded prize pool for free-entry tournament: ${tournamentName}`,
+      balanceBefore: currentTournamentCredits,
+      balanceAfter: newTournamentCredits,
+      walletType: 'tournamentCredits' as const,
+      description: `Funded prize pool for tournament: ${tournamentName}`,
       transactionDetails: {
         tournamentId,
         tournamentName
       },
-      createdAt: new Date()
+      createdAt: serverTimestamp(),
     };
+    await addDoc(collection(db, 'creditTransactions'), transactionData);
     
-    // Add the transaction
-    const result = await addCreditTransaction(transaction);
-    
-    // Remove redundant update - addCreditTransaction already updates the wallet
-    
-    return result;
+    // Now, update the user's tournament credits balance directly
+    await updateDoc(userRef, {
+      'wallet.tournamentCredits': newTournamentCredits,
+      'wallet.lastUpdated': serverTimestamp()
+    });
+
+    return { success: true, newBalance: newTournamentCredits };
   } catch (error) {
-    console.error('Error using tournament credits for prize pool:', error);
-    return { success: false, error };
+    console.error('Error funding prize pool with tournament credits:', error);
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+    return { success: false, error: errorMessage };
   }
 }; 

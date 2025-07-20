@@ -44,6 +44,11 @@ export type TournamentFormData = {
   prize_distribution: {
     [key: string]: number;
   };
+  manual_prize_pool?: {
+    first?: number;
+    second?: number;
+    third?: number;
+  };
 
   // Step 4: Rules & Media
   rules: string;
@@ -79,6 +84,7 @@ const TournamentCreate = () => {
       "2nd": 25,
       "3rd": 10
     },
+    manual_prize_pool: {},
     rules: `Don't change your slot in the custom room as it will make it difficult for the host to verify participants.\nNo use of unauthorized third-party apps or mods.\nNo teaming with other squads during matches.\nIntentionally disconnecting to avoid elimination is prohibited.\nAny form of harassment or toxic behavior will not be tolerated.`,
   });
 

@@ -1,4 +1,5 @@
 import { Tournament } from "@/lib/tournamentService";
+import { UserProfile } from "@/lib/types";
 
 export interface TournamentProps {
   id: string;
@@ -22,6 +23,7 @@ export interface TournamentDetailsSidebarProps {
   spotsLeft: number;
   onJoin: () => void;
   isHost?: boolean;
+  currentUser?: { uid: string; ign: string } | null;
 }
 
 export interface RoomDetailsProps {
