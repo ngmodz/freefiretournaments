@@ -124,10 +124,10 @@ async function processSuccessfulPayment(orderData, webhookData, cfPaymentId, ord
     
     // Get user ID from order_tags first, then fallback to customer_details
     const userId = orderTags.userId || customerDetails.customer_id;
-    const packageType = orderTags.packageType || 'host'; // Default to host since this was a host pack purchase
+    const packageType = orderTags.packageType || 'tournament'; // Default to tournament, not host
     const packageId = orderTags.packageId || '';
-    const packageName = orderTags.packageName || 'Basic Host Pack';
-    const creditsAmount = orderTags.creditsAmount || '1'; // Default to 1 credit for ₹1 purchase
+    const packageName = orderTags.packageName || 'Credits';
+    const creditsAmount = orderTags.creditsAmount || ''; // No default fallback for safety
     
     if (!userId) {
       console.error('❌ User ID not found in webhook data:', {

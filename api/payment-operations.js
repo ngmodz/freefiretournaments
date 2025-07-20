@@ -50,7 +50,10 @@ const handleCreateOrder = async (req, res) => {
       userEmail,
       userPhone,
       packageType = 'tournament',
-      packageDetails = 'Credit purchase'
+      packageDetails = 'Credit purchase',
+      packageId,
+      packageName,
+      creditsAmount
     } = req.body;
 
     // Validation
@@ -59,6 +62,12 @@ const handleCreateOrder = async (req, res) => {
     }
     if (!userId) {
       return res.status(400).json({ error: 'User ID is required' });
+    }
+
+    // Validate credit purchase parameters
+    if (packageType && (!creditsAmount || isNaN(parseInt(creditsAmount)) || parseInt(creditsAmount) <= 0)) {
+      console.error('Invalid creditsAmount for credit purchase:', { packageType, creditsAmount });
+      return res.status(400).json({ error: 'Valid credits amount is required for credit purchase' });
     }
 
     // Generate unique order ID
@@ -80,6 +89,13 @@ const handleCreateOrder = async (req, res) => {
         return_url: `${returnUrl}/payment/success?order_id={order_id}`,
         notify_url: `${returnUrl}/api/payment-webhook`,
         payment_methods: 'cc,dc,nb,upi'
+      },
+      order_tags: {
+        userId: userId,
+        packageType: packageType,
+        packageId: packageId || '',
+        packageName: packageName || '',
+        creditsAmount: creditsAmount ? creditsAmount.toString() : ''
       },
       order_note: `${packageType} package: ${packageDetails}`
     };

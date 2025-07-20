@@ -53,7 +53,7 @@ const Credits = () => {
       id: 'starter_pack',
       name: 'Starter Pack',
       credits: 50,
-      price: 50,
+      price: 1, // Testing: Changed from 50 to 1
       features: ['50 Tournament Credits', 'Entry fee up to ₹50', 'Perfect for beginners', 'Join multiple tournaments'],
       icon: <Coins size={24} />,
       gradient: 'from-blue-500/20 to-cyan-500/20',
@@ -113,7 +113,7 @@ const Credits = () => {
       id: 'basic_host_pack',
       name: 'Basic Host Pack',
       credits: 3,
-      price: 29,
+      price: 1, // Testing: Changed from 29 to 1
       features: ['Create 3 tournaments', 'Basic host tools', 'Standard support', 'Tournament management'],
       icon: <CreditCard size={24} />,
       gradient: 'from-gaming-primary/20 to-blue-600/20',
