@@ -14,4 +14,9 @@ export interface TournamentType {
   status: TournamentStatus;
   ttl?: any; // Can be a Firestore Timestamp
   host_id?: string;
+  manual_prize_pool?: {
+    first?: number;
+    second?: number;
+    third?: number;
+  };
 }

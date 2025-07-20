@@ -56,13 +56,22 @@ const Index = () => {
             startDate = new Date(); // Fallback
           }
           
+          // Calculate the prize money correctly
+          let calculatedPrizeMoney = tournament.entry_fee * tournament.max_players;
+          
+          // For free tournaments with manual prize pool, use the manual prize pool
+          if (tournament.entry_fee === 0 && tournament.manual_prize_pool) {
+            const { first = 0, second = 0, third = 0 } = tournament.manual_prize_pool;
+            calculatedPrizeMoney = first + second + third;
+          }
+          
           return {
             id: tournament.id,
             title: tournament.name,
             mode: tournament.mode,
             map: tournament.map || "",
             entryFee: tournament.entry_fee,
-            prizeMoney: tournament.entry_fee * tournament.max_players,
+            prizeMoney: calculatedPrizeMoney,
             date: startDate.toISOString(),
             time: startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             totalSpots: tournament.max_players,
@@ -71,7 +80,8 @@ const Index = () => {
                     tournament.status === 'ongoing' ? 'ongoing' : 
                     tournament.status === 'ended' ? 'ended' :
                     tournament.status === 'completed' ? 'completed' :
-                    tournament.status === 'cancelled' ? 'cancelled' : 'active'
+                    tournament.status === 'cancelled' ? 'cancelled' : 'active',
+            manual_prize_pool: tournament.manual_prize_pool
           };
         });
         

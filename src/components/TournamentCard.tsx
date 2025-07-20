@@ -43,8 +43,27 @@ const TournamentCard = ({ tournament }: TournamentCardProps) => {
     filledSpots,
     status,
     host_id,
+    manual_prize_pool,
   } = tournament;
 
+  // Calculate the total prize money, including manual prize pools for free entry tournaments
+  const getTotalPrizeMoney = () => {
+    // If prizeMoney is already set, use it
+    if (prizeMoney > 0) return prizeMoney;
+    
+    // For free entry tournaments with manual prize pool
+    if (entryFee === 0 && manual_prize_pool) {
+      const totalManualPrize = 
+        (manual_prize_pool.first || 0) +
+        (manual_prize_pool.second || 0) +
+        (manual_prize_pool.third || 0);
+      
+      return totalManualPrize;
+    }
+    
+    return 0;
+  };
+  
   const isHost = currentUser?.uid === host_id;
   
   // Use the tournament ID to generate a consistent index for banner image
@@ -110,7 +129,7 @@ const TournamentCard = ({ tournament }: TournamentCardProps) => {
             {/* Prize Money */}
             <div className="flex items-center bg-black/60 backdrop-blur-sm text-white text-xs font-bold px-1.5 py-0.5 rounded transition-all duration-300 group-hover:bg-black/80">
               <Trophy size={12} className="mr-1 text-gaming-accent" />
-              <span className="text-gaming-accent">{prizeMoney || 0} credits</span>
+              <span className="text-gaming-accent">{getTotalPrizeMoney()} credits</span>
             </div>
             
             {/* Status Badge */}
@@ -171,7 +190,7 @@ const TournamentCard = ({ tournament }: TournamentCardProps) => {
                 className="w-full bg-gaming-accent hover:bg-gaming-accent/90 text-white transition-all duration-300 transform group-hover:scale-[1.02] group-hover:shadow-md group-hover:shadow-purple-500/20"
                 onClick={e => {
                   e.preventDefault();
-                  navigate(`/tournament/${id}`);
+                  navigate(`/tournament/${id}`)
                 }}
               >
                 Join Tournament
