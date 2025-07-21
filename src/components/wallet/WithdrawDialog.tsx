@@ -104,8 +104,8 @@ const WithdrawDialog = ({
       return;
     }
 
-    if (numAmount < 100) {
-      setError("Minimum withdrawal amount is ₹100.");
+    if (numAmount < 10) {
+      setError("Minimum withdrawal amount is ₹10.");
       return;
     }
 

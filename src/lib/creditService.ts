@@ -87,6 +87,10 @@ export class CreditService {
     const userRef = doc(db, 'users', userId);
 
     try {
+      // Enforce minimum withdrawal amount
+      if (amount < 10) {
+        return { success: false, error: 'Minimum withdrawal amount is ₹10.' };
+      }
       // Check withdrawal requests in the last 24 hours
       const withdrawalRequestsRef = collection(db, 'withdrawalRequests');
       const now = FirestoreTimestamp.now();
