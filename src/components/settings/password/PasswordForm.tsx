@@ -44,15 +44,9 @@ const PasswordForm = ({ onClose }: PasswordFormProps) => {
     if (!form.newPassword) {
       errors.newPassword = "New password is required";
       isValid = false;
-    } else {
-      const newPasswordErrors = validatePassword(form.newPassword);
-      if (newPasswordErrors.length > 0) {
-        errors.newPassword = "Password does not meet requirements";
-        isValid = false;
-      } else if (form.currentPassword === form.newPassword) {
-        errors.newPassword = "New password must be different from current password";
-        isValid = false;
-      }
+    } else if (form.currentPassword === form.newPassword) {
+      errors.newPassword = "New password must be different from current password";
+      isValid = false;
     }
 
     // Validate confirm password

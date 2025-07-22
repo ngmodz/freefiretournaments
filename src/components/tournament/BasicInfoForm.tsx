@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TournamentFormData } from "@/pages/TournamentCreate";
 import React, { useRef } from "react";
-import { Calendar } from "lucide-react";
+import { Calendar, Users, User, UserCheck } from "lucide-react";
+import { getTeamSizeForMode } from "@/lib/teamService";
 
 interface BasicInfoFormProps {
   formData: TournamentFormData;
@@ -34,10 +35,55 @@ const BasicInfoForm = ({ formData, updateFormData, nextStep }: BasicInfoFormProp
 
   const startDateInputRef = useRef<HTMLInputElement>(null);
 
-  // Handle mode change with proper typing
+  // Handle mode change with proper typing and adjust max players
   const handleModeChange = (value: string) => {
-    setMode(value as GameMode);
+    const newMode = value as GameMode;
+    setMode(newMode);
+    
+    // Auto-adjust max players based on mode for better UX
+    if (newMode === "Solo") {
+      // For solo, max players is just the number of individual players
+      if (maxPlayers < 2) setMaxPlayers(12); // Default solo tournament size
+    } else if (newMode === "Duo") {
+      // For duo, max players should be even (teams of 2)
+      const currentTeams = Math.floor(maxPlayers / 2);
+      setMaxPlayers(currentTeams * 2);
+      if (maxPlayers < 4) setMaxPlayers(12); // At least 6 teams (12 players)
+    } else if (newMode === "Squad") {
+      // For squad, max players should be divisible by team size
+      const currentTeams = Math.floor(maxPlayers / 4);
+      setMaxPlayers(currentTeams * 4);
+      if (maxPlayers < 8) setMaxPlayers(16); // At least 4 teams (16 players)
+    }
   };
+
+  // Calculate team-related info for display
+  const getTeamInfo = () => {
+    if (mode === "Solo") {
+      return {
+        teamsCount: maxPlayers,
+        playersPerTeam: 1,
+        icon: User,
+        description: "Individual players"
+      };
+    } else if (mode === "Duo") {
+      return {
+        teamsCount: Math.floor(maxPlayers / 2),
+        playersPerTeam: 2,
+        icon: UserCheck,
+        description: "Teams of 2 players"
+      };
+    } else {
+      return {
+        teamsCount: Math.floor(maxPlayers / 4),
+        playersPerTeam: 4,
+        icon: Users,
+        description: "Teams of up to 4 players"
+      };
+    }
+  };
+
+  const teamInfo = getTeamInfo();
 
   const validateForm = () => {
     const newErrors = {
@@ -152,11 +198,34 @@ const BasicInfoForm = ({ formData, updateFormData, nextStep }: BasicInfoFormProp
                 <SelectValue placeholder="Select mode" />
               </SelectTrigger>
               <SelectContent className="bg-gaming-card border-2 border-gray-600 text-white">
-                <SelectItem value="Solo">Solo</SelectItem>
-                <SelectItem value="Duo">Duo</SelectItem>
-                <SelectItem value="Squad">Squad</SelectItem>
+                <SelectItem value="Solo">
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    Solo
+                  </div>
+                </SelectItem>
+                <SelectItem value="Duo">
+                  <div className="flex items-center gap-2">
+                    <UserCheck className="h-4 w-4" />
+                    Duo
+                  </div>
+                </SelectItem>
+                <SelectItem value="Squad">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    Squad
+                  </div>
+                </SelectItem>
               </SelectContent>
             </Select>
+            
+            {/* Team Info Display */}
+            <div className="mt-2 p-2 bg-gaming-bg/30 rounded-md border border-gaming-border/30">
+              <div className="flex items-center gap-2 text-sm text-gaming-muted">
+                <teamInfo.icon className="h-4 w-4 text-gaming-primary" />
+                <span>{teamInfo.description}</span>
+              </div>
+            </div>
           </div>
           
           <div className="space-y-2">
@@ -179,8 +248,16 @@ const BasicInfoForm = ({ formData, updateFormData, nextStep }: BasicInfoFormProp
               max="100"
               required
             />
-            {errors.maxPlayers && (
+            {errors.maxPlayers ? (
               <p className="text-xs text-red-500">{errors.maxPlayers}</p>
+            ) : (
+              <div className="text-xs text-gaming-muted">
+                {mode === "Solo" ? (
+                  `${maxPlayers} individual players`
+                ) : (
+                  `${teamInfo.teamsCount} teams (${maxPlayers} total players)`
+                )}
+              </div>
             )}
           </div>
           

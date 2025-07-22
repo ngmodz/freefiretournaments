@@ -17,29 +17,8 @@ interface RegisterFormProps {
 
 // Password validation helper function
 const validatePassword = (password: string) => {
-  const errors = [];
-  
-  if (password.length < 8) {
-    errors.push("Password must be at least 8 characters");
-  }
-  
-  if (!/[A-Z]/.test(password)) {
-    errors.push("Password must contain at least one uppercase letter");
-  }
-  
-  if (!/[a-z]/.test(password)) {
-    errors.push("Password must contain at least one lowercase letter");
-  }
-  
-  if (!/[0-9]/.test(password)) {
-    errors.push("Password must contain at least one number");
-  }
-  
-  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
-    errors.push("Password must contain at least one special character");
-  }
-  
-  return errors;
+  // No requirements: any password is allowed
+  return [];
 };
 
 const RegisterForm = ({ setActiveTab }: RegisterFormProps) => {
@@ -61,16 +40,11 @@ const RegisterForm = ({ setActiveTab }: RegisterFormProps) => {
   // Password validation errors
   const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
 
-  // Check password strength as user types
+  // Check password as user types
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newPassword = e.target.value;
     setRegisterPassword(newPassword);
-    
-    if (newPassword) {
-      setPasswordErrors(validatePassword(newPassword));
-    } else {
-      setPasswordErrors([]);
-    }
+    setPasswordErrors([]); // No requirements
   };
   
   const validateRegisterForm = () => {
@@ -94,12 +68,6 @@ const RegisterForm = ({ setActiveTab }: RegisterFormProps) => {
     if (!registerPassword) {
       errors.password = "Password is required";
       isValid = false;
-    } else {
-      const passwordValidationErrors = validatePassword(registerPassword);
-      if (passwordValidationErrors.length > 0) {
-        errors.password = "Password does not meet requirements";
-        isValid = false;
-      }
     }
     
     if (!registerFFID) {
@@ -304,38 +272,7 @@ const RegisterForm = ({ setActiveTab }: RegisterFormProps) => {
         )}
         
         {/* Password requirements - only shown when password doesn't meet requirements */}
-        {registerPassword && passwordErrors.length > 0 && (
-          <div className="mt-2 space-y-1">
-            <p className="text-xs text-gaming-text/70">Password requirements:</p>
-            <ul className="text-xs space-y-1">
-              <li className={cn("flex items-center gap-1", 
-                registerPassword.length >= 8 ? "text-green-500" : "text-gaming-text/50")}>
-                <Check size={12} className={registerPassword.length >= 8 ? "text-green-500" : "text-gaming-text/50"} />
-                Minimum 8 characters
-              </li>
-              <li className={cn("flex items-center gap-1", 
-                /[A-Z]/.test(registerPassword) ? "text-green-500" : "text-gaming-text/50")}>
-                <Check size={12} className={/[A-Z]/.test(registerPassword) ? "text-green-500" : "text-gaming-text/50"} />
-                One uppercase letter
-              </li>
-              <li className={cn("flex items-center gap-1", 
-                /[a-z]/.test(registerPassword) ? "text-green-500" : "text-gaming-text/50")}>
-                <Check size={12} className={/[a-z]/.test(registerPassword) ? "text-green-500" : "text-gaming-text/50"} />
-                One lowercase letter
-              </li>
-              <li className={cn("flex items-center gap-1", 
-                /[0-9]/.test(registerPassword) ? "text-green-500" : "text-gaming-text/50")}>
-                <Check size={12} className={/[0-9]/.test(registerPassword) ? "text-green-500" : "text-gaming-text/50"} />
-                One number
-              </li>
-              <li className={cn("flex items-center gap-1", 
-                /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(registerPassword) ? "text-green-500" : "text-gaming-text/50")}>
-                <Check size={12} className={/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(registerPassword) ? "text-green-500" : "text-gaming-text/50"} />
-                One special character
-              </li>
-            </ul>
-          </div>
-        )}
+        {/* REMOVED: No password requirements UI */}
       </div>
       
       <div className="flex items-start space-x-2 my-2">

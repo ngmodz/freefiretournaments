@@ -41,40 +41,7 @@ const PasswordField = ({ value, onChange, error, passwordErrors }: PasswordField
       {error && (
         <p className="text-xs text-red-500">{error}</p>
       )}
-      
-      {/* Password requirements - only shown when password doesn't meet requirements */}
-      {value && passwordErrors.length > 0 && (
-        <div className="mt-2 space-y-1">
-          <p className="text-xs text-gaming-text/70">Password requirements:</p>
-          <ul className="text-xs space-y-1">
-            <li className={cn("flex items-center gap-1", 
-              value.length >= 8 ? "text-green-500" : "text-gaming-text/50")}>
-              <Check size={12} className={value.length >= 8 ? "text-green-500" : "text-gaming-text/50"} />
-              Minimum 8 characters
-            </li>
-            <li className={cn("flex items-center gap-1", 
-              /[A-Z]/.test(value) ? "text-green-500" : "text-gaming-text/50")}>
-              <Check size={12} className={/[A-Z]/.test(value) ? "text-green-500" : "text-gaming-text/50"} />
-              One uppercase letter
-            </li>
-            <li className={cn("flex items-center gap-1", 
-              /[a-z]/.test(value) ? "text-green-500" : "text-gaming-text/50")}>
-              <Check size={12} className={/[a-z]/.test(value) ? "text-green-500" : "text-gaming-text/50"} />
-              One lowercase letter
-            </li>
-            <li className={cn("flex items-center gap-1", 
-              /[0-9]/.test(value) ? "text-green-500" : "text-gaming-text/50")}>
-              <Check size={12} className={/[0-9]/.test(value) ? "text-green-500" : "text-gaming-text/50"} />
-              One number
-            </li>
-            <li className={cn("flex items-center gap-1", 
-              /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(value) ? "text-green-500" : "text-gaming-text/50")}>
-              <Check size={12} className={/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(value) ? "text-green-500" : "text-gaming-text/50"} />
-              One special character
-            </li>
-          </ul>
-        </div>
-      )}
+      {/* Password requirements UI removed */}
     </div>
   );
 };

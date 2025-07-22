@@ -646,6 +646,200 @@ export const joinTournament = async (tournamentId: string) => {
   }
 };
 
+// Join tournament as a team (Phase 1: Team leader pays full fee and manages team)
+export const joinTournamentAsTeam = async (
+  tournamentId: string,
+  teamData: {
+    name: string;
+    tag: string;
+    members: { ign: string; uid: string }[]; // Manually entered by leader
+  }
+) => {
+  console.log("joinTournamentAsTeam function called with ID:", tournamentId);
+  const currentUser = auth.currentUser;
+  if (!currentUser) {
+    throw new Error("You must be logged in to join a tournament");
+  }
+
+  // Define tournament variable here to make it accessible outside the transaction
+  let tournament: Tournament | null = null;
+
+  try {
+    const result = await runTransaction(db, async (transaction) => {
+      const tournamentRef = doc(db, "tournaments", tournamentId);
+      const userRef = doc(db, "users", currentUser.uid);
+
+      // 1. Read tournament and user data within the transaction
+      const tournamentDoc = await transaction.get(tournamentRef);
+      if (!tournamentDoc.exists()) {
+        throw new Error("Tournament not found");
+      }
+      // Assign to the outer tournament variable
+      tournament = { id: tournamentDoc.id, ...tournamentDoc.data() } as Tournament;
+
+      const userDoc = await transaction.get(userRef);
+      if (!userDoc.exists()) {
+        throw new Error("User profile not found");
+      }
+      const userProfile = userDoc.data();
+
+      // --- Mandatory profile field validation for team leader ---
+      const missingProfileFields: string[] = [];
+
+      if (!userProfile.ign || userProfile.ign.length < 3) {
+        missingProfileFields.push("IGN (in-game name)");
+      }
+      if (!userProfile.uid || !/^[0-9]{8,12}$/.test(userProfile.uid)) {
+        missingProfileFields.push("UID (8-12 digit Free Fire ID)");
+      }
+      if (!userProfile.fullName || userProfile.fullName.trim() === '') {
+        missingProfileFields.push("Full Name");
+      }
+      if (!userProfile.location || userProfile.location.trim() === '') {
+        missingProfileFields.push("Location");
+      }
+      if (!userProfile.phone || userProfile.phone.trim() === '') {
+        missingProfileFields.push("Mobile Number");
+      }
+      if (!userProfile.gender || userProfile.gender.trim() === '') {
+        missingProfileFields.push("Gender");
+      }
+
+      if (missingProfileFields.length > 0) {
+        throw new Error(
+          `To join a tournament as team leader, you must complete your profile. Please update the following missing fields: ${missingProfileFields.join(', ')}.`
+        );
+      }
+      // --- END Mandatory profile field validation ---
+
+      // 2. Validate tournament can accept teams
+      if (tournament.mode === "Solo") {
+        throw new Error("Cannot join solo tournaments as a team");
+      }
+
+      // 3. Validate team data
+      if (!teamData.name.trim()) {
+        throw new Error("Team name is required");
+      }
+      if (!teamData.tag.trim()) {
+        throw new Error("Team tag is required");
+      }
+      if (teamData.members.length === 0) {
+        throw new Error("At least one team member is required");
+      }
+
+      // Validate team size for tournament mode
+      const totalTeamSize = teamData.members.length + 1; // +1 for leader
+      if (tournament.mode === "Duo" && totalTeamSize !== 2) {
+        throw new Error("Duo tournaments require exactly 2 players per team");
+      }
+      if (tournament.mode === "Squad" && (totalTeamSize < 2 || totalTeamSize > 4)) {
+        throw new Error("Squad tournaments require 2-4 players per team");
+      }
+
+      // Validate each member has required fields
+      for (const member of teamData.members) {
+        if (!member.ign.trim()) {
+          throw new Error("All team members must have an IGN (in-game name)");
+        }
+        if (!member.uid.trim() || !/^[0-9]{8,12}$/.test(member.uid)) {
+          throw new Error("All team members must have a valid UID (8-12 digit Free Fire ID)");
+        }
+      }
+
+      // 4. Perform tournament validation checks
+      if (tournament.status !== "active") {
+        throw new Error(`Cannot join tournament with status: ${tournament.status}`);
+      }
+      if ((tournament.filled_spots || 0) >= (tournament.max_players || 0)) {
+        throw new Error("Tournament is full");
+      }
+      if (tournament.host_id === currentUser.uid) {
+        throw new Error("You cannot join your own tournament as you are the host");
+      }
+      const participantUids = tournament.participantUids || [];
+      if (participantUids.includes(currentUser.uid)) {
+        throw new Error("You have already joined this tournament");
+      }
+
+      // 5. Deduct credits within the transaction (team leader pays full fee)
+      const entryFee = tournament.entry_fee || 0;
+      if (entryFee > 0) {
+        const wallet = userProfile.wallet || { tournamentCredits: 0 };
+        if (wallet.tournamentCredits < entryFee) {
+          throw new Error("Insufficient tournament credits");
+        }
+        const newTournamentCredits = wallet.tournamentCredits - entryFee;
+        transaction.update(userRef, { 'wallet.tournamentCredits': newTournamentCredits });
+      }
+
+      // 6. Create team and add to tournament
+      // For Phase 1, we store team data directly in the tournament participants
+      // In Phase 2, we would create a separate team document
+      const teamParticipant = {
+        teamId: `temp_${Date.now()}_${currentUser.uid}`, // Temporary team ID
+        teamName: teamData.name.trim(),
+        teamTag: teamData.tag.trim().toUpperCase(),
+        leaderId: currentUser.uid,
+        leaderIgn: userProfile.ign,
+        leaderUid: userProfile.uid,
+        members: teamData.members.map(member => ({
+          ign: member.ign.trim(),
+          uid: member.uid.trim(),
+          role: 'member'
+        })),
+        totalMembers: totalTeamSize,
+        joinedAt: new Date().toISOString()
+      };
+
+      const participants = tournament.participants || [];
+      const updatedParticipants = [...participants, teamParticipant];
+      const updatedParticipantUids = [...participantUids, currentUser.uid];
+      const updatedFilledSpots = (tournament.filled_spots || 0) + totalTeamSize; // Add all team members to filled spots
+
+      // 7. Update tournament within the transaction
+      transaction.update(tournamentRef, {
+        participants: updatedParticipants,
+        participantUids: updatedParticipantUids,
+        filled_spots: updatedFilledSpots,
+        currentPrizePool: (tournament.currentPrizePool || 0) + entryFee,
+      });
+
+      return {
+        success: true,
+        message: `Team "${teamData.name}" has successfully joined the tournament!`,
+        teamId: teamParticipant.teamId
+      };
+    });
+
+    // (Optional but recommended) Create a credit transaction record for auditing.
+    if (tournament && tournament.entry_fee > 0) {
+      const creditTransactionData = {
+        userId: currentUser.uid,
+        type: 'tournament_join_team',
+        amount: -tournament.entry_fee,
+        walletType: 'tournamentCredits',
+        description: `Joined tournament as team leader: ${tournament.name}`,
+        transactionDetails: {
+          tournamentId: tournament.id,
+          tournamentName: tournament.name,
+          teamName: teamData.name,
+          teamTag: teamData.tag
+        },
+        createdAt: serverTimestamp()
+      };
+      await addDoc(collection(db, "creditTransactions"), creditTransactionData);
+    }
+
+    return result;
+
+  } catch (error) {
+    console.error("Error joining tournament as team:", error);
+    // Re-throw the error so the UI can catch it
+    throw error;
+  }
+};
+
 // Save tournament as draft
 export const saveTournamentDraft = async (tournamentData: Omit<TournamentFormData, "banner_image">) => {
   try {

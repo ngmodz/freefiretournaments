@@ -1,0 +1,113 @@
+{
+  "tournament": {
+    "id": "nueY8y1hxZrqYHxDX1o6",
+    "name": "Squad Championship Test",
+    "mode": "Squad",
+    "entry_fee": 0,
+    "filled_spots": 8,
+    "max_players": 16,
+    "status": "completed",
+    "prizesDistributed": true
+  },
+  "teams": [
+    {
+      "success": true,
+      "teamId": "test_team_1753205245157_5NNyyUtlA2VPWc1byPc3JnYfq5k1",
+      "teamName": "Test Squad 1",
+      "teamTag": "TS1",
+      "totalMembers": 4
+    },
+    {
+      "success": true,
+      "teamId": "test_team_1753205245729_Vo2xUkRmLgUm8XW72hAeUoGrEoh1",
+      "teamName": "Test Squad 2",
+      "teamTag": "TS2",
+      "totalMembers": 4
+    }
+  ],
+  "users": [
+    {
+      "authUid": "5NNyyUtlA2VPWc1byPc3JnYfq5k1",
+      "displayName": "Todd Upton",
+      "email": "javier.stamm@gmail.com",
+      "ign": "CarlieGAMING",
+      "uid": "594088382974",
+      "fullName": "Todd Upton"
+    },
+    {
+      "authUid": "Pe1a4qPau1asDPYA7jEFN6NggZF3",
+      "displayName": "Lance Bednar",
+      "email": "damian.nitzsche@gmail.com",
+      "ign": "LEGEND5259",
+      "uid": "630900997399",
+      "fullName": "Lance Bednar"
+    },
+    {
+      "authUid": "HhjxeDBrJ6WRWCzIbTLRr1R3FHR2",
+      "displayName": "Clifton Schoen",
+      "email": "lucie_hauck@yahoo.com",
+      "ign": "PRO4804",
+      "uid": "169215212215",
+      "fullName": "Clifton Schoen"
+    },
+    {
+      "authUid": "sVEbhw3SnuWuthdmvg3txjW61BC2",
+      "displayName": "Elena Beatty",
+      "email": "lawson19@yahoo.com",
+      "ign": "BuckCLAN",
+      "uid": "626759903642",
+      "fullName": "Elena Beatty"
+    },
+    {
+      "authUid": "Vo2xUkRmLgUm8XW72hAeUoGrEoh1",
+      "displayName": "Alexis Bosco",
+      "email": "abigale39@hotmail.com",
+      "ign": "OMEGA6255",
+      "uid": "976232685307",
+      "fullName": "Alexis Bosco"
+    },
+    {
+      "authUid": "mNpKmuPtGjheXgLcClcY50LT6tl1",
+      "displayName": "Marco Abernathy",
+      "email": "elizabeth.mclaughlin20@gmail.com",
+      "ign": "JacyntheYT",
+      "uid": "796525214974",
+      "fullName": "Marco Abernathy"
+    },
+    {
+      "authUid": "b0gS4cIMfCgWn21EfAlc9dyv5z23",
+      "displayName": "Beulah McCullough",
+      "email": "isabella.wolf@yahoo.com",
+      "ign": "JarvisYT",
+      "uid": "660900716451",
+      "fullName": "Beulah McCullough"
+    },
+    {
+      "authUid": "a1WkT4o9DpfY3NOOkeZxvk6wDRv2",
+      "displayName": "Maggie Stracke",
+      "email": "jules32@yahoo.com",
+      "ign": "CheyenneESPORTS",
+      "uid": "467349277367",
+      "fullName": "Maggie Stracke"
+    }
+  ],
+  "winners": {
+    "first": {
+      "name": "Todd Upton",
+      "ign": "CarlieGAMING",
+      "uid": "5NNyyUtlA2VPWc1byPc3JnYfq5k1",
+      "prize": 50
+    },
+    "second": {
+      "name": "Alexis Bosco",
+      "ign": "OMEGA6255",
+      "uid": "Vo2xUkRmLgUm8XW72hAeUoGrEoh1",
+      "prize": 30
+    }
+  },
+  "host": {
+    "email": "nishantgrewal2005@gmail.com",
+    "uid": "EaiefFlrNzMgpPEBUjyJvZ4Ydlx1"
+  },
+  "timestamp": "2025-07-22T17:27:30.215Z"
+}

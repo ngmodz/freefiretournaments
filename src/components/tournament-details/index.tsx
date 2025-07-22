@@ -4,6 +4,7 @@ import { ArrowLeft, AlertCircle, Trophy, Share2, KeyRound, Ban } from "lucide-re
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { useToast } from "@/hooks/use-toast";
 import { updateTournamentRoomDetails, joinTournament, Participant, startTournament, endTournament, cancelTournament } from "@/lib/tournamentService";
+import { TeamParticipant } from "@/lib/types";
 import { Tournament as TournamentType } from "@/lib/tournamentService";
 import TournamentHeader from "./TournamentHeader";
 import TournamentTabs from "./TournamentTabs";
@@ -11,6 +12,7 @@ import TournamentSidebar from "./TournamentSidebar";
 import RoomDetailsDialog from "./RoomDetailsDialog";
 import PrizeDistributionDialog from "./PrizeDistributionDialog";
 import JoinTournamentDialog from "./JoinTournamentDialog";
+import JoinAsTeamDialog from "./JoinAsTeamDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import JoinedUsersList from "./JoinedUsersList";
@@ -109,6 +111,7 @@ const TournamentDetailsContent: React.FC<TournamentDetailsContentProps> = ({
   const [isJoining, setIsJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showJoinDialog, setShowJoinDialog] = useState(false);
+  const [showJoinAsTeamDialog, setShowJoinAsTeamDialog] = useState(false);
   const [showIgnDialog, setShowIgnDialog] = useState(false);
   const [missingFields, setMissingFields] = useState<{ ign: boolean; uid: boolean }>({ ign: false, uid: false });
   const [isStarting, setIsStarting] = useState(false);
@@ -182,7 +185,7 @@ const TournamentDetailsContent: React.FC<TournamentDetailsContentProps> = ({
     const participants = tournament.participants || [];
     
     // Check participantUids first (most reliable)
-    const isAlreadyParticipant = participantUids.includes(currentUser.uid) || 
+    const isAlreadyParticipant = participantUids.includes(currentUser.uid) ||
       participants.some(p => {
         if (typeof p === 'object' && p !== null && 'authUid' in p) {
           return p.authUid === currentUser.uid;
@@ -211,8 +214,13 @@ const TournamentDetailsContent: React.FC<TournamentDetailsContentProps> = ({
       return;
     }
     
-    // Show the join dialog
-    setShowJoinDialog(true);
+    // Show appropriate join dialog based on tournament mode
+    if (tournament.mode === 'Solo') {
+      setShowJoinDialog(true);
+    } else {
+      // For Duo and Squad tournaments, show team join dialog
+      setShowJoinAsTeamDialog(true);
+    }
   };
 
   const handleConfirmJoin = async () => {
@@ -243,6 +251,46 @@ const TournamentDetailsContent: React.FC<TournamentDetailsContentProps> = ({
       }
     } catch (error) {
       console.error("Failed to join tournament:", error);
+      toast({
+        title: "Failed to Join",
+        description: error instanceof Error ? error.message : "An unexpected error occurred.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsJoining(false);
+    }
+  };
+
+  const handleConfirmTeamJoin = async (teamData: { name: string; tag: string; members: { ign: string; uid: string }[] }) => {
+    if (!currentUser || !userProfile) {
+      toast({
+        title: "Error",
+        description: "You must be logged in and have a complete profile to join.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    console.log(`Confirming team join tournament {tournamentId: '${id}', userId: '${currentUser.uid}', teamData:`, teamData, `}`);
+    setIsJoining(true);
+    
+    try {
+      // Import the team join function
+      const { joinTournamentAsTeam } = await import("@/lib/tournamentService");
+      
+      const result = await joinTournamentAsTeam(id, teamData);
+
+      if (result.success) {
+        toast({
+          title: "Success!",
+          description: result.message,
+        });
+        setShowJoinAsTeamDialog(false);
+      } else {
+        throw new Error(result.message);
+      }
+    } catch (error) {
+      console.error("Failed to join tournament as team:", error);
       toast({
         title: "Failed to Join",
         description: error instanceof Error ? error.message : "An unexpected error occurred.",
@@ -542,7 +590,10 @@ const TournamentDetailsContent: React.FC<TournamentDetailsContentProps> = ({
               
               {/* Joined Users List (Host Only, below details) */}
               {isHost && (
-                <JoinedUsersList participantUids={tournament.participants as (string | Participant)[] || []} />
+                <JoinedUsersList
+                  participantUids={tournament.participants as (string | Participant | TeamParticipant)[] || []}
+                  tournamentMode={tournament.mode}
+                />
               )}
 
             </div>
@@ -568,8 +619,9 @@ const TournamentDetailsContent: React.FC<TournamentDetailsContentProps> = ({
               tournament={{
                 id: id,
                 name: tournament.name,
+                mode: tournament.mode,
                 prizePool: tournament.prizePool,
-                participants: (tournament.participants || []).map(p => typeof p === 'string' ? p : p.authUid)
+                participants: tournament.participants as (string | TeamParticipant)[]
               }}
               hostUid={currentUser?.uid || ''}
               onSuccess={() => { /* onRefresh && onRefresh() */ }} // Removed as per edit hint
@@ -582,6 +634,15 @@ const TournamentDetailsContent: React.FC<TournamentDetailsContentProps> = ({
             onOpenChange={setShowJoinDialog}
             tournament={tournament}
             onConfirm={handleConfirmJoin}
+            isJoining={isJoining}
+          />
+
+          {/* Join as Team Dialog */}
+          <JoinAsTeamDialog
+            open={showJoinAsTeamDialog}
+            onOpenChange={setShowJoinAsTeamDialog}
+            tournament={tournament}
+            onConfirm={handleConfirmTeamJoin}
             isJoining={isJoining}
           />
         </div>

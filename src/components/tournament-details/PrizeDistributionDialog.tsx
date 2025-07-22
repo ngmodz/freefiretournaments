@@ -11,12 +11,15 @@ import { PrizeDistributionService } from "@/lib/prizeDistributionService";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
+import { TeamParticipant } from "@/lib/types";
+
 interface PrizeDistributionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   tournament: {
     id: string;
     name: string;
+    mode: "Solo" | "Duo" | "Squad";
     prizePool: {
       totalPrizeCredits: number;
       prizeDistribution: { first: number; second: number; third: number };
@@ -29,7 +32,7 @@ interface PrizeDistributionDialogProps {
         third?: { uid: string; username: string; prizeCredits: number };
       };
     };
-    participants?: string[];
+    participants?: (string | TeamParticipant)[];
   };
   hostUid: string;
   onSuccess?: () => void;
@@ -185,6 +188,20 @@ const PrizeDistributionDialog: React.FC<PrizeDistributionDialogProps> = ({
     setIsSearching(prev => ({ ...prev, [position]: true }));
 
     try {
+      // For team tournaments, validate that the UID is a team leader
+      if (tournament.mode !== 'Solo') {
+        const teamParticipants = (tournament.participants || []).filter(p => typeof p === 'object' && 'teamId' in p) as TeamParticipant[];
+        const isTeamLeader = teamParticipants.some(team => team.leaderId === uid);
+        if (!isTeamLeader) {
+          toast({
+            title: "Invalid UID",
+            description: "The entered UID does not belong to a team leader in this tournament.",
+            variant: "destructive"
+          });
+          return;
+        }
+      }
+
       const userDoc = await getDoc(doc(db, 'users', uid));
       
       if (!userDoc.exists()) {
@@ -337,14 +354,14 @@ const PrizeDistributionDialog: React.FC<PrizeDistributionDialogProps> = ({
             <div>
               <Label htmlFor="firstPlaceWinner" className="flex items-center gap-2">
                 <Trophy className="h-4 w-4 text-yellow-500" />
-                First Place Winner
+                First Place {tournament.mode !== 'Solo' ? 'Team Leader' : 'Winner'}
               </Label>
               <div className="flex gap-2 mt-1">
                 <div className="relative flex-1">
                   <Input
                     id="firstPlaceWinner"
                     value={inputValues.first}
-                    placeholder="Enter player UID"
+                    placeholder={tournament.mode !== 'Solo' ? "Enter team leader UID" : "Enter player UID"}
                     className={`bg-gaming-bg text-white ${hasPositionError('first') ? 'border-red-500 focus:border-red-500' : ''}`}
                     onChange={(e) => {
                       const uid = e.target.value;
@@ -393,14 +410,14 @@ const PrizeDistributionDialog: React.FC<PrizeDistributionDialogProps> = ({
             <div>
               <Label htmlFor="secondPlaceWinner" className="flex items-center gap-2">
                 <Trophy className="h-4 w-4 text-gray-300" />
-                Second Place Winner
+                Second Place {tournament.mode !== 'Solo' ? 'Team Leader' : 'Winner'}
               </Label>
               <div className="flex gap-2 mt-1">
                 <div className="relative flex-1">
                   <Input
                     id="secondPlaceWinner"
                     value={inputValues.second}
-                    placeholder="Enter player UID"
+                    placeholder={tournament.mode !== 'Solo' ? "Enter team leader UID" : "Enter player UID"}
                     className={`bg-gaming-bg text-white ${hasPositionError('second') ? 'border-red-500 focus:border-red-500' : ''}`}
                     onChange={(e) => {
                       const uid = e.target.value;
@@ -449,14 +466,14 @@ const PrizeDistributionDialog: React.FC<PrizeDistributionDialogProps> = ({
             <div>
               <Label htmlFor="thirdPlaceWinner" className="flex items-center gap-2">
                 <Trophy className="h-4 w-4 text-amber-700" />
-                Third Place Winner
+                Third Place {tournament.mode !== 'Solo' ? 'Team Leader' : 'Winner'}
               </Label>
               <div className="flex gap-2 mt-1">
                 <div className="relative flex-1">
                   <Input
                     id="thirdPlaceWinner"
                     value={inputValues.third}
-                    placeholder="Enter player UID"
+                    placeholder={tournament.mode !== 'Solo' ? "Enter team leader UID" : "Enter player UID"}
                     className={`bg-gaming-bg text-white ${hasPositionError('third') ? 'border-red-500 focus:border-red-500' : ''}`}
                     onChange={(e) => {
                       const uid = e.target.value;

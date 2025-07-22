@@ -23,29 +23,8 @@ interface ChangePasswordDialogProps {
 
 // Password validation helper function
 const validatePassword = (password: string) => {
-  const errors = [];
-  
-  if (password.length < 8) {
-    errors.push("Password must be at least 8 characters");
-  }
-  
-  if (!/[A-Z]/.test(password)) {
-    errors.push("Password must contain at least one uppercase letter");
-  }
-  
-  if (!/[a-z]/.test(password)) {
-    errors.push("Password must contain at least one lowercase letter");
-  }
-  
-  if (!/[0-9]/.test(password)) {
-    errors.push("Password must contain at least one number");
-  }
-  
-  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
-    errors.push("Password must contain at least one special character");
-  }
-  
-  return errors;
+  // No requirements: any password is allowed
+  return [];
 };
 
 const ChangePasswordDialog = ({ trigger }: ChangePasswordDialogProps) => {
@@ -101,15 +80,9 @@ const ChangePasswordDialog = ({ trigger }: ChangePasswordDialogProps) => {
     if (!form.newPassword) {
       errors.newPassword = "New password is required";
       isValid = false;
-    } else {
-      const newPasswordErrors = validatePassword(form.newPassword);
-      if (newPasswordErrors.length > 0) {
-        errors.newPassword = "Password does not meet requirements";
-        isValid = false;
-      } else if (form.currentPassword === form.newPassword) {
-        errors.newPassword = "New password must be different from current password";
-        isValid = false;
-      }
+    } else if (form.currentPassword === form.newPassword) {
+      errors.newPassword = "New password must be different from current password";
+      isValid = false;
     }
 
     // Validate confirm password
@@ -142,11 +115,7 @@ const ChangePasswordDialog = ({ trigger }: ChangePasswordDialogProps) => {
     
     // Check password requirements as user types
     if (name === 'newPassword') {
-      if (value) {
-        setPasswordErrors(validatePassword(value));
-      } else {
-        setPasswordErrors([]);
-      }
+      setPasswordErrors([]); // No requirements
     }
   };
 
@@ -318,39 +287,7 @@ const ChangePasswordDialog = ({ trigger }: ChangePasswordDialogProps) => {
               </p>
             )}
             
-            {/* Password requirements - only shown when needed */}
-            {form.newPassword && passwordErrors.length > 0 && (
-              <div className="mt-2 space-y-1">
-                <p className="text-xs text-[#A0AEC0]">Password requirements:</p>
-                <ul className="text-xs space-y-1">
-                  <li className={cn("flex items-center gap-1", 
-                    form.newPassword.length >= 8 ? "text-[#22C55E]" : "text-[#A0AEC0]")}>
-                    <Check size={12} className={form.newPassword.length >= 8 ? "text-[#22C55E]" : "text-[#A0AEC0]"} />
-                    Minimum 8 characters
-                  </li>
-                  <li className={cn("flex items-center gap-1", 
-                    /[A-Z]/.test(form.newPassword) ? "text-[#22C55E]" : "text-[#A0AEC0]")}>
-                    <Check size={12} className={/[A-Z]/.test(form.newPassword) ? "text-[#22C55E]" : "text-[#A0AEC0]"} />
-                    One uppercase letter
-                  </li>
-                  <li className={cn("flex items-center gap-1", 
-                    /[a-z]/.test(form.newPassword) ? "text-[#22C55E]" : "text-[#A0AEC0]")}>
-                    <Check size={12} className={/[a-z]/.test(form.newPassword) ? "text-[#22C55E]" : "text-[#A0AEC0]"} />
-                    One lowercase letter
-                  </li>
-                  <li className={cn("flex items-center gap-1", 
-                    /[0-9]/.test(form.newPassword) ? "text-[#22C55E]" : "text-[#A0AEC0]")}>
-                    <Check size={12} className={/[0-9]/.test(form.newPassword) ? "text-[#22C55E]" : "text-[#A0AEC0]"} />
-                    One number
-                  </li>
-                  <li className={cn("flex items-center gap-1", 
-                    /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(form.newPassword) ? "text-[#22C55E]" : "text-[#A0AEC0]")}>
-                    <Check size={12} className={/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(form.newPassword) ? "text-[#22C55E]" : "text-[#A0AEC0]"} />
-                    One special character
-                  </li>
-                </ul>
-              </div>
-            )}
+            {/* Password requirements UI removed */}
           </div>
 
           <div className="space-y-2">
