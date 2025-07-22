@@ -6,6 +6,7 @@
  */
 
 import { validateDuoTeam, isDuoTeam, getDuoPartner, getDuoLeader } from './src/lib/teamService';
+import { Timestamp } from 'firebase/firestore';
 
 // Test configuration
 const TEST_CASES = {
@@ -73,8 +74,8 @@ const mockDuoTeam = {
     role: 'member' as const
   }],
   tournament_id: 'tournament_123',
-  created_at: new Date(),
-  updated_at: new Date()
+  created_at: Timestamp.fromDate(new Date()),
+  updated_at: Timestamp.fromDate(new Date())
 };
 
 const mockSquadTeam = {
@@ -90,8 +91,8 @@ const mockSquadTeam = {
     { id: 'member_3', user_id: 'user_3', ign: 'Member3', uid: '333333333', role: 'member' as const }
   ],
   tournament_id: 'tournament_456',
-  created_at: new Date(),
-  updated_at: new Date()
+  created_at: Timestamp.fromDate(new Date()),
+  updated_at: Timestamp.fromDate(new Date())
 };
 
 /**
@@ -220,7 +221,7 @@ function runValidationTests() {
     const partner = getDuoPartner(mockDuoTeam);
     const noPartner = getDuoPartner(mockSquadTeam);
     
-    if (partner && partner.ign === 'DuoPartner' && partner.uid === '987654321' && !noPartner) {
+    if (partner && partner.ign === 'DuoPartner' && partner.uid === '987654321' && noPartner === null) {
       console.log('✅ PASSED: getDuoPartner correctly returns partner for duo team');
       passedTests++;
     } else {
@@ -239,7 +240,7 @@ function runValidationTests() {
     const leader = getDuoLeader(mockDuoTeam);
     const noLeader = getDuoLeader(mockSquadTeam);
     
-    if (leader && leader.ign === 'DuoLeader' && leader.uid === '123456789' && !noLeader) {
+    if (leader && leader.ign === 'DuoLeader' && leader.uid === '123456789' && noLeader === null) {
       console.log('✅ PASSED: getDuoLeader correctly returns leader for duo team');
       passedTests++;
     } else {
