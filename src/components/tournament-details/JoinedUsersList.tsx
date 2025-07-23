@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getUserProfile } from "@/lib/firebase/profile";
-import { ClipboardCopy, User, AtSign, Hash, Users, Crown, UserCheck } from 'lucide-react';
+import { ClipboardCopy, User, AtSign, Hash, Users, Crown, UserCheck, Search, X } from 'lucide-react';
 
 import { TeamParticipant } from "@/lib/types";
 import { isDuoTeam } from "@/lib/teamService";
@@ -97,6 +97,7 @@ const JoinedUsersList: React.FC<JoinedUsersListProps> = ({ participantUids, tour
   const [teams, setTeams] = useState<TeamParticipant[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     if (!participantUids || participantUids.length === 0) {
@@ -178,49 +179,137 @@ const JoinedUsersList: React.FC<JoinedUsersListProps> = ({ participantUids, tour
     processParticipants();
   }, [participantUids]);
 
-  if (loading) return (
-    <div className="py-8 flex flex-col items-center text-gaming-muted">
-      <LoaderIcon className="animate-spin mb-2 h-8 w-8 text-gaming-primary" />
-      Loading joined users...
-    </div>
-  );
-  if (error) return <div className="py-8 text-rose-500 text-center">{error}</div>;
-  
+  // Filter users based on search term
+  const filteredUsers = useMemo(() => {
+    if (!searchTerm.trim()) return users;
+    
+    const term = searchTerm.toLowerCase().trim();
+    return users.filter(user => 
+      user.ign.toLowerCase().includes(term) ||
+      user.uid.toLowerCase().includes(term)
+    );
+  }, [users, searchTerm]);
+
+  // Filter teams based on search term
+  const filteredTeams = useMemo(() => {
+    if (!searchTerm.trim()) return teams;
+    
+    const term = searchTerm.toLowerCase().trim();
+    return teams.filter(team => {
+      // Search in team name, tag, leader IGN/UID, and member IGN/UID
+      const teamMatches = team.teamName.toLowerCase().includes(term) ||
+                         team.teamTag.toLowerCase().includes(term) ||
+                         team.leaderIgn.toLowerCase().includes(term) ||
+                         team.leaderUid.toLowerCase().includes(term);
+      
+      const memberMatches = team.members.some(member =>
+        member.ign.toLowerCase().includes(term) ||
+        member.uid.toLowerCase().includes(term)
+      );
+      
+      return teamMatches || memberMatches;
+    });
+  }, [teams, searchTerm]);
+
   const hasParticipants = users.length > 0 || teams.length > 0;
+  const hasFilteredResults = filteredUsers.length > 0 || filteredTeams.length > 0;
   const totalParticipants = users.length + teams.reduce((sum, team) => sum + team.totalMembers, 0);
+  const filteredTotalParticipants = filteredUsers.length + filteredTeams.reduce((sum, team) => sum + team.totalMembers, 0);
   
-  if (!hasParticipants) return (
-    <div className="py-12 flex flex-col items-center text-gaming-muted">
-      {tournamentMode === "Solo" ? (
-        <User className="mb-2 h-10 w-10 opacity-50" />
-      ) : (
-        <Users className="mb-2 h-10 w-10 opacity-50" />
-      )}
-      <span>No {tournamentMode === "Solo" ? "users" : "teams"} have joined yet.</span>
-    </div>
-  );
+  // Handle loading state
+  if (loading) {
+    return (
+      <div className="py-8 flex flex-col items-center text-gaming-muted">
+        <LoaderIcon className="animate-spin mb-2 h-8 w-8 text-gaming-primary" />
+        Loading joined users...
+      </div>
+    );
+  }
+
+  // Handle error state
+  if (error) {
+    return <div className="py-8 text-rose-500 text-center">{error}</div>;
+  }
+  
+  // Handle no participants
+  if (!hasParticipants) {
+    return (
+      <div className="py-12 flex flex-col items-center text-gaming-muted">
+        {tournamentMode === "Solo" ? (
+          <User className="mb-2 h-10 w-10 opacity-50" />
+        ) : (
+          <Users className="mb-2 h-10 w-10 opacity-50" />
+        )}
+        <span>No {tournamentMode === "Solo" ? "users" : "teams"} have joined yet.</span>
+      </div>
+    );
+  }
 
   return (
     <div className="mt-8 w-full">
-      <h3 className="text-xl font-bold mb-4 text-gaming-text flex items-center gap-2">
-        {tournamentMode === "Solo" ? (
-          <User className="h-6 w-6 text-gaming-primary"/>
-        ) : (
-          <Users className="h-6 w-6 text-gaming-primary"/>
-        )}
-        {tournamentMode === "Solo" ? "Joined Users" : "Joined Teams"}
-        <span className="text-sm font-medium text-gaming-muted">
-          ({tournamentMode === "Solo" ? users.length : teams.length} {tournamentMode === "Solo" ? "users" : "teams"}, {totalParticipants} total players)
-        </span>
-      </h3>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <h3 className="text-xl font-bold text-gaming-text flex items-center gap-2">
+          {tournamentMode === "Solo" ? (
+            <User className="h-6 w-6 text-gaming-primary"/>
+          ) : (
+            <Users className="h-6 w-6 text-gaming-primary"/>
+          )}
+          {tournamentMode === "Solo" ? "Joined Users" : "Joined Teams"}
+          <span className="text-sm font-medium text-gaming-muted">
+            {searchTerm ? (
+              <>({filteredTotalParticipants} of {totalParticipants} players)</>
+            ) : (
+              <>({tournamentMode === "Solo" ? users.length : teams.length} {tournamentMode === "Solo" ? "users" : "teams"}, {totalParticipants} total players)</>
+            )}
+          </span>
+        </h3>
+        
+        {/* Search Input */}
+        <div className="relative w-full sm:w-80">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Search className="h-4 w-4 text-gaming-muted" />
+          </div>
+          <input
+            type="text"
+            placeholder={`Search by ${tournamentMode === "Solo" ? "IGN or UID" : "team name, IGN, or UID"}...`}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-10 py-2 bg-gaming-card border border-gaming-border rounded-lg text-gaming-text placeholder-gaming-muted focus:outline-none focus:ring-2 focus:ring-gaming-primary focus:border-transparent transition-all"
+          />
+          {searchTerm && (
+            <button
+              type="button"
+              aria-label="Clear search"
+              onClick={() => setSearchTerm("")}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-gaming-muted hover:text-gaming-primary transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      </div>
       
+      {/* No search results message */}
+      {searchTerm && !hasFilteredResults && (
+        <div className="py-12 flex flex-col items-center text-gaming-muted">
+          <Search className="mb-2 h-10 w-10 opacity-50" />
+          <span>No {tournamentMode === "Solo" ? "users" : "teams"} found matching "{searchTerm}"</span>
+          <button
+            onClick={() => setSearchTerm("")}
+            className="mt-2 text-gaming-primary hover:text-gaming-primary/80 transition-colors"
+          >
+            Clear search
+          </button>
+        </div>
+      )}
+
       {/* Render Teams for team tournaments */}
-      {teams.length > 0 && (
+      {filteredTeams.length > 0 && (
         <div className="overflow-hidden">
           {/* Team List */}
           <AnimatePresence>
             <motion.div className="space-y-4">
-              {teams.map((team, idx) => {
+              {filteredTeams.map((team, idx) => {
                 const isDuo = team.totalMembers === 2;
                 return (
                 <motion.div
@@ -324,7 +413,7 @@ const JoinedUsersList: React.FC<JoinedUsersListProps> = ({ participantUids, tour
       )}
 
       {/* Render Individual Users for solo tournaments */}
-      {users.length > 0 && (
+      {filteredUsers.length > 0 && (
         <div className="overflow-hidden">
           {/* Table Header */}
           <div className="hidden md:grid grid-cols-[40px_1fr_1fr_1fr] gap-4 px-4 py-2 text-sm font-semibold text-gaming-muted uppercase tracking-wider items-center">
@@ -337,7 +426,7 @@ const JoinedUsersList: React.FC<JoinedUsersListProps> = ({ participantUids, tour
           {/* User List */}
           <AnimatePresence>
             <motion.div className="space-y-3">
-              {users.map((user, idx) => (
+              {filteredUsers.map((user, idx) => (
                 <motion.div
                   key={user.id}
                   layout
